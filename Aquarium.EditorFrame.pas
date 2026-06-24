@@ -25,7 +25,8 @@ uses
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Objects,
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.Layouts, FMX.Edit, FMX.ListBox,
   FMX.Types3D, FMX.Controls3D,
-  Gorilla.Viewport, Gorilla.Mesh, Gorilla.Model, Gorilla.DefTypes,
+  Gorilla.Viewport, Gorilla.Mesh, Gorilla.Model, Gorilla.DefTypes, Gorilla.Control,
+  Gorilla.Terrain,
   Aquarium.Elements;
 
 type
@@ -94,6 +95,7 @@ type
     FLibrary  : TAquariumLibrary;     // gespeicherte Elemente (Eigentum des Frames)
     FViewport : TGorillaViewport;     // 3D-Viewport (Eigentum des Formulars)
     FRock     : TGorillaModel;        // Auflageflaeche fuer Pflanzen/Korallen
+    FTerrain  : TGorillaTerrain;
     FHost     : TControl;             // Popup-Flaeche, die der Frame ausblenden darf
 
     // Zeichen-Zustand
@@ -165,6 +167,7 @@ begin
   FScene    := AScene;
   FViewport := AViewport;
   FRock     := ARock;
+  FTerrain  := FViewport.FindComponentDeepSearchByClass(TGorillaTerrain) as TGorillaTerrain;
   FHost     := AHost;
 
   FCurrentColor := TAlphaColorRec.Black;
@@ -551,9 +554,16 @@ begin
 
   // 2) sonst auf den Boden (analytische Ebene, schnell - Ground hat 256er
   //    Subdivisions und waere als Mesh-Raycast zu teuer)
-  if not LHave then
-    if not RayPlaneHit(AOrigin, ADir, 1, FLOOR_Y, LHit) then
-      LHit := Point3D(0, FLOOR_Y, 0);
+  if (not LHave) and Assigned(FTerrain) then
+  begin
+    if FTerrain.PickTriangle(AMousePos.X, AMousePos.Y, LRes.Intersection, LRes.Normal, A, B, C) then
+    begin
+      LHit := LRes.Intersection;
+      LHave := True;
+    end;
+//    if not RayPlaneHit(AOrigin, ADir, 1, FLOOR_Y, LHit) then
+//      LHit := Point3D(0, FLOOR_Y, 0);
+  end;
 
   // Wurzel (untere Plane-Kante) auf die Oberflaeche setzen: Mittelpunkt um
   // halbe Hoehe nach oben (Welt-Oben = -Y)

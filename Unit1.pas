@@ -70,11 +70,13 @@ implementation
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+  GorillaViewport1.GetDesignCameraController().SetPositionAndAngle(Point3D(0, 5.5, -5), TPoint3D.Zero);
   Octopus.SetHitTestValue(false);
   Octopus.AnimationManager.Current.Start;
 
   // Increase performance on raycasting operations
   (Rock.Def as TModelDef).AcquireBVH();
+  (GorillaTerrain1.Def as TMeshDef).AcquireBVH();
 
   Self.OnDestroy := FormDestroy;
 
@@ -97,6 +99,7 @@ end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
+  (GorillaTerrain1.Def as TMeshDef).ReleaseBVH();
   (Rock.Def as TModelDef).ReleaseBVH();
 
   // Erst den Editor (gibt Bibliothek frei, beendet einen evtl. laufenden

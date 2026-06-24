@@ -223,8 +223,8 @@ object Form1: TForm1
       Instances = <>
       WrapMode = Original
       MaterialSource = GorillaWaterMaterialSource1
-      SubdivisionsHeight = 128
-      SubdivisionsWidth = 128
+      SubdivisionsHeight = 192
+      SubdivisionsWidth = 192
       Quanternion = '(0.70710676908493,0,0,0.70710676908493)'
       object GorillaWaterMaterialSource1: TGorillaWaterMaterialSource
         ShadingModel = smBlinnPhong
@@ -9981,7 +9981,7 @@ object Form1: TForm1
         DepthIntensity = 0.100000001490116100
         ShoreWidth = 8.000000000000000000
         ShoreIntensity = 1.000000000000000000
-        DisplIntensity = 0.050000000745058060
+        DisplIntensity = 0.029999999329447750
         RipplesActive = True
         RippleAmplification = 0.100000001490116100
         RippleProximity = 5.000000000000000000
@@ -34252,7 +34252,7 @@ object Form1: TForm1
         Tonemapping = tmNone
         TonemappingExposure = 1.000000000000000000
         Left = 304
-        Top = 80
+        Top = 56
       end
     end
     object ToolsArea: TRectangle
@@ -34309,19 +34309,6 @@ object Form1: TForm1
       Visible = False
       XRadius = 8.000000000000000000
       YRadius = 8.000000000000000000
-    end
-    object GorillaMaterialCausticsBehaviour1: TGorillaMaterialCausticsBehaviour
-      Viewport = GorillaViewport1
-      CausticsColor = claBlack
-      Caustics = 5
-      CausticsSpeed = 2.000000000000000000
-      CausticsSeed = 225.000000000000000000
-      CausticsMix = 0.250000000000000000
-      CausticsTilingX = 4.000000000000000000
-      CausticsTilingY = 4.000000000000000000
-      ClippingPlaneDistance = -2.000000000000000000
-      ClippingPlaneNormal.Y = 1.000000000000000000
-      ClippingPlaneFade = 1.000000000000000000
     end
     object GorillaTerrain1: TGorillaTerrain
       Position.Y = 7.000000000000000000
@@ -38734,9 +38721,9 @@ object Form1: TForm1
             Format = BGRA
             InternalFormat = RGBA8
             DataType = dtUnsignedByte
-            WrapS = Clamp
-            WrapT = Clamp
-            WrapR = Clamp
+            WrapS = Repeated
+            WrapT = Repeated
+            WrapR = Repeated
             MinFilter = Linear
             MagFilter = Linear
             BorderColor = claNull
@@ -61476,9 +61463,9 @@ object Form1: TForm1
             Format = RGBA
             InternalFormat = RGBA8
             DataType = dtUnsignedByte
-            WrapS = Clamp
-            WrapT = Clamp
-            WrapR = Clamp
+            WrapS = Repeated
+            WrapT = Repeated
+            WrapR = Repeated
             MinFilter = Linear
             MagFilter = Linear
             BorderColor = claNull
@@ -81300,9 +81287,9 @@ object Form1: TForm1
             Format = RGBA
             InternalFormat = RGBA8
             DataType = dtUnsignedByte
-            WrapS = Clamp
-            WrapT = Clamp
-            WrapR = Clamp
+            WrapS = Repeated
+            WrapT = Repeated
+            WrapR = Repeated
             MinFilter = Linear
             MagFilter = Linear
             BorderColor = claNull
@@ -88274,9 +88261,9 @@ object Form1: TForm1
             Format = BGRA
             InternalFormat = RGBA8
             DataType = dtUnsignedByte
-            WrapS = Clamp
-            WrapT = Clamp
-            WrapR = Clamp
+            WrapS = Repeated
+            WrapT = Repeated
+            WrapR = Repeated
             MinFilter = Linear
             MagFilter = Linear
             BorderColor = claNull
@@ -88293,9 +88280,9 @@ object Form1: TForm1
             Format = BGRA
             InternalFormat = RGBA8
             DataType = dtUnsignedByte
-            WrapS = Clamp
-            WrapT = Clamp
-            WrapR = Clamp
+            WrapS = Repeated
+            WrapT = Repeated
+            WrapR = Repeated
             MinFilter = Linear
             MagFilter = Linear
             BorderColor = claNull
@@ -108584,9 +108571,9 @@ object Form1: TForm1
             Format = BGRA
             InternalFormat = RGBA8
             DataType = dtUnsignedByte
-            WrapS = Clamp
-            WrapT = Clamp
-            WrapR = Clamp
+            WrapS = Repeated
+            WrapT = Repeated
+            WrapR = Repeated
             MinFilter = Linear
             MagFilter = Linear
             BorderColor = claNull
@@ -125607,7 +125594,9 @@ object Form1: TForm1
         UseTexture0 = True
         UseVertexColor = False
         UseColorClipping = False
+        DisplacementX = 0.050000000745058060
         DisplacementY = 1.000000000000000000
+        DisplacementZ = 0.050000000745058060
         DisplacementDir = 0.500000000000000000
         Tonemapping = tmNone
         TonemappingExposure = 1.000000000000000000
@@ -125618,9 +125607,22 @@ object Form1: TForm1
         UsePBRAOTexture = True
         UsePBREmissiveTexture = False
         UsePBRSpecularTexture = False
-        Left = 624
-        Top = 344
+        Left = 304
+        Top = 16
       end
+    end
+    object GorillaMaterialCausticsBehaviour1: TGorillaMaterialCausticsBehaviour
+      Viewport = GorillaViewport1
+      CausticsColor = claBlack
+      Caustics = 5
+      CausticsSpeed = 2.000000000000000000
+      CausticsSeed = 225.000000000000000000
+      CausticsMix = 0.250000000000000000
+      CausticsTilingX = 4.000000000000000000
+      CausticsTilingY = 4.000000000000000000
+      ClippingPlaneDistance = -2.000000000000000000
+      ClippingPlaneNormal.Y = 1.000000000000000000
+      ClippingPlaneFade = 1.000000000000000000
     end
   end
   object GorillaRenderPassRefraction1: TGorillaRenderPassRefraction
@@ -125670,7 +125672,6 @@ object Form1: TForm1
         Control = WaterSurface
       end>
     Camera = GorillaViewport1.DesignCameraTarget.DesignCamera
-    Target = WaterSurface
     MirrorSize = 100.000000000000000000
     Left = 144
     Top = 16
