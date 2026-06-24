@@ -17,7 +17,8 @@ uses
   Gorilla.Material.Behaviour, Gorilla.Material.Behaviour.Caustics,
   Gorilla.Material.Lambert, Gorilla.Hemisphere, FMX.Objects,
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.Layouts, FMX.Edit, FMX.ListBox,
-  Gorilla.DefTypes, Aquarium.Elements, Aquarium.EditorFrame;
+  Gorilla.DefTypes, Aquarium.Elements, Aquarium.EditorFrame, Gorilla.Terrain,
+  Gorilla.Material.NormalMap, Gorilla.Bokeh;
 
 type
   TForm1 = class(TForm)
@@ -33,8 +34,6 @@ type
     GorillaRenderPassRefraction1: TGorillaRenderPassRefraction;
     GorillaRenderPassReflection1: TGorillaRenderPassReflection;
     WaterSurface: TGorillaPlane;
-    Ground: TGorillaCube;
-    GorillaPBRMaterialSource1: TGorillaPBRMaterialSource;
     GorillaAssetsManager1: TGorillaAssetsManager;
     Rock: TGorillaModel;
     GorillaMaterialCausticsBehaviour1: TGorillaMaterialCausticsBehaviour;
@@ -45,6 +44,8 @@ type
     Rectangle1: TRectangle;
     PopupArea: TRectangle;
     Label1: TLabel;
+    GorillaTerrain1: TGorillaTerrain;
+    GorillaPBRMaterialSource1: TGorillaPBRMaterialSource;
     procedure FormCreate(Sender: TObject);
     procedure Rectangle1Click(Sender: TObject);
   private
@@ -69,7 +70,10 @@ implementation
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+  Octopus.SetHitTestValue(false);
   Octopus.AnimationManager.Current.Start;
+
+  // Increase performance on raycasting operations
   (Rock.Def as TModelDef).AcquireBVH();
 
   Self.OnDestroy := FormDestroy;
@@ -93,6 +97,8 @@ end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
+  (Rock.Def as TModelDef).ReleaseBVH();
+
   // Erst den Editor (gibt Bibliothek frei, beendet einen evtl. laufenden
   // Platzierungsmodus), danach die Szene - in dieser Reihenfolge lebt die
   // Szene noch, falls der Editor sie beim Aufraeumen anspricht.

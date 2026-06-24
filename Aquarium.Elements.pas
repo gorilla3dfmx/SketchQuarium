@@ -163,6 +163,7 @@ function StrToAquariumKind(const AValue: String): TAquariumKind;
 implementation
 
 uses
+  System.RTLConsts,
   System.Generics.Defaults;
 
 const
@@ -228,7 +229,7 @@ begin
   FItems := TObjectList<TAquariumElement>.Create(True);
 
   FElementsDir  := TPath.Combine(
-    TPath.Combine(TPath.GetDocumentsPath, 'Drawquarium'), 'elements');
+    TPath.Combine(TPath.GetDocumentsPath, 'SketchQuarium'), 'elements');
   FManifestPath := TPath.Combine(FElementsDir, 'elements.idx');
 
   EnsureDirectories();
@@ -519,8 +520,8 @@ begin
   Result.UseTexture0  := True;
   // Wie ein Sprite darstellen: keine Beleuchtung/Specular, damit die Zeichnung
   // in Originalfarben erscheint und unter Wasser nicht abdunkelt.
-  Result.UseLighting  := False;
-  Result.UseSpecular  := False;
+//  Result.UseLighting  := False;
+//  Result.UseSpecular  := False;
   // Die gezeichnete Textur als Texture0. Transparente Bildbereiche bleiben
   // dank Alpha-Kanal transparent (siehe Opaque := False am Plane).
   Result.Texture := ABitmap;

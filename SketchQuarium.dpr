@@ -1,4 +1,4 @@
-program Drawquarium;
+program SketchQuarium;
 
 uses
   System.StartUpCopy,

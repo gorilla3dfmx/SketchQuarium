@@ -1,4 +1,4 @@
-unit Aquarium.EditorFrame;
+﻿unit Aquarium.EditorFrame;
 
 {
   Drawquarium - Zeicheneditor als FireMonkey-Frame
@@ -109,6 +109,10 @@ type
     FPlaceScale      : Single;             // per Mausrad einstellbare Groesse
     FLastMousePt     : TPointF;            // letzte Mausposition (fuer Mausrad)
 
+    FStoredMouseDown : TMouseEvent;
+    FStoredMouseMove : TMouseMoveEvent;
+    FStoredMouseWheel: TMouseWheelEvent;
+
     procedure CreateHintBar();
     procedure RefreshElementsList();
     procedure ClearCanvas();
@@ -120,12 +124,13 @@ type
     // Platzierungsmodus
     procedure EnterPlacement(AElement: TAquariumElement);
     procedure ExitPlacement();
-    procedure EnableMeshHitTest(AMesh: TGorillaMesh);
+
     function  CameraRay(const APt: TPointF; out AOrigin, ADir: TPoint3D): Boolean;
     function  RayPlaneHit(const AOrigin, ADir: TPoint3D; AAxis: Integer;
                 AValue: Single; out AHit: TPoint3D): Boolean;
-    function  SurfacePlacement(const AOrigin, ADir: TPoint3D): TPoint3D;
+    function  SurfacePlacement(const AMousePos: TPointF; const AOrigin, ADir: TPoint3D): TPoint3D;
     function  MouseToTankPoint(const APt: TPointF): TPoint3D;
+
     procedure ViewportMouseDown(Sender: TObject; Button: TMouseButton;
                 Shift: TShiftState; X, Y: Single);
     procedure ViewportMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Single);
@@ -423,27 +428,13 @@ end;
   Platzierungsmodus: Vorschau folgt der Maus, Linksklick platziert,
   Rechtsklick beendet den Modus.
   ---------------------------------------------------------------------------- }
-
-procedure TEditorFrame.EnableMeshHitTest(AMesh: TGorillaMesh);
-var i : Integer;
-begin
-  if not Assigned(AMesh) then
-    Exit;
-  // Der Raycast (DoInternalRayCastIntersectTriangle) testet Submeshes nur, wenn
-  // HitTest aktiv ist - daher die komplette Hierarchie freischalten.
-  AMesh.HitTest := True;
-  if Assigned(AMesh.Meshes) then
-    for i := 0 to AMesh.Meshes.Count - 1 do
-      EnableMeshHitTest(AMesh.Meshes[i]);
-end;
-
 procedure TEditorFrame.EnterPlacement(AElement: TAquariumElement);
 begin
   ExitPlacement();   // evtl. laufende Vorschau zuerst aufraeumen
 
   // Sicherstellen, dass das Stein-Modell (inkl. geladener Submeshes) per
   // Raycast getroffen werden kann.
-  EnableMeshHitTest(FRock);
+  FRock.SetHitTestValue(true);
 
   FPlacingElement := AElement;
 
@@ -457,6 +448,9 @@ begin
 
   // Maus-Events nur jetzt aktiv schalten - sonst deaktivieren sie die
   // Design-Kamera-Navigation der Viewport.
+  FStoredMouseDown  := FViewport.OnMouseDown;
+  FStoredMouseMove  := FViewport.OnMouseMove;
+  FStoredMouseWheel := FViewport.OnMouseWheel;
   FViewport.OnMouseDown := ViewportMouseDown;
   FViewport.OnMouseMove := ViewportMouseMove;
   FViewport.OnMouseWheel := ViewportMouseWheel;
@@ -468,19 +462,23 @@ end;
 procedure TEditorFrame.ExitPlacement();
 begin
   // Maus-Events wieder loesen -> Design-Navigation ist erneut aktiv.
-  if Assigned(FViewport) then
+  if Assigned(FViewport) and (@FStoredMouseDown <> nil)
+   and (@FStoredMouseMove <> nil) and (@FStoredMouseWheel <> nil) then
   begin
-    FViewport.OnMouseDown := nil;
-    FViewport.OnMouseMove := nil;
-    FViewport.OnMouseWheel := nil;
+    FViewport.OnMouseDown := FStoredMouseDown;
+    FViewport.OnMouseMove := FStoredMouseMove;
+    FViewport.OnMouseWheel := FStoredMouseWheel;
   end;
 
   if Assigned(FPreview) and Assigned(FScene) then
     FScene.Remove(FPreview);
+
   FPreview := nil;
   FPlacingElement := nil;
   if Assigned(FHintBar) then
     FHintBar.Visible := False;
+
+  FRock.SetHitTestValue(false);
 end;
 
 function TEditorFrame.CameraRay(const APt: TPointF; out AOrigin, ADir: TPoint3D): Boolean;
@@ -528,7 +526,7 @@ begin
   Result := True;
 end;
 
-function TEditorFrame.SurfacePlacement(const AOrigin, ADir: TPoint3D): TPoint3D;
+function TEditorFrame.SurfacePlacement(const AMousePos: TPointF; const AOrigin, ADir: TPoint3D): TPoint3D;
 const
   FLOOR_Y = 6.5;          // Oberkante des Ground-Cubes (Y=7, Hoehe 1)
 var
@@ -536,6 +534,7 @@ var
   LHit  : TPoint3D;
   LHave : Boolean;
   LH    : Single;
+  A,B,C : TPoint3D;
 begin
   LHave := False;
 
@@ -544,8 +543,7 @@ begin
   //    die (X,Y)-Variante von PickTriangle nutzt intern Context.Pick mit
   //    TProjection.Camera und liefert bei Design-Kamera einen falschen Strahl.
   if Assigned(FRock)
-  and FRock.PickTriangle(Vector3D(AOrigin.X, AOrigin.Y, AOrigin.Z),
-                        Vector3D(ADir.X, ADir.Y, ADir.Z), LRes) then
+  and FRock.PickTriangle(AMousePos.X, AMousePos.Y, LRes.Intersection, LRes.Normal, A, B, C) then
   begin
     LHit := LRes.Intersection;
     LHave := True;
@@ -580,7 +578,7 @@ begin
   and (FPlacingElement.Kind in [akPlant, akCoral]) then
   begin
     // Pflanzen/Korallen: auf Geometrie (Rock) bzw. Boden mit Bodenkontakt
-    Result := SurfacePlacement(LOrigin, LDir);
+    Result := SurfacePlacement(APt, LOrigin, LDir);
   end
   else
   begin
