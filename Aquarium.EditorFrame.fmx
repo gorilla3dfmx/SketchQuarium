@@ -1,0 +1,545 @@
+object EditorFrame: TEditorFrame
+  Size.Width = 1216.000000000000000000
+  Size.Height = 720.000000000000000000
+  Size.PlatformDefault = False
+  object HeaderLabel: TLabel
+    Align = Top
+    StyledSettings = [Family, FontColor]
+    Margins.Left = 16.000000000000000000
+    Margins.Top = 12.000000000000000000
+    Margins.Right = 16.000000000000000000
+    Margins.Bottom = 4.000000000000000000
+    Size.Width = 1184.000000000000000000
+    Size.Height = 32.000000000000000000
+    Size.PlatformDefault = False
+    TextSettings.Font.Size = 20.000000000000000000
+    TextSettings.Font.StyleExt = {00070000000000000004000000}
+    Text = 'Aquariumselement zeichnen'
+    TabOrder = 0
+  end
+  object LeftPanel: TRectangle
+    Align = Left
+    Fill.Color = x22FFFFFF
+    Margins.Left = 16.000000000000000000
+    Margins.Top = 8.000000000000000000
+    Margins.Right = 8.000000000000000000
+    Margins.Bottom = 16.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 280.000000000000000000
+    Size.Height = 656.000000000000000000
+    Size.PlatformDefault = False
+    Stroke.Color = x33555555
+    XRadius = 6.000000000000000000
+    YRadius = 6.000000000000000000
+    object LeftHeader: TLabel
+      Align = Top
+      StyledSettings = [Family, FontColor]
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 8.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Size.Width = 264.000000000000000000
+      Size.Height = 24.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Size = 15.000000000000000000
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      Text = 'Gespeicherte Elemente'
+      TabOrder = 0
+    end
+    object CloseBtn: TButton
+      Align = Bottom
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 8.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.Y = 616.000000000000000000
+      Size.Width = 264.000000000000000000
+      Size.Height = 38.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Schlie'#223'en'
+      OnClick = CloseEditorClick
+      TabOrder = 1
+    end
+    object DeleteBtn: TButton
+      Align = Bottom
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 8.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.Y = 570.000000000000000000
+      Size.Width = 264.000000000000000000
+      Size.Height = 38.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'L'#246'schen'
+      OnClick = DeleteClick
+      TabOrder = 2
+    end
+    object UpdateBtn: TButton
+      Align = Bottom
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 8.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.Y = 524.000000000000000000
+      Size.Width = 264.000000000000000000
+      Size.Height = 38.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Mit Zeichnung aktualisieren'
+      OnClick = UpdateClick
+      TabOrder = 3
+    end
+    object EditBtn: TButton
+      Align = Bottom
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 8.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.Y = 478.000000000000000000
+      Size.Width = 264.000000000000000000
+      Size.Height = 38.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Zum Bearbeiten laden'
+      OnClick = EditClick
+      TabOrder = 4
+    end
+    object PlaceBtn: TButton
+      Align = Bottom
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 8.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.Y = 432.000000000000000000
+      Size.Width = 264.000000000000000000
+      Size.Height = 38.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'In Aquarium platzieren'
+      OnClick = PlaceClick
+      TabOrder = 5
+    end
+    object ElementsList: TListBox
+      Align = Client
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 4.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Margins.Bottom = 4.000000000000000000
+      Size.Width = 264.000000000000000000
+      Size.Height = 352.000000000000000000
+      Size.PlatformDefault = False
+      ItemHeight = 56.000000000000000000
+      TabOrder = 6
+      DisableFocusEffect = True
+    end
+  end
+  object RightPanel: TRectangle
+    Align = Right
+    Fill.Color = x22FFFFFF
+    Margins.Left = 8.000000000000000000
+    Margins.Top = 8.000000000000000000
+    Margins.Right = 16.000000000000000000
+    Margins.Bottom = 16.000000000000000000
+    Position.X = 940.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 260.000000000000000000
+    Size.Height = 656.000000000000000000
+    Size.PlatformDefault = False
+    Stroke.Color = x33555555
+    XRadius = 6.000000000000000000
+    YRadius = 6.000000000000000000
+    object ArtLabel: TLabel
+      Align = Top
+      StyledSettings = [Family, FontColor]
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 8.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Size.Width = 244.000000000000000000
+      Size.Height = 24.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Size = 15.000000000000000000
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      Text = 'Art'
+      TabOrder = 0
+    end
+    object KindCombo: TComboBox
+      Align = Top
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 4.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.Y = 36.000000000000000000
+      Size.Width = 244.000000000000000000
+      Size.Height = 34.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      Items.Strings = (
+        'Fisch'
+        'Qualle'
+        'Pflanze'
+        'Koralle')
+      ItemIndex = 0
+    end
+    object NameLabel: TLabel
+      Align = Top
+      StyledSettings = [Family, FontColor]
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 8.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.Y = 74.000000000000000000
+      Size.Width = 244.000000000000000000
+      Size.Height = 24.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Size = 15.000000000000000000
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      Text = 'Name'
+      TabOrder = 2
+    end
+    object NameEdit: TEdit
+      Align = Top
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 4.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.Y = 102.000000000000000000
+      Size.Width = 244.000000000000000000
+      Size.Height = 34.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 3
+      TextPrompt = 'z.B. Nemo'
+    end
+    object ColorLabel: TLabel
+      Align = Top
+      StyledSettings = [Family, FontColor]
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 8.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.Y = 140.000000000000000000
+      Size.Width = 244.000000000000000000
+      Size.Height = 24.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Size = 15.000000000000000000
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      Text = 'Farbe'
+      TabOrder = 4
+    end
+    object ColorRow: TFlowLayout
+      Align = Top
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 4.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.Y = 168.000000000000000000
+      Size.Width = 244.000000000000000000
+      Size.Height = 100.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 5
+      object SwatchBlack: TRectangle
+        Cursor = crHandPoint
+        Fill.Color = claBlack
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 26.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = ColorSwatchClick
+      end
+      object SwatchWhite: TRectangle
+        Cursor = crHandPoint
+        Fill.Color = claWhite
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 26.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = ColorSwatchClick
+      end
+      object SwatchRed: TRectangle
+        Cursor = crHandPoint
+        Fill.Color = claRed
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 26.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = ColorSwatchClick
+      end
+      object SwatchOrange: TRectangle
+        Cursor = crHandPoint
+        Fill.Color = claOrange
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 26.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = ColorSwatchClick
+      end
+      object SwatchGold: TRectangle
+        Cursor = crHandPoint
+        Fill.Color = claGold
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 26.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = ColorSwatchClick
+      end
+      object SwatchYellow: TRectangle
+        Cursor = crHandPoint
+        Fill.Color = claYellow
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 26.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = ColorSwatchClick
+      end
+      object SwatchLime: TRectangle
+        Cursor = crHandPoint
+        Fill.Color = claLimegreen
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 26.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = ColorSwatchClick
+      end
+      object SwatchGreen: TRectangle
+        Cursor = crHandPoint
+        Fill.Color = claGreen
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 26.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = ColorSwatchClick
+      end
+      object SwatchSky: TRectangle
+        Cursor = crHandPoint
+        Fill.Color = claDeepskyblue
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 26.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = ColorSwatchClick
+      end
+      object SwatchBlue: TRectangle
+        Cursor = crHandPoint
+        Fill.Color = claBlue
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 26.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = ColorSwatchClick
+      end
+      object SwatchPurple: TRectangle
+        Cursor = crHandPoint
+        Fill.Color = claPurple
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 26.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = ColorSwatchClick
+      end
+      object SwatchMagenta: TRectangle
+        Cursor = crHandPoint
+        Fill.Color = claMagenta
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 26.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = ColorSwatchClick
+      end
+      object SwatchBrown: TRectangle
+        Cursor = crHandPoint
+        Fill.Color = claSaddlebrown
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 26.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = ColorSwatchClick
+      end
+      object SwatchPink: TRectangle
+        Cursor = crHandPoint
+        Fill.Color = claPink
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 26.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = ColorSwatchClick
+      end
+    end
+    object BrushLabel: TLabel
+      Align = Top
+      StyledSettings = [Family, FontColor]
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 8.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.Y = 272.000000000000000000
+      Size.Width = 244.000000000000000000
+      Size.Height = 24.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Size = 15.000000000000000000
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      Text = 'Pinselgr'#246#223'e'
+      TabOrder = 7
+    end
+    object BrushSize: TTrackBar
+      Align = Top
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 4.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.Y = 300.000000000000000000
+      Size.Width = 244.000000000000000000
+      Size.Height = 34.000000000000000000
+      Size.PlatformDefault = False
+      Max = 60.000000000000000000
+      Min = 1.000000000000000000
+      Value = 14.000000000000000000
+      TabOrder = 8
+    end
+    object EraserBtn: TButton
+      Align = Top
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 8.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.Y = 342.000000000000000000
+      Size.Width = 244.000000000000000000
+      Size.Height = 38.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Radierer'
+      OnClick = EraserClick
+      TabOrder = 9
+    end
+    object ClearBtn: TButton
+      Align = Top
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 8.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.Y = 388.000000000000000000
+      Size.Width = 244.000000000000000000
+      Size.Height = 38.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Leeren'
+      OnClick = ClearClick
+      TabOrder = 10
+    end
+    object AcceptBtn: TButton
+      Align = Top
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 8.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.Y = 434.000000000000000000
+      Size.Width = 244.000000000000000000
+      Size.Height = 38.000000000000000000
+      Size.PlatformDefault = False
+      Text = #220'bernehmen && Speichern'
+      OnClick = AcceptClick
+      TabOrder = 11
+    end
+  end
+  object CenterPanel: TRectangle
+    Align = Client
+    Fill.Kind = None
+    Margins.Left = 8.000000000000000000
+    Margins.Top = 8.000000000000000000
+    Margins.Right = 8.000000000000000000
+    Margins.Bottom = 16.000000000000000000
+    Position.X = 304.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 628.000000000000000000
+    Size.Height = 656.000000000000000000
+    Size.PlatformDefault = False
+    Stroke.Kind = None
+    object CanvasBg: TRectangle
+      Align = Center
+      Fill.Color = claWhite
+      Size.Width = 560.000000000000000000
+      Size.Height = 560.000000000000000000
+      Size.PlatformDefault = False
+      Stroke.Color = x66333333
+      Stroke.Thickness = 2.000000000000000000
+      XRadius = 6.000000000000000000
+      YRadius = 6.000000000000000000
+      object CanvasImage: TImage
+        Align = Client
+        HitTest = True
+        Margins.Left = 4.000000000000000000
+        Margins.Top = 4.000000000000000000
+        Margins.Right = 4.000000000000000000
+        Margins.Bottom = 4.000000000000000000
+        Size.Width = 552.000000000000000000
+        Size.Height = 552.000000000000000000
+        Size.PlatformDefault = False
+        WrapMode = Stretch
+        OnMouseDown = CanvasMouseDown
+        OnMouseMove = CanvasMouseMove
+        OnMouseUp = CanvasMouseUp
+      end
+    end
+  end
+end

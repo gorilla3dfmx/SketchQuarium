@@ -126,22 +126,6 @@ object Form1: TForm1
         WrapMode = Original
         MaterialSource = AquariumWallMaterial
       end
-      object FrontWall: TGorillaCube
-        HitTest = False
-        Position.Z = -10.000000000000000000
-        Width = 20.000000000000000000
-        Height = 10.000000000000000000
-        Depth = 0.300000011920929000
-        Opaque = False
-        Opacity = 0.150000005960464500
-        FrustumCullingCheck = True
-        ShowNormals = False
-        Wireframe = False
-        Shadows = False
-        Instances = <>
-        WrapMode = Original
-        MaterialSource = AquariumWallMaterial
-      end
       object AquariumWallMaterial: TGorillaBlinnMaterialSource
         ShadingModel = smBlinnPhong
         ShadingIntensity = 1.000000000000000000
@@ -330987,36 +330971,6 @@ object Form1: TForm1
     Left = 144
     Top = 16
   end
-  object GorillaRenderPassUnderwater1: TGorillaRenderPassUnderwater
-    Enabled = True
-    Id = 'GorillaRenderPassUnderwater1'
-    _Type = Post
-    Method = RectToFBO
-    RenderProc = DefaultRendering
-    Viewport = GorillaViewport1
-    Iterations = 1
-    ViewportWidth = 1280
-    ViewportHeight = 720
-    OverwriteViewportSize = False
-    ScaleViewportSize = False
-    ViewportScale = 1.000000000000000000
-    OverwriteColor = False
-    BackgroundColor = claDarkslategray
-    AllowedControls = <>
-    IgnoredControls = <>
-    TransitionBand = 0.349999994039535500
-    Intensity = 0.750000000000000000
-    TintColor = claAliceblue
-    Distortion = 0.100000001490116100
-    Fisheye = 0.250000000000000000
-    Density = 0.050000000745058060
-    Caustics = 0.150000005960464500
-    Vignette = 1.000000000000000000
-    WaveScale = 12.000000000000000000
-    WaveSpeed = 1.200000047683716000
-    Left = 304
-    Top = 48
-  end
   object GorillaAssetsManager1: TGorillaAssetsManager
     LOD = LowQuality
     Packages = <
@@ -331064,8 +331018,8 @@ object Form1: TForm1
             AssetClassName = 'TGorillaSkillsAsset'
           end>
         Filename = 
-          'E:\delphi\projects\wax\lib\gorilla\github\Drawquarium\package.zi' +
-          'p'
+          'E:\delphi\projects\wax\lib\gorilla\github\DrawquariumClone\packa' +
+          'ge.zip'
       end>
     Left = 144
     Top = 80
