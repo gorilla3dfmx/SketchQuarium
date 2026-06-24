@@ -1,4 +1,4 @@
-# Drawquarium
+# SketchQuarium
 
 Ein kleines Spiel/Experiment, in dem man Aquariumselemente – **Fische, Quallen,
 Pflanzen und Korallen** – selbst zeichnet und sie anschließend als animierte
