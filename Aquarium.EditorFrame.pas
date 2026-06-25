@@ -61,6 +61,12 @@ type
     SwatchMagenta: TRectangle;
     SwatchBrown: TRectangle;
     SwatchPink: TRectangle;
+    BrushTypeLabel: TLabel;
+    BrushRow: TFlowLayout;
+    BrushRound: TRectangle;
+    BrushSoft: TRectangle;
+    BrushExtraSoft: TRectangle;
+    BrushElongated: TRectangle;
     BrushLabel: TLabel;
     BrushSize: TTrackBar;
     EraserBtn: TButton;
@@ -79,6 +85,7 @@ type
 
     // Werkzeuge
     procedure ColorSwatchClick(Sender: TObject);
+    procedure BrushSwatchClick(Sender: TObject);
     procedure EraserClick(Sender: TObject);
     procedure ClearClick(Sender: TObject);
     procedure AcceptClick(Sender: TObject);
@@ -99,9 +106,21 @@ type
 
     // Zeichen-Zustand
     FCurrentColor : TAlphaColor;
+    FBrushType    : Integer;          // 0 = rund, 1 = sehr weich, 2 = laenglich
     FEraser       : Boolean;
     FDrawing      : Boolean;
     FLastPt       : TPointF;
+
+    // aktuell umrahmte (selektierte) Felder fuer Farbe bzw. Pinsel
+    FSelColorSwatch : TRectangle;
+    FSelBrushSwatch : TRectangle;
+
+    // Zustand fuer den weichen Pinsel: ein Schnappschuss des Bildes zu
+    // Strichbeginn plus ein Deckungspuffer. So laesst sich der Strich aus der
+    // Basis neu zusammensetzen und es entsteht kein Farbaufbau an Ueberlappungen.
+    FStrokeActive : Boolean;
+    FStrokeBase   : TBitmap;
+    FStrokeCov    : TArray<Single>;
 
     // Platzierungsmodus
     FHintBar         : TRectangle;
@@ -118,8 +137,19 @@ type
     procedure RefreshElementsList();
     procedure ClearCanvas();
 
+    // Pinselvorschauen aufbauen und Auswahlrahmen verwalten
+    procedure BuildBrushPreviews();
+    procedure SelectColorSwatch(ASwatch: TRectangle);
+    procedure SelectBrushSwatch(ASwatch: TRectangle);
+
     function  ImageToBitmap(const APt: TPointF): TPointF;
     procedure StrokeTo(const APt: TPointF);
+    procedure StrokeRound(const A, B: TPointF);
+    procedure StrokeSoft(const A, B: TPointF);
+    procedure StrokeExtraSoft(const A, B: TPointF);
+    procedure SoftStrokeCore(const A, B: TPointF; AScale, ACoreFrac, APeak: Single);
+    procedure StrokeElongated(const A, B: TPointF);
+    procedure BeginSoftStroke();
     procedure EraseAt(const APt: TPointF);
 
     // Platzierungsmodus
@@ -158,6 +188,24 @@ implementation
 const
   CANVAS_PX = 600;   // Pixelaufloesung der Zeichenflaeche (quadratisch)
 
+  // Rahmen der anklickbaren Felder (Farben + Pinsel)
+  SWATCH_STROKE_DEF = TAlphaColor($FF808080);   // Standardrahmen (grau)
+  SWATCH_STROKE_SEL = TAlphaColor($FF2196F3);   // Auswahlrahmen (kraeftiges Blau)
+  SWATCH_THICK_DEF  = 1.0;
+  SWATCH_THICK_SEL  = 3.0;
+
+  PREVIEW_INK = TAlphaColor($FF20272E);          // Vorschaufarbe der Pinselstempel
+
+  // Weicher Pinsel: etwas groesser als die eingestellte Groesse und mit einem
+  // voll deckenden Kern, damit die Mitte fuelliger wirkt.
+  SOFT_SCALE = 1.35;    // Radius-Faktor bei der Benutzung
+  SOFT_CORE  = 0.45;    // Anteil des voll deckenden Kerns am Radius
+
+  // Extra weicher Pinsel: noch groesser, ohne deckenden Kern und mit
+  // reduzierter Spitzendeckung -> sehr zarter, hauchiger Auftrag.
+  XSOFT_SCALE = 1.7;    // Radius-Faktor (noch groesser)
+  XSOFT_PEAK  = 0.6;    // maximale Deckung in der Mitte (< 1 -> weicher)
+
 { ----------------------------------------------------------------------------
   Initialisierung / Aufraeumen
   ---------------------------------------------------------------------------- }
@@ -172,6 +220,7 @@ begin
   FControls3D := TList<TGorillaMesh>.Create();
 
   FCurrentColor := TAlphaColorRec.Black;
+  FBrushType    := 0;
   FEraser       := False;
   FPlaceScale   := 1.0;
 
@@ -181,6 +230,11 @@ begin
   CreateHintBar();
   ClearCanvas();
   RefreshElementsList();
+
+  // Pinselvorschauen rendern und Startauswahl (Schwarz / runder Pinsel) rahmen
+  BuildBrushPreviews();
+  SelectColorSwatch(SwatchBlack);
+  SelectBrushSwatch(BrushRound);
 end;
 
 destructor TEditorFrame.Destroy();
@@ -190,6 +244,7 @@ begin
   ExitPlacement();
   FControls3D.Free();
   FLibrary.Free();
+  FStrokeBase.Free();
   inherited;
 end;
 
@@ -287,6 +342,132 @@ begin
 end;
 
 { ----------------------------------------------------------------------------
+  Pinselvorschauen + Auswahlrahmen
+  ---------------------------------------------------------------------------- }
+
+procedure TEditorFrame.BuildBrushPreviews();
+
+  // Zeichnet in das Pinselfeld eine kleine, repraesentative Vorschau des
+  // jeweiligen Pinselstempels (rund / weich / laenglich).
+  procedure MakePreview(ASwatch: TRectangle; AKind: Integer);
+  var
+    LImg : TImage;
+    bmp  : TBitmap;
+    cx, cy, r : Single;
+    m  : TMatrix;
+    gp : TGradientPoint;
+    softInk : TAlphaColor;
+  begin
+    if not Assigned(ASwatch) then
+      Exit;
+
+    LImg := TImage.Create(ASwatch);
+    LImg.Parent := ASwatch;
+    LImg.Align := TAlignLayout.Client;
+    LImg.Margins.Rect := RectF(5, 5, 5, 5);
+    LImg.HitTest := False;             // Klick faellt auf das Rechteck zurueck
+    LImg.WrapMode := TImageWrapMode.Fit;
+
+    bmp := LImg.Bitmap;
+    bmp.SetSize(64, 64);
+    bmp.Clear(TAlphaColorRec.Null);
+    cx := 32; cy := 32; r := 22;
+
+    if bmp.Canvas.BeginScene() then
+    try
+      case AKind of
+        1: // sehr weich: radialer Verlauf von voller Deckung nach transparent
+          begin
+            bmp.Canvas.Fill.Kind := TBrushKind.Gradient;
+            bmp.Canvas.Fill.Gradient.Style := TGradientStyle.Radial;
+            bmp.Canvas.Fill.Gradient.Points.Clear();
+            gp := TGradientPoint(bmp.Canvas.Fill.Gradient.Points.Add());
+            gp.Color := PREVIEW_INK;          gp.Offset := 0;
+            gp := TGradientPoint(bmp.Canvas.Fill.Gradient.Points.Add());
+            gp.Color := PREVIEW_INK;          gp.Offset := SOFT_CORE;   // voller Kern
+            gp := TGradientPoint(bmp.Canvas.Fill.Gradient.Points.Add());
+            gp.Color := TAlphaColorRec.Null;  gp.Offset := 1;
+            bmp.Canvas.FillEllipse(RectF(cx - r, cy - r, cx + r, cy + r), 1);
+          end;
+
+        2: // laenglich: um 45 Grad gedrehte, schmale Ellipse (kalligrafisch)
+          begin
+            bmp.Canvas.Fill.Kind := TBrushKind.Solid;
+            bmp.Canvas.Fill.Color := PREVIEW_INK;
+            m := TMatrix.CreateRotation(45 * Pi / 180)
+               * TMatrix.CreateTranslation(cx, cy);
+            bmp.Canvas.SetMatrix(m);
+            bmp.Canvas.FillEllipse(RectF(-r, -r * 0.32, r, r * 0.32), 1);
+            bmp.Canvas.SetMatrix(TMatrix.Identity);
+          end;
+
+        3: // extra weich: kernloser, zarter Verlauf mit reduzierter Spitze
+          begin
+            // Mittelpunktfarbe auf die reduzierte Spitzendeckung setzen.
+            softInk := (PREVIEW_INK and $00FFFFFF)
+                     or (TAlphaColor(Round(XSOFT_PEAK * 255)) shl 24);
+            bmp.Canvas.Fill.Kind := TBrushKind.Gradient;
+            bmp.Canvas.Fill.Gradient.Style := TGradientStyle.Radial;
+            bmp.Canvas.Fill.Gradient.Points.Clear();
+            gp := TGradientPoint(bmp.Canvas.Fill.Gradient.Points.Add());
+            gp.Color := softInk;              gp.Offset := 0;
+            gp := TGradientPoint(bmp.Canvas.Fill.Gradient.Points.Add());
+            gp.Color := TAlphaColorRec.Null;  gp.Offset := 1;
+            bmp.Canvas.FillEllipse(RectF(cx - r, cy - r, cx + r, cy + r), 1);
+          end;
+      else // rund: voller Kreis
+        begin
+          bmp.Canvas.Fill.Kind := TBrushKind.Solid;
+          bmp.Canvas.Fill.Color := PREVIEW_INK;
+          bmp.Canvas.FillEllipse(RectF(cx - r, cy - r, cx + r, cy + r), 1);
+        end;
+      end;
+    finally
+      bmp.Canvas.EndScene();
+    end;
+    LImg.Repaint();
+  end;
+
+begin
+  MakePreview(BrushRound,     0);
+  MakePreview(BrushSoft,      1);
+  MakePreview(BrushExtraSoft, 3);
+  MakePreview(BrushElongated, 2);
+end;
+
+procedure TEditorFrame.SelectColorSwatch(ASwatch: TRectangle);
+begin
+  if not Assigned(ASwatch) then
+    Exit;
+  FCurrentColor := ASwatch.Fill.Color;
+
+  if Assigned(FSelColorSwatch) then
+  begin
+    FSelColorSwatch.Stroke.Color := SWATCH_STROKE_DEF;
+    FSelColorSwatch.Stroke.Thickness := SWATCH_THICK_DEF;
+  end;
+  FSelColorSwatch := ASwatch;
+  ASwatch.Stroke.Color := SWATCH_STROKE_SEL;
+  ASwatch.Stroke.Thickness := SWATCH_THICK_SEL;
+end;
+
+procedure TEditorFrame.SelectBrushSwatch(ASwatch: TRectangle);
+begin
+  if not Assigned(ASwatch) then
+    Exit;
+  FBrushType := Integer(ASwatch.Tag);
+
+  if Assigned(FSelBrushSwatch) then
+  begin
+    FSelBrushSwatch.Stroke.Color := SWATCH_STROKE_DEF;
+    FSelBrushSwatch.Stroke.Thickness := SWATCH_THICK_DEF;
+  end;
+  FSelBrushSwatch := ASwatch;
+  ASwatch.Stroke.Color := SWATCH_STROKE_SEL;
+  ASwatch.Stroke.Thickness := SWATCH_THICK_SEL;
+end;
+
+{ ----------------------------------------------------------------------------
   Zeichnen
   ---------------------------------------------------------------------------- }
 
@@ -299,7 +480,59 @@ begin
   Result.Y := APt.Y / CanvasImage.Height * CanvasImage.Bitmap.Height;
 end;
 
+// Abstand eines Punktes zur Strecke A..B (fuer die weiche Pinselkante).
+function DistPointToSegment(const P, A, B: TPointF): Single;
+var vx, vy, wx, wy, c1, c2, t : Single;
+begin
+  vx := B.X - A.X; vy := B.Y - A.Y;
+  wx := P.X - A.X; wy := P.Y - A.Y;
+  c1 := vx * wx + vy * wy;
+  if c1 <= 0 then
+    Exit(Sqrt(wx * wx + wy * wy));
+  c2 := vx * vx + vy * vy;
+  if c2 <= c1 then
+    Exit(Sqrt(Sqr(P.X - B.X) + Sqr(P.Y - B.Y)));
+  t := c1 / c2;
+  Result := Sqrt(Sqr(P.X - (A.X + t * vx)) + Sqr(P.Y - (A.Y + t * vy)));
+end;
+
+// "Over"-Komposition: Quelle (mit Deckung ACov) auf den Basispixel legen und
+// das Ergebnis in den Zielpuffer schreiben (gerade Alpha-Werte, kein Aufbau).
+procedure CompositeOver(var ADst, ABase: TBitmapData; X, Y: Integer;
+  const ASrc: TAlphaColorRec; ACov: Single);
+var
+  base, outc : TAlphaColorRec;
+  sa, da, oa : Single;
+begin
+  sa := (ASrc.A / 255) * ACov;
+  base := TAlphaColorRec(ABase.GetPixel(X, Y));
+  da := base.A / 255;
+  oa := sa + da * (1 - sa);
+  if oa <= 0.0001 then
+  begin
+    ADst.SetPixel(X, Y, TAlphaColorRec.Null);
+    Exit;
+  end;
+  outc.A := Round(oa * 255);
+  outc.R := Round((ASrc.R * sa + base.R * da * (1 - sa)) / oa);
+  outc.G := Round((ASrc.G * sa + base.G * da * (1 - sa)) / oa);
+  outc.B := Round((ASrc.B * sa + base.B * da * (1 - sa)) / oa);
+  ADst.SetPixel(X, Y, outc.Color);
+end;
+
 procedure TEditorFrame.StrokeTo(const APt: TPointF);
+begin
+  // Pinselart: 1 = weich, 2 = laenglich, 3 = extra weich, sonst (0) = rund.
+  case FBrushType of
+    1: StrokeSoft(FLastPt, APt);
+    2: StrokeElongated(FLastPt, APt);
+    3: StrokeExtraSoft(FLastPt, APt);
+  else
+    StrokeRound(FLastPt, APt);
+  end;
+end;
+
+procedure TEditorFrame.StrokeRound(const A, B: TPointF);
 var r : Single;
 begin
   r := BrushSize.Value / 2;
@@ -310,12 +543,141 @@ begin
     CanvasImage.Bitmap.Canvas.Stroke.Thickness := BrushSize.Value;
     CanvasImage.Bitmap.Canvas.Stroke.Cap := TStrokeCap.Round;
     CanvasImage.Bitmap.Canvas.Stroke.Join := TStrokeJoin.Round;
-    CanvasImage.Bitmap.Canvas.DrawLine(FLastPt, APt, 1);
+    CanvasImage.Bitmap.Canvas.DrawLine(A, B, 1);
     // Punkt am Ende sichern (sonst fehlen Einzelklicks / Kurvenenden)
     CanvasImage.Bitmap.Canvas.Fill.Kind := TBrushKind.Solid;
     CanvasImage.Bitmap.Canvas.Fill.Color := FCurrentColor;
     CanvasImage.Bitmap.Canvas.FillEllipse(
-      RectF(APt.X - r, APt.Y - r, APt.X + r, APt.Y + r), 1);
+      RectF(B.X - r, B.Y - r, B.X + r, B.Y + r), 1);
+  finally
+    CanvasImage.Bitmap.Canvas.EndScene();
+  end;
+  CanvasImage.Repaint();
+end;
+
+procedure TEditorFrame.BeginSoftStroke();
+var n : Integer;
+begin
+  // Basis-Schnappschuss + Deckungspuffer fuer einen aufbaufreien weichen Strich.
+  if not Assigned(FStrokeBase) then
+    FStrokeBase := TBitmap.Create();
+  FStrokeBase.Assign(CanvasImage.Bitmap);
+
+  n := CanvasImage.Bitmap.Width * CanvasImage.Bitmap.Height;
+  if Length(FStrokeCov) <> n then
+    SetLength(FStrokeCov, n);
+  if n > 0 then
+    FillChar(FStrokeCov[0], n * SizeOf(Single), 0);
+
+  FStrokeActive := True;
+end;
+
+procedure TEditorFrame.StrokeSoft(const A, B: TPointF);
+begin
+  // Voller Kern, volle Spitzendeckung.
+  SoftStrokeCore(A, B, SOFT_SCALE, SOFT_CORE, 1.0);
+end;
+
+procedure TEditorFrame.StrokeExtraSoft(const A, B: TPointF);
+begin
+  // Kein Kern, reduzierte Spitzendeckung -> deutlich weicher/hauchiger.
+  SoftStrokeCore(A, B, XSOFT_SCALE, 0.0, XSOFT_PEAK);
+end;
+
+procedure TEditorFrame.SoftStrokeCore(const A, B: TPointF;
+  AScale, ACoreFrac, APeak: Single);
+var
+  LDst, LBase    : TBitmapData;
+  r, core, d, f, cov : Single;
+  W, H, x0, y0, x1, y1, xx, yy, idx : Integer;
+  src : TAlphaColorRec;
+begin
+  if not FStrokeActive then
+    BeginSoftStroke();
+
+  r := BrushSize.Value / 2 * AScale;        // bei Benutzung groesser
+  if r < 1 then r := 1;
+  core := r * ACoreFrac;                     // voll deckender Kern (0 = keiner)
+  W := CanvasImage.Bitmap.Width;
+  H := CanvasImage.Bitmap.Height;
+
+  // Nur die betroffene Umgebung der Strecke bearbeiten.
+  x0 := Max(0,     Floor(Min(A.X, B.X) - r));
+  y0 := Max(0,     Floor(Min(A.Y, B.Y) - r));
+  x1 := Min(W - 1, Ceil (Max(A.X, B.X) + r));
+  y1 := Min(H - 1, Ceil (Max(A.Y, B.Y) + r));
+  if (x1 < x0) or (y1 < y0) then
+    Exit;
+
+  if not FStrokeBase.Map(TMapAccess.Read, LBase) then
+    Exit;
+  try
+    if not CanvasImage.Bitmap.Map(TMapAccess.ReadWrite, LDst) then
+      Exit;
+    try
+      src := TAlphaColorRec(FCurrentColor);
+      for yy := y0 to y1 do
+        for xx := x0 to x1 do
+        begin
+          d := DistPointToSegment(PointF(xx + 0.5, yy + 0.5), A, B);
+          if d >= r then
+            Continue;
+          // Voller Kern in der Mitte, dann weiche Smoothstep-Kante nach aussen.
+          if d <= core then
+            cov := APeak
+          else
+          begin
+            f := (r - d) / (r - core);          // 1 am Kernrand -> 0 am Aussenrand
+            cov := f * f * (3 - 2 * f) * APeak; // smoothstep, auf Spitzendeckung skaliert
+          end;
+          idx := yy * W + xx;
+          // Hoechste bisher erreichte Deckung halten -> kein Aufbau im Strich.
+          if cov > FStrokeCov[idx] then
+          begin
+            FStrokeCov[idx] := cov;
+            CompositeOver(LDst, LBase, xx, yy, src, cov);
+          end;
+        end;
+    finally
+      CanvasImage.Bitmap.Unmap(LDst);
+    end;
+  finally
+    FStrokeBase.Unmap(LBase);
+  end;
+  CanvasImage.Repaint();
+end;
+
+procedure TEditorFrame.StrokeElongated(const A, B: TPointF);
+const
+  NIB_ANGLE = 45 * Pi / 180;   // feste Neigung -> kalligrafischer Strichcharakter
+var
+  hl, hw, len, step, t, cx, cy : Single;
+  steps, i : Integer;
+  m : TMatrix;
+begin
+  hl := Max(1.0, BrushSize.Value / 2);       // halbe Laenge (lange Achse)
+  hw := Max(0.6, BrushSize.Value * 0.16);    // halbe Breite (schmale Achse)
+
+  if CanvasImage.Bitmap.Canvas.BeginScene() then
+  try
+    CanvasImage.Bitmap.Canvas.Fill.Kind := TBrushKind.Solid;
+    CanvasImage.Bitmap.Canvas.Fill.Color := FCurrentColor;
+
+    len := A.Distance(B);
+    step := Max(0.5, hw * 0.5);
+    steps := Max(1, Ceil(len / step));
+    for i := 0 to steps do
+    begin
+      t  := i / steps;
+      cx := A.X + (B.X - A.X) * t;
+      cy := A.Y + (B.Y - A.Y) * t;
+      // erst um die Nib-Achse drehen, dann an die Stempelposition schieben
+      m := TMatrix.CreateRotation(NIB_ANGLE) * TMatrix.CreateTranslation(cx, cy);
+      CanvasImage.Bitmap.Canvas.SetMatrix(m);
+      CanvasImage.Bitmap.Canvas.FillEllipse(RectF(-hl, -hw, hl, hw), 1);
+    end;
+
+    CanvasImage.Bitmap.Canvas.SetMatrix(TMatrix.Identity);
   finally
     CanvasImage.Bitmap.Canvas.EndScene();
   end;
@@ -373,6 +735,7 @@ procedure TEditorFrame.CanvasMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Single);
 begin
   FDrawing := False;
+  FStrokeActive := False;   // weichen Strich abschliessen -> naechster startet neu
 end;
 
 { ----------------------------------------------------------------------------
@@ -381,7 +744,14 @@ end;
 
 procedure TEditorFrame.ColorSwatchClick(Sender: TObject);
 begin
-  FCurrentColor := (Sender as TRectangle).Fill.Color;
+  SelectColorSwatch(Sender as TRectangle);
+  FEraser := False;
+  EraserBtn.Text := 'Radierer';
+end;
+
+procedure TEditorFrame.BrushSwatchClick(Sender: TObject);
+begin
+  SelectBrushSwatch(Sender as TRectangle);
   FEraser := False;
   EraserBtn.Text := 'Radierer';
 end;

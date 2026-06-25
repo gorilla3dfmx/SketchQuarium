@@ -487,6 +487,117 @@ object EditorFrame: TEditorFrame
         OnClick = ColorSwatchClick
       end
     end
+    object BrushTypeLabel: TLabel
+      Align = Top
+      StyledSettings = [Family, FontColor]
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 8.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.X = 8.000000000000000000
+      Position.Y = 230.000000000000000000
+      Size.Width = 244.000000000000000000
+      Size.Height = 24.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Size = 15.000000000000000000
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      Text = 'Pinselart'
+      TabOrder = 12
+    end
+    object BrushRow: TFlowLayout
+      Align = Top
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 4.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.X = 8.000000000000000000
+      Position.Y = 258.000000000000000000
+      Size.Width = 244.000000000000000000
+      Size.Height = 52.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 13
+      Justify = Left
+      JustifyLastLine = Left
+      FlowDirection = LeftToRight
+      object BrushRound: TRectangle
+        Cursor = crHandPoint
+        Tag = 0
+        Hint = 'Normal'
+        ShowHint = True
+        Fill.Color = claWhite
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Position.X = 3.000000000000000000
+        Position.Y = 3.000000000000000000
+        Size.Width = 44.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 6.000000000000000000
+        YRadius = 6.000000000000000000
+        OnClick = BrushSwatchClick
+      end
+      object BrushSoft: TRectangle
+        Cursor = crHandPoint
+        Tag = 1
+        Hint = 'Sehr weich'
+        ShowHint = True
+        Fill.Color = claWhite
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Position.X = 53.000000000000000000
+        Position.Y = 3.000000000000000000
+        Size.Width = 44.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 6.000000000000000000
+        YRadius = 6.000000000000000000
+        OnClick = BrushSwatchClick
+      end
+      object BrushExtraSoft: TRectangle
+        Cursor = crHandPoint
+        Tag = 3
+        Hint = 'Extra weich'
+        ShowHint = True
+        Fill.Color = claWhite
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Position.X = 103.000000000000000000
+        Position.Y = 3.000000000000000000
+        Size.Width = 44.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 6.000000000000000000
+        YRadius = 6.000000000000000000
+        OnClick = BrushSwatchClick
+      end
+      object BrushElongated: TRectangle
+        Cursor = crHandPoint
+        Tag = 2
+        Hint = 'L'#228'nglich'
+        ShowHint = True
+        Fill.Color = claWhite
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Position.X = 153.000000000000000000
+        Position.Y = 3.000000000000000000
+        Size.Width = 44.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 6.000000000000000000
+        YRadius = 6.000000000000000000
+        OnClick = BrushSwatchClick
+      end
+    end
     object BrushLabel: TLabel
       Align = Top
       StyledSettings = [Family, FontColor]
