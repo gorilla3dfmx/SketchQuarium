@@ -125763,7 +125763,7 @@ object Form1: TForm1
             AssetClassName = 'TGorillaSkillsAsset'
           end>
         Filename = 
-          'E:\delphi\projects\wax\lib\gorilla\github\SketchQuarium\package.' +
+          'C:\delphi\projects\wax\lib\gorilla\github\SketchQuarium\package.' +
           'zip'
       end>
     Left = 144

@@ -95,7 +95,7 @@ begin
   FEditor.Align := TAlignLayout.Client;
   FEditor.Init(FScene, GorillaViewport1, Rock, PopupArea);
   FEditor.Place3DObject(Ground);
-  FEditor.Place3DObject(Rock);
+  FEditor.Place3DObject(Rock.Meshes[0]);
 
   // Animationsschleife (~60 fps): verformt platzierte Elemente und zeichnet neu
   FClock := TStopwatch.StartNew;
