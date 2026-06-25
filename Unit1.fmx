@@ -1,7 +1,7 @@
 object Form1: TForm1
   Left = 0
   Top = 0
-  Caption = 'Gorilla3D - Drawquarium'
+  Caption = 'Gorilla3D - SketchQuarium'
   ClientHeight = 720
   ClientWidth = 1280
   FormFactor.Width = 320
@@ -31,9 +31,11 @@ object Form1: TForm1
     Shadows.MaxDirLights = 0
     Shadows.MaxPointLights = 1
     Shadows.CascadeSplitLambda = 0.750000000000000000
+    Shadows.Strength = 1.000000000000000000
     Shadows.Bias = 0.000500000023748726
     Shadows.SlopeBias = 0.001000000047497451
     Shadows.NormalOffset = 0.019999999552965160
+    Shadows.Filter = PCF5
     GlobalIllumDetail = 0
     GlobalIllumSoftness = 1.000000000000000000
     ShadowStrength = 0.100000001490116100
@@ -73,7 +75,7 @@ object Form1: TForm1
       ShadowBias = 0.000500000023748726
       ShadowSlopeBias = 0.001000000047497451
       ShadowNormalOffset = 0.019999999552965160
-      ShadowStrength = 1.000000000000000000
+      ShadowStrength = 0.750000000000000000
       Quanternion = '(0.382683396339417,0,0,-0.923879504203796)'
     end
     object AquariumWalls: TGorillaGroup
@@ -220,6 +222,7 @@ object Form1: TForm1
       ShowNormals = False
       Wireframe = False
       Shadows = False
+      CastShadows = False
       Instances = <>
       WrapMode = Original
       MaterialSource = GorillaWaterMaterialSource1
@@ -10049,6 +10052,7 @@ object Form1: TForm1
       ShowNormals = False
       Wireframe = False
       Shadows = False
+      CastShadows = False
       Instances = <>
       WrapMode = Original
       MaterialSource = GorillaLambertMaterialSource1
@@ -34310,7 +34314,7 @@ object Form1: TForm1
       XRadius = 8.000000000000000000
       YRadius = 8.000000000000000000
     end
-    object GorillaTerrain1: TGorillaTerrain
+    object Ground: TGorillaTerrain
       Position.Y = 7.000000000000000000
       Width = 40.000000000000000000
       Height = 1.000000000000000000
@@ -34319,7 +34323,8 @@ object Form1: TForm1
       FrustumCullingCheck = True
       ShowNormals = False
       Wireframe = False
-      Shadows = False
+      Shadows = True
+      CastShadows = False
       Instances = <>
       WrapMode = Original
       MaterialSource = GorillaPBRMaterialSource1
@@ -38682,8 +38687,8 @@ object Form1: TForm1
         PBRFlags = []
         NearLimit = 0.100000001490116100
         FarLimit = 10000.000000000000000000
-        Shadows = False
-        ShadowMethod = ShadowMapping
+        Shadows = True
+        ShadowMethod = CascadedShadowMapping
         Reflections = False
         Refractions = False
         Environment = False
@@ -125728,5 +125733,35 @@ object Form1: TForm1
       end>
     Left = 144
     Top = 80
+  end
+  object GorillaRenderPassUnderwater1: TGorillaRenderPassUnderwater
+    Enabled = True
+    Id = 'GorillaRenderPassUnderwater1'
+    _Type = Post
+    Method = RectToFBO
+    RenderProc = DefaultRendering
+    Viewport = GorillaViewport1
+    Iterations = 1
+    ViewportWidth = 1280
+    ViewportHeight = 720
+    OverwriteViewportSize = False
+    ScaleViewportSize = False
+    ViewportScale = 1.000000000000000000
+    OverwriteColor = False
+    BackgroundColor = claNull
+    AllowedControls = <>
+    IgnoredControls = <>
+    TransitionBand = 0.500000000000000000
+    Intensity = 1.000000000000000000
+    TintColor = claAliceblue
+    Distortion = 0.500000000000000000
+    Fisheye = 0.150000005960464500
+    Density = 0.009999999776482582
+    Caustics = 0.100000001490116100
+    Vignette = 0.600000023841857900
+    WaveScale = 12.000000000000000000
+    WaveSpeed = 1.200000047683716000
+    Left = 624
+    Top = 344
   end
 end

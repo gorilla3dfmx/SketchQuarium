@@ -44,8 +44,9 @@ type
     Rectangle1: TRectangle;
     PopupArea: TRectangle;
     Label1: TLabel;
-    GorillaTerrain1: TGorillaTerrain;
+    Ground: TGorillaTerrain;
     GorillaPBRMaterialSource1: TGorillaPBRMaterialSource;
+    GorillaRenderPassUnderwater1: TGorillaRenderPassUnderwater;
     procedure FormCreate(Sender: TObject);
     procedure Rectangle1Click(Sender: TObject);
   private
@@ -68,6 +69,9 @@ implementation
 
 {$R *.fmx}
 
+uses
+  Gorilla.Context.ShadowSettings;
+
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   GorillaViewport1.GetDesignCameraController().SetPositionAndAngle(Point3D(0, 5.5, -5), TPoint3D.Zero);
@@ -75,8 +79,8 @@ begin
   Octopus.AnimationManager.Current.Start;
 
   // Increase performance on raycasting operations
+  (Ground.Def as TMeshDef).AcquireBVH();
   (Rock.Def as TModelDef).AcquireBVH();
-  (GorillaTerrain1.Def as TMeshDef).AcquireBVH();
 
   Self.OnDestroy := FormDestroy;
 
@@ -95,12 +99,38 @@ begin
   FAnimTimer.Interval := 16;
   FAnimTimer.OnTimer := AnimTimerTick;
   FAnimTimer.Enabled := True;
+
+  // Activate Shadow Mapping (Runtime)
+  (*
+  // Light-Sources able to cast shadows
+  GorillaLight1.LightType := TLightType.Point;
+  GorillaLight1.CastShadow := true;
+  GorillaLight1.ShadowStrength := 0.75;
+
+  // Elements that should receive shadows:
+  Rock.Shadows := true;
+  Octopus.Shadows := true;
+  Ground.Shadows := true;
+
+  // Elements that should not cast any shadows:
+  Ground.CastShadows := False;
+  WaterSurface.CastShadows := False;
+  GorillaHemisphere1.CastShadows := False;
+
+  // General CSM shadow activation:
+  GorillaViewport1.Shadows.Enabled := true;
+  GorillaViewport1.Shadows.Filter := TGorillaShadowFilter.PCF5;
+  GorillaViewport1.Shadows.MaxDirLights := 0;
+  GorillaViewport1.Shadows.MaxSpotLights := 0;
+  GorillaViewport1.Shadows.MaxPointLights := 1;
+  GorillaViewport1.Shadows.AutoFitCascades := true; // default==true
+  *)
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
-  (GorillaTerrain1.Def as TMeshDef).ReleaseBVH();
   (Rock.Def as TModelDef).ReleaseBVH();
+  (Ground.Def as TMeshDef).ReleaseBVH();
 
   // Erst den Editor (gibt Bibliothek frei, beendet einen evtl. laufenden
   // Platzierungsmodus), danach die Szene - in dieser Reihenfolge lebt die
