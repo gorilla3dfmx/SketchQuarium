@@ -445,7 +445,10 @@ begin
   // Sicherstellen, dass das Stein-Modell (inkl. geladener Submeshes) per
   // Raycast getroffen werden kann.
   for var I := 0 to FControls3D.Count - 1 do
-    FControls3D[I].SetHitTestValue(true);
+  begin
+    (FControls3D[I].Def as TMeshDef).AcquireBVH();
+    FControls3D[I].SetHitTestValue(false);
+  end;
 
   FPlacingElement := AElement;
 
@@ -490,7 +493,10 @@ begin
     FHintBar.Visible := False;
 
   for var I := 0 to FControls3D.Count - 1 do
+  begin
     FControls3D[I].SetHitTestValue(false);
+    (FControls3D[I].Def as TMeshDef).ReleaseBVH();
+  end;
 end;
 
 function TEditorFrame.CameraRay(const APt: TPointF; out AOrigin, ADir: TPoint3D): Boolean;
@@ -540,6 +546,60 @@ end;
 
 function TEditorFrame.SurfacePlacement(const AMousePos: TPointF; const AOrigin, ADir: TPoint3D): TPoint3D;
 const
+  FLOOR_Y = 6.5;
+var
+  LRes    : TTriangleRayCastResult;
+  LLastDist : Single;
+  LHit    : TPoint3D;
+  LH      : Single;
+  LFound  : Boolean;
+  LRayPos : TVector3D;
+  LRayDir : TVector3D;
+begin
+  Result := TPoint3D.Zero;
+
+  // Denselben (bewaehrten) Kamerastrahl verwenden, mit dem auch die frei
+  // schwebenden Objekte platziert werden. Der Ursprung kommt direkt aus der
+  // Kamera (AOrigin) und ist damit robust gegen eine evtl. veraltete
+  // Context.Pick-Kameramatrix, an der die (X,Y)-Ueberladung scheitert.
+  LRayPos := TVector3D.Create(AOrigin.X, AOrigin.Y, AOrigin.Z, 1);
+  LRayDir := TVector3D.Create(ADir.X, ADir.Y, ADir.Z, 0);
+
+  LLastDist := 1000;
+  LHit   := TPoint3D.Zero;
+  LFound := False;
+
+  // Auflageflaechen per Dreieck-Raycast abtasten (Terrain, Rock-Oberflaeche).
+  for var I := 0 to FControls3D.Count - 1 do
+  begin
+    if FControls3D[I].PickTriangle(LRayPos, LRayDir, LRes) then
+    begin
+      if LLastDist > LRes.T then
+      begin
+        LHit      := LRes.Intersection;
+        LLastDist := LRes.T;
+        LFound    := True;
+      end;
+    end;
+  end;
+
+  // Fallback: keine Oberflaeche getroffen -> auf die Bodenebene Y=FLOOR_Y
+  // projizieren, damit das Element trotzdem sinnvoll auf dem Boden landet.
+  if not LFound then
+    RayPlaneHit(AOrigin, ADir, 1, FLOOR_Y, LHit);
+
+  LH := 0;
+  if Assigned(FPreview) and Assigned(FPreview.Plane) then
+    LH := FPreview.Plane.Height * FPreview.Plane.Scale.Y;
+
+  Result := Point3D(LHit.X, LHit.Y - LH / 2, LHit.Z);
+  Result.X := Max(-19.0, Min(19.0, Result.X));
+  Result.Z := Max(-19.0, Min(19.0, Result.Z));
+end;
+
+(*
+function TEditorFrame.SurfacePlacement(const AMousePos: TPointF; const AOrigin, ADir: TPoint3D): TPoint3D;
+const
   FLOOR_Y = 6.5;          // Oberkante des Ground-Cubes (Y=7, Hoehe 1)
 var
   LRes  : TTriangleRayCastResult;
@@ -571,6 +631,7 @@ begin
   Result.X := Max(-19.0, Min(19.0, Result.X));
   Result.Z := Max(-19.0, Min(19.0, Result.Z));
 end;
+*)
 
 function TEditorFrame.MouseToTankPoint(const APt: TPointF): TPoint3D;
 var

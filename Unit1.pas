@@ -80,12 +80,9 @@ begin
 
   Rock.IsStatic := true;
 
+  Octopus.Visible := false;
   Octopus.SetHitTestValue(false);
   Octopus.AnimationManager.Current.Start;
-
-  // Increase performance on raycasting operations
-  (Ground.Def as TMeshDef).AcquireBVH();
-  (Rock.Def as TModelDef).AcquireBVH();
 
   Self.OnDestroy := FormDestroy;
 
@@ -136,9 +133,6 @@ end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
-  (Rock.Def as TModelDef).ReleaseBVH();
-  (Ground.Def as TMeshDef).ReleaseBVH();
-
   // Erst den Editor (gibt Bibliothek frei, beendet einen evtl. laufenden
   // Platzierungsmodus), danach die Szene - in dieser Reihenfolge lebt die
   // Szene noch, falls der Editor sie beim Aufraeumen anspricht.
