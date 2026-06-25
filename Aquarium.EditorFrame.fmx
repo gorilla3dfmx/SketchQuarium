@@ -686,6 +686,129 @@ object EditorFrame: TEditorFrame
     Size.Height = 648.000000000000000000
     Size.PlatformDefault = False
     Stroke.Kind = None
+    object StencilBar: TFlowLayout
+      Align = Top
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 4.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Margins.Bottom = 4.000000000000000000
+      Position.X = 8.000000000000000000
+      Position.Y = 4.000000000000000000
+      Size.Width = 596.000000000000000000
+      Size.Height = 54.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Justify = Left
+      JustifyLastLine = Left
+      FlowDirection = LeftToRight
+      object StencilLabel: TLabel
+        StyledSettings = [Family, FontColor]
+        Margins.Left = 4.000000000000000000
+        Margins.Top = 4.000000000000000000
+        Margins.Right = 6.000000000000000000
+        Position.X = 4.000000000000000000
+        Position.Y = 4.000000000000000000
+        Size.Width = 96.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        TextSettings.Font.Size = 15.000000000000000000
+        TextSettings.Font.StyleExt = {00070000000000000004000000}
+        TextSettings.VertAlign = Center
+        Text = 'Schablonen:'
+      end
+      object StencilFish: TRectangle
+        Cursor = crHandPoint
+        Tag = 0
+        Hint = 'Fisch-Schablone'
+        ShowHint = True
+        Fill.Color = claWhite
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Position.X = 106.000000000000000000
+        Position.Y = 3.000000000000000000
+        Size.Width = 44.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 6.000000000000000000
+        YRadius = 6.000000000000000000
+        OnClick = StencilSwatchClick
+      end
+      object StencilJelly: TRectangle
+        Cursor = crHandPoint
+        Tag = 1
+        Hint = 'Quallen-Schablone'
+        ShowHint = True
+        Fill.Color = claWhite
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Position.X = 156.000000000000000000
+        Position.Y = 3.000000000000000000
+        Size.Width = 44.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 6.000000000000000000
+        YRadius = 6.000000000000000000
+        OnClick = StencilSwatchClick
+      end
+      object StencilPlant: TRectangle
+        Cursor = crHandPoint
+        Tag = 2
+        Hint = 'Pflanzen-Schablone'
+        ShowHint = True
+        Fill.Color = claWhite
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Position.X = 206.000000000000000000
+        Position.Y = 3.000000000000000000
+        Size.Width = 44.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 6.000000000000000000
+        YRadius = 6.000000000000000000
+        OnClick = StencilSwatchClick
+      end
+      object StencilCoral: TRectangle
+        Cursor = crHandPoint
+        Tag = 3
+        Hint = 'Korallen-Schablone'
+        ShowHint = True
+        Fill.Color = claWhite
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Position.X = 256.000000000000000000
+        Position.Y = 3.000000000000000000
+        Size.Width = 44.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claGray
+        XRadius = 6.000000000000000000
+        YRadius = 6.000000000000000000
+        OnClick = StencilSwatchClick
+      end
+      object FreehandBtn: TButton
+        Margins.Left = 12.000000000000000000
+        Margins.Top = 6.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Position.X = 315.000000000000000000
+        Position.Y = 6.000000000000000000
+        Size.Width = 104.000000000000000000
+        Size.Height = 38.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Freihand'
+        OnClick = FreehandClick
+      end
+    end
     object CanvasBg: TRectangle
       Align = Center
       Fill.Color = claWhite
