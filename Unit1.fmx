@@ -125681,6 +125681,36 @@ object Form1: TForm1
     Left = 144
     Top = 16
   end
+  object GorillaRenderPassUnderwater1: TGorillaRenderPassUnderwater
+    Enabled = False
+    Id = 'GorillaRenderPassUnderwater1'
+    _Type = Post
+    Method = RectToFBO
+    RenderProc = DefaultRendering
+    Viewport = GorillaViewport1
+    Iterations = 1
+    ViewportWidth = 1280
+    ViewportHeight = 720
+    OverwriteViewportSize = False
+    ScaleViewportSize = False
+    ViewportScale = 1.000000000000000000
+    OverwriteColor = False
+    BackgroundColor = claNull
+    AllowedControls = <>
+    IgnoredControls = <>
+    TransitionBand = 0.500000000000000000
+    Intensity = 1.000000000000000000
+    TintColor = claAliceblue
+    Distortion = 0.500000000000000000
+    Fisheye = 0.150000005960464500
+    Density = 0.009999999776482582
+    Caustics = 0.100000001490116100
+    Vignette = 0.600000023841857900
+    WaveScale = 12.000000000000000000
+    WaveSpeed = 1.200000047683716000
+    Left = 304
+    Top = 88
+  end
   object GorillaAssetsManager1: TGorillaAssetsManager
     LOD = LowQuality
     Packages = <
@@ -125734,33 +125764,8 @@ object Form1: TForm1
     Left = 144
     Top = 80
   end
-  object GorillaRenderPassUnderwater1: TGorillaRenderPassUnderwater
-    Enabled = True
-    Id = 'GorillaRenderPassUnderwater1'
-    _Type = Post
-    Method = RectToFBO
-    RenderProc = DefaultRendering
-    Viewport = GorillaViewport1
-    Iterations = 1
-    ViewportWidth = 1280
-    ViewportHeight = 720
-    OverwriteViewportSize = False
-    ScaleViewportSize = False
-    ViewportScale = 1.000000000000000000
-    OverwriteColor = False
-    BackgroundColor = claNull
-    AllowedControls = <>
-    IgnoredControls = <>
-    TransitionBand = 0.500000000000000000
-    Intensity = 1.000000000000000000
-    TintColor = claAliceblue
-    Distortion = 0.500000000000000000
-    Fisheye = 0.150000005960464500
-    Density = 0.009999999776482582
-    Caustics = 0.100000001490116100
-    Vignette = 0.600000023841857900
-    WaveScale = 12.000000000000000000
-    WaveSpeed = 1.200000047683716000
+  object Timer1: TTimer
+    OnTimer = Timer1Timer
     Left = 624
     Top = 344
   end

@@ -47,8 +47,10 @@ type
     Ground: TGorillaTerrain;
     GorillaPBRMaterialSource1: TGorillaPBRMaterialSource;
     GorillaRenderPassUnderwater1: TGorillaRenderPassUnderwater;
+    Timer1: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure Rectangle1Click(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
   private
     { Private-Deklarationen }
     FScene        : TAquariumScene;     // animierte 3D-Szene
@@ -75,6 +77,9 @@ uses
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   GorillaViewport1.GetDesignCameraController().SetPositionAndAngle(Point3D(0, 5.5, -5), TPoint3D.Zero);
+
+  Rock.IsStatic := true;
+
   Octopus.SetHitTestValue(false);
   Octopus.AnimationManager.Current.Start;
 
@@ -92,6 +97,8 @@ begin
   FEditor.Parent := PopupArea;
   FEditor.Align := TAlignLayout.Client;
   FEditor.Init(FScene, GorillaViewport1, Rock, PopupArea);
+  FEditor.Place3DObject(Ground);
+  FEditor.Place3DObject(Rock);
 
   // Animationsschleife (~60 fps): verformt platzierte Elemente und zeichnet neu
   FClock := TStopwatch.StartNew;
@@ -100,7 +107,7 @@ begin
   FAnimTimer.OnTimer := AnimTimerTick;
   FAnimTimer.Enabled := True;
 
-  // Activate Shadow Mapping (Runtime)
+  // NOTICE: Activate Shadow Mapping (Runtime)
   (*
   // Light-Sources able to cast shadows
   GorillaLight1.LightType := TLightType.Point;
@@ -148,6 +155,11 @@ end;
 procedure TForm1.Rectangle1Click(Sender: TObject);
 begin
   PopUpArea.Visible := not PopUpArea.Visible;
+end;
+
+procedure TForm1.Timer1Timer(Sender: TObject);
+begin
+  Self.Caption := Format('Gorilla3D - SketchQuarium (%n FPS', [GorillaViewport1.FPS]);
 end;
 
 end.

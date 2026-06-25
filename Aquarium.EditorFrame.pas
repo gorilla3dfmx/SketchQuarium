@@ -21,7 +21,7 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Math,
-  System.Math.Vectors,
+  System.Math.Vectors, System.Generics.Collections,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Objects,
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.Layouts, FMX.Edit, FMX.ListBox,
   FMX.Types3D, FMX.Controls3D,
@@ -94,9 +94,8 @@ type
     FScene    : TAquariumScene;       // 3D-Szene (Eigentum des Formulars)
     FLibrary  : TAquariumLibrary;     // gespeicherte Elemente (Eigentum des Frames)
     FViewport : TGorillaViewport;     // 3D-Viewport (Eigentum des Formulars)
-    FRock     : TGorillaModel;        // Auflageflaeche fuer Pflanzen/Korallen
-    FTerrain  : TGorillaTerrain;
     FHost     : TControl;             // Popup-Flaeche, die der Frame ausblenden darf
+    FControls3D : TList<TGorillaMesh>;
 
     // Zeichen-Zustand
     FCurrentColor : TAlphaColor;
@@ -148,6 +147,8 @@ type
     /// </summary>
     procedure Init(AScene: TAquariumScene; AViewport: TGorillaViewport;
       ARock: TGorillaModel; AHost: TControl);
+
+    procedure Place3DObject(ACtrl : TGorillaMesh);
   end;
 
 implementation
@@ -166,9 +167,9 @@ procedure TEditorFrame.Init(AScene: TAquariumScene; AViewport: TGorillaViewport;
 begin
   FScene    := AScene;
   FViewport := AViewport;
-  FRock     := ARock;
-  FTerrain  := FViewport.FindComponentDeepSearchByClass(TGorillaTerrain) as TGorillaTerrain;
   FHost     := AHost;
+
+  FControls3D := TList<TGorillaMesh>.Create();
 
   FCurrentColor := TAlphaColorRec.Black;
   FEraser       := False;
@@ -187,8 +188,14 @@ begin
   // Falls noch ein Platzierungsmodus laeuft: Vorschau entfernen und die
   // Viewport-Maus-Events wieder loesen (die Szene lebt zu diesem Zeitpunkt noch).
   ExitPlacement();
+  FControls3D.Free();
   FLibrary.Free();
   inherited;
+end;
+
+procedure TEditorFrame.Place3DObject(ACtrl : TGorillaMesh);
+begin
+  FControls3D.Add(ACtrl);
 end;
 
 procedure TEditorFrame.CreateHintBar();
@@ -437,7 +444,8 @@ begin
 
   // Sicherstellen, dass das Stein-Modell (inkl. geladener Submeshes) per
   // Raycast getroffen werden kann.
-  FRock.SetHitTestValue(true);
+  for var I := 0 to FControls3D.Count - 1 do
+    FControls3D[I].SetHitTestValue(true);
 
   FPlacingElement := AElement;
 
@@ -481,7 +489,8 @@ begin
   if Assigned(FHintBar) then
     FHintBar.Visible := False;
 
-  FRock.SetHitTestValue(false);
+  for var I := 0 to FControls3D.Count - 1 do
+    FControls3D[I].SetHitTestValue(false);
 end;
 
 function TEditorFrame.CameraRay(const APt: TPointF; out AOrigin, ADir: TPoint3D): Boolean;
@@ -535,34 +544,21 @@ const
 var
   LRes  : TTriangleRayCastResult;
   LHit  : TPoint3D;
-  LHave : Boolean;
   LH    : Single;
-  A,B,C : TPoint3D;
+  LLocal: TPointF;
 begin
-  LHave := False;
+  LLocal := AMousePos; //FViewport.LocalToScreen(AMousePos);
+//  Log.d('p=(%n,%n), o=(%n,%n,%n), d=(%n,%n,%n)', [AMousePos.X, AMousePos.Y,
+//    AOrigin.X, AOrigin.Y, AOrigin.Z, ADir.X, ADir.Y, ADir.Z]);
 
-  // 1) Steinoberflaeche abtasten (low-poly Mesh, inkl. Submeshes).
-  //    Wichtig: den ABSOLUTEN Strahl (aus der aktiven Design-Kamera) verwenden -
-  //    die (X,Y)-Variante von PickTriangle nutzt intern Context.Pick mit
-  //    TProjection.Camera und liefert bei Design-Kamera einen falschen Strahl.
-  if Assigned(FRock)
-  and FRock.PickTriangle(AMousePos.X, AMousePos.Y, LRes.Intersection, LRes.Normal, A, B, C) then
+  for var I := 0 to FControls3D.Count - 1 do
   begin
-    LHit := LRes.Intersection;
-    LHave := True;
-  end;
-
-  // 2) sonst auf den Boden (analytische Ebene, schnell - Ground hat 256er
-  //    Subdivisions und waere als Mesh-Raycast zu teuer)
-  if (not LHave) and Assigned(FTerrain) then
-  begin
-    if FTerrain.PickTriangle(AMousePos.X, AMousePos.Y, LRes.Intersection, LRes.Normal, A, B, C) then
+    if FControls3D[I].PickTriangle(LLocal.X, LLocal.Y, LRes) then
     begin
       LHit := LRes.Intersection;
-      LHave := True;
+      Log.d('[HIT][%s]=(%n,%n,%n)', [FControls3D[I].Name, LHit.X, LHit.Y, LHit.Z]);
+      Break;
     end;
-//    if not RayPlaneHit(AOrigin, ADir, 1, FLOOR_Y, LHit) then
-//      LHit := Point3D(0, FLOOR_Y, 0);
   end;
 
   // Wurzel (untere Plane-Kante) auf die Oberflaeche setzen: Mittelpunkt um
@@ -572,8 +568,8 @@ begin
     LH := FPreview.Plane.Height * FPreview.Plane.Scale.Y;  // inkl. Mausrad-Skalierung
 
   Result := Point3D(LHit.X, LHit.Y - LH / 2, LHit.Z);
-  Result.X := Max(-9.0, Min(9.0, Result.X));
-  Result.Z := Max(-9.0, Min(9.0, Result.Z));
+  Result.X := Max(-19.0, Min(19.0, Result.X));
+  Result.Z := Max(-19.0, Min(19.0, Result.Z));
 end;
 
 function TEditorFrame.MouseToTankPoint(const APt: TPointF): TPoint3D;

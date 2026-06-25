@@ -118,8 +118,8 @@ type
     /// <summary>Skaliert das Element gleichmaessig (1.0 = Ausgangsgroesse).</summary>
     procedure SetSizeScale(const AFactor: Single);
 
-    property Plane : TGorillaPlane  read FPlane;
-    property Kind  : TAquariumKind  read FKind;
+    property Plane : TGorillaPlane read FPlane;
+    property Kind  : TAquariumKind read FKind;
     /// <summary>
     ///  Im eingefrorenen Zustand bleibt das Element exakt an seiner Position
     ///  (es wabbelt nur), bewegt sich aber nicht frei. Wird fuer die
@@ -558,7 +558,7 @@ begin
   LPlane.MaterialSource := LMat;
   LPlane.TwoSide := True;            // von beiden Seiten sichtbar
   LPlane.Opaque := False;           // -> Alpha-Transparenz statt schwarz
-  LPlane.HitTest := False;
+  LPlane.SetHitTestValue(false);
   LPlane.FrustumCullingCheck := False; // nicht wegculllen, da es sich bewegt/verformt
 
   // Dynamisch machen: kopiert die Vertices aus der MeshDef zurueck in die
