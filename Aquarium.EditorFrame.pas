@@ -1,7 +1,7 @@
 ﻿unit Aquarium.EditorFrame;
 
 {
-  Drawquarium - Zeicheneditor als FireMonkey-Frame
+  SketchQuarium - Zeicheneditor als FireMonkey-Frame
 
   Dieser Frame kapselt den kompletten Editor zum Zeichnen, Speichern und
   Platzieren von Aquariumselementen. Das Layout wird zur Entwurfszeit in
@@ -28,7 +28,7 @@ uses
   FMX.Types3D, FMX.Controls3D,
   Gorilla.Viewport, Gorilla.Mesh, Gorilla.Model, Gorilla.DefTypes, Gorilla.Control,
   Gorilla.Terrain,
-  Aquarium.Elements;
+  Aquarium.Elements, Aquarium.Placement;
 
 type
   /// <summary>Eine aus einer SVG-Datei geladene Schablonen-Vorlage.</summary>
@@ -119,7 +119,7 @@ type
     FLibrary  : TAquariumLibrary;     // gespeicherte Elemente (Eigentum des Frames)
     FViewport : TGorillaViewport;     // 3D-Viewport (Eigentum des Formulars)
     FHost     : TControl;             // Popup-Flaeche, die der Frame ausblenden darf
-    FControls3D : TList<TGorillaMesh>;
+    FPlacement : TAquariumPlacement;  // Platzierungsmodus (eigene Unit)
 
     // Zeichen-Zustand
     FCurrentColor : TAlphaColor;
@@ -149,18 +149,6 @@ type
     FStrokeBase   : TBitmap;
     FStrokeCov    : TArray<Single>;
 
-    // Platzierungsmodus
-    FHintBar         : TRectangle;
-    FPlacingElement  : TAquariumElement;   // gerade aktives Element (oder nil)
-    FPreview         : TSpawnedElement;    // Vorschau-Instanz, folgt der Maus
-    FPlaceScale      : Single;             // per Mausrad einstellbare Groesse
-    FLastMousePt     : TPointF;            // letzte Mausposition (fuer Mausrad)
-
-    FStoredMouseDown : TMouseEvent;
-    FStoredMouseMove : TMouseMoveEvent;
-    FStoredMouseWheel: TMouseWheelEvent;
-
-    procedure CreateHintBar();
     procedure RefreshElementsList();
     procedure ClearCanvas();
 
@@ -190,22 +178,6 @@ type
     procedure StrokeElongated(const A, B: TPointF);
     procedure BeginSoftStroke();
     procedure EraseAt(const APt: TPointF);
-
-    // Platzierungsmodus
-    procedure EnterPlacement(AElement: TAquariumElement);
-    procedure ExitPlacement();
-
-    function  CameraRay(const APt: TPointF; out AOrigin, ADir: TPoint3D): Boolean;
-    function  RayPlaneHit(const AOrigin, ADir: TPoint3D; AAxis: Integer;
-                AValue: Single; out AHit: TPoint3D): Boolean;
-    function  SurfacePlacement(const AMousePos: TPointF; const AOrigin, ADir: TPoint3D): TPoint3D;
-    function  MouseToTankPoint(const APt: TPointF): TPoint3D;
-
-    procedure ViewportMouseDown(Sender: TObject; Button: TMouseButton;
-                Shift: TShiftState; X, Y: Single);
-    procedure ViewportMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Single);
-    procedure ViewportMouseWheel(Sender: TObject; Shift: TShiftState;
-                WheelDelta: Integer; var Handled: Boolean);
   public
     { Public-Deklarationen }
     destructor Destroy(); override;
@@ -265,7 +237,8 @@ begin
   FViewport := AViewport;
   FHost     := AHost;
 
-  FControls3D := TList<TGorillaMesh>.Create();
+  // Platzierungsmodus in eigener Unit kapseln (Vorschau, Raycast, Hinweisleiste).
+  FPlacement := TAquariumPlacement.Create(FScene, FViewport, Self);
 
   FStencils        := TList<TStencilItem>.Create();
   FStencilSwatches := TList<TRectangle>.Create();
@@ -275,12 +248,10 @@ begin
   FCurrentColor := TAlphaColorRec.Black;
   FBrushType    := 0;
   FEraser       := False;
-  FPlaceScale   := 1.0;
 
   FLibrary := TAquariumLibrary.Create();
   FLibrary.LoadFromDisk();
 
-  CreateHintBar();
   ClearCanvas();
   RefreshElementsList();
 
@@ -322,10 +293,9 @@ end;
 
 destructor TEditorFrame.Destroy();
 begin
-  // Falls noch ein Platzierungsmodus laeuft: Vorschau entfernen und die
-  // Viewport-Maus-Events wieder loesen (die Szene lebt zu diesem Zeitpunkt noch).
-  ExitPlacement();
-  FControls3D.Free();
+  // Beendet einen evtl. laufenden Platzierungsmodus und loest die
+  // Viewport-Maus-Events (Szene/Viewport leben zu diesem Zeitpunkt noch).
+  FPlacement.Free();
   FLibrary.Free();
   FStrokeBase.Free();
   FStencils.Free();
@@ -336,32 +306,7 @@ end;
 
 procedure TEditorFrame.Place3DObject(ACtrl : TGorillaMesh);
 begin
-  FControls3D.Add(ACtrl);
-end;
-
-procedure TEditorFrame.CreateHintBar();
-begin
-  // Hinweisleiste fuer den Platzierungsmodus - liegt ueber dem 3D-Viewport,
-  // daher zur Laufzeit dort eingehaengt (gehoert aber dem Frame).
-  FHintBar := TRectangle.Create(Self);
-  FHintBar.Parent := FViewport;
-  FHintBar.Align := TAlignLayout.Bottom;
-  FHintBar.Height := 36;
-  FHintBar.Fill.Color := $CC202020;
-  FHintBar.Stroke.Kind := TBrushKind.None;
-  FHintBar.HitTest := False;
-  FHintBar.Visible := False;
-  with TLabel.Create(FHintBar) do
-  begin
-    Parent := FHintBar;
-    Align := TAlignLayout.Client;
-    HitTest := False;
-    StyledSettings := StyledSettings - [TStyledSetting.Size, TStyledSetting.FontColor];
-    TextSettings.Font.Size := 15;
-    TextSettings.FontColor := TAlphaColorRec.White;
-    TextSettings.HorzAlign := TTextAlign.Center;
-    Text := 'Linksklick: platzieren   •   Mausrad: Größe   •   Rechtsklick: beenden';
-  end;
+  FPlacement.RegisterSurface(ACtrl);
 end;
 
 procedure TEditorFrame.RefreshElementsList();
@@ -1214,288 +1159,7 @@ begin
 
   if Assigned(FHost) then
     FHost.Visible := False;
-  EnterPlacement(FLibrary.Items[ElementsList.ItemIndex]);
-end;
-
-{ ----------------------------------------------------------------------------
-  Platzierungsmodus: Vorschau folgt der Maus, Linksklick platziert,
-  Rechtsklick beendet den Modus.
-  ---------------------------------------------------------------------------- }
-procedure TEditorFrame.EnterPlacement(AElement: TAquariumElement);
-begin
-  ExitPlacement();   // evtl. laufende Vorschau zuerst aufraeumen
-
-  // Sicherstellen, dass das Stein-Modell (inkl. geladener Submeshes) per
-  // Raycast getroffen werden kann.
-  for var I := 0 to FControls3D.Count - 1 do
-  begin
-    (FControls3D[I].Def as TMeshDef).AcquireBVH();
-    FControls3D[I].SetHitTestValue(false);
-  end;
-
-  FPlacingElement := AElement;
-
-  // Vorschau-Instanz erzeugen: eingefroren, damit sie exakt der Maus folgt
-  FPreview := FScene.Spawn(AElement);
-  FPreview.Frozen := True;
-  FPreview.SetSizeScale(FPlaceScale);            // zuletzt gewaehlte Groesse
-  FPreview.SetBasePosition(Point3D(0, 4.5, 0));  // Startpunkt: Tankmitte
-
-  FLastMousePt := PointF(FViewport.Width / 2, FViewport.Height / 2);
-
-  // Maus-Events nur jetzt aktiv schalten - sonst deaktivieren sie die
-  // Design-Kamera-Navigation der Viewport.
-  FStoredMouseDown  := FViewport.OnMouseDown;
-  FStoredMouseMove  := FViewport.OnMouseMove;
-  FStoredMouseWheel := FViewport.OnMouseWheel;
-  FViewport.OnMouseDown := ViewportMouseDown;
-  FViewport.OnMouseMove := ViewportMouseMove;
-  FViewport.OnMouseWheel := ViewportMouseWheel;
-
-  FHintBar.Visible := True;
-  FHintBar.BringToFront();
-end;
-
-procedure TEditorFrame.ExitPlacement();
-begin
-  // Maus-Events wieder loesen -> Design-Navigation ist erneut aktiv.
-  if Assigned(FViewport) and (@FStoredMouseDown <> nil)
-   and (@FStoredMouseMove <> nil) and (@FStoredMouseWheel <> nil) then
-  begin
-    FViewport.OnMouseDown := FStoredMouseDown;
-    FViewport.OnMouseMove := FStoredMouseMove;
-    FViewport.OnMouseWheel := FStoredMouseWheel;
-  end;
-
-  if Assigned(FPreview) and Assigned(FScene) then
-    FScene.Remove(FPreview);
-
-  FPreview := nil;
-  FPlacingElement := nil;
-  if Assigned(FHintBar) then
-    FHintBar.Visible := False;
-
-  for var I := 0 to FControls3D.Count - 1 do
-  begin
-    FControls3D[I].SetHitTestValue(false);
-    (FControls3D[I].Def as TMeshDef).ReleaseBVH();
-  end;
-end;
-
-function TEditorFrame.CameraRay(const APt: TPointF; out AOrigin, ADir: TPoint3D): Boolean;
-var
-  LCam : TCamera;
-  LVec : TVector3D;
-  LFar : TPoint3D;
-begin
-  Result := False;
-
-  if FViewport.UsingDesignCamera then
-    LCam := FViewport.GetDesignCamera()
-  else
-    LCam := FViewport.Camera;
-  if not Assigned(LCam) then
-    Exit;
-
-  LVec := LCam.AbsolutePosition;
-  AOrigin := Point3D(LVec.X, LVec.Y, LVec.Z);
-
-  // Punkt auf dem Sichtstrahl durch den Mauszeiger -> Richtung ableiten
-  LFar := FViewport.ScreenToWorld(APt);
-  ADir := (LFar - AOrigin).Normalize();
-  Result := True;
-end;
-
-function TEditorFrame.RayPlaneHit(const AOrigin, ADir: TPoint3D; AAxis: Integer;
-  AValue: Single; out AHit: TPoint3D): Boolean;
-var d, o, t : Single;
-begin
-  Result := False;
-  case AAxis of
-    0: begin d := ADir.X; o := AOrigin.X; end;   // X-Ebene
-    1: begin d := ADir.Y; o := AOrigin.Y; end;   // Y-Ebene (Boden)
-  else begin d := ADir.Z; o := AOrigin.Z; end;   // Z-Ebene (Wasser)
-  end;
-
-  if Abs(d) < 0.00001 then
-    Exit;
-  t := (AValue - o) / d;
-  if t <= 0 then          // Treffer liegt hinter der Kamera
-    Exit;
-
-  AHit := AOrigin + ADir * t;
-  Result := True;
-end;
-
-function TEditorFrame.SurfacePlacement(const AMousePos: TPointF; const AOrigin, ADir: TPoint3D): TPoint3D;
-const
-  FLOOR_Y = 6.5;
-var
-  LRes    : TTriangleRayCastResult;
-  LLastDist : Single;
-  LHit    : TPoint3D;
-  LH      : Single;
-  LFound  : Boolean;
-  LRayPos : TVector3D;
-  LRayDir : TVector3D;
-begin
-  Result := TPoint3D.Zero;
-
-  // Denselben (bewaehrten) Kamerastrahl verwenden, mit dem auch die frei
-  // schwebenden Objekte platziert werden. Der Ursprung kommt direkt aus der
-  // Kamera (AOrigin) und ist damit robust gegen eine evtl. veraltete
-  // Context.Pick-Kameramatrix, an der die (X,Y)-Ueberladung scheitert.
-  LRayPos := TVector3D.Create(AOrigin.X, AOrigin.Y, AOrigin.Z, 1);
-  LRayDir := TVector3D.Create(ADir.X, ADir.Y, ADir.Z, 0);
-
-  LLastDist := 1000;
-  LHit   := TPoint3D.Zero;
-  LFound := False;
-
-  // Auflageflaechen per Dreieck-Raycast abtasten (Terrain, Rock-Oberflaeche).
-  for var I := 0 to FControls3D.Count - 1 do
-  begin
-    if FControls3D[I].PickTriangle(LRayPos, LRayDir, LRes) then
-    begin
-      if LLastDist > LRes.T then
-      begin
-        LHit      := LRes.Intersection;
-        LLastDist := LRes.T;
-        LFound    := True;
-      end;
-    end;
-  end;
-
-  // Fallback: keine Oberflaeche getroffen -> auf die Bodenebene Y=FLOOR_Y
-  // projizieren, damit das Element trotzdem sinnvoll auf dem Boden landet.
-  if not LFound then
-    RayPlaneHit(AOrigin, ADir, 1, FLOOR_Y, LHit);
-
-  LH := 0;
-  if Assigned(FPreview) and Assigned(FPreview.Plane) then
-    LH := FPreview.Plane.Height * FPreview.Plane.Scale.Y;
-
-  Result := Point3D(LHit.X, LHit.Y - LH / 2, LHit.Z);
-  Result.X := Max(-19.0, Min(19.0, Result.X));
-  Result.Z := Max(-19.0, Min(19.0, Result.Z));
-end;
-
-(*
-function TEditorFrame.SurfacePlacement(const AMousePos: TPointF; const AOrigin, ADir: TPoint3D): TPoint3D;
-const
-  FLOOR_Y = 6.5;          // Oberkante des Ground-Cubes (Y=7, Hoehe 1)
-var
-  LRes  : TTriangleRayCastResult;
-  LHit  : TPoint3D;
-  LH    : Single;
-  LLocal: TPointF;
-begin
-  LLocal := AMousePos; //FViewport.LocalToScreen(AMousePos);
-//  Log.d('p=(%n,%n), o=(%n,%n,%n), d=(%n,%n,%n)', [AMousePos.X, AMousePos.Y,
-//    AOrigin.X, AOrigin.Y, AOrigin.Z, ADir.X, ADir.Y, ADir.Z]);
-
-  for var I := 0 to FControls3D.Count - 1 do
-  begin
-    if FControls3D[I].PickTriangle(LLocal.X, LLocal.Y, LRes) then
-    begin
-      LHit := LRes.Intersection;
-      Log.d('[HIT][%s]=(%n,%n,%n)', [FControls3D[I].Name, LHit.X, LHit.Y, LHit.Z]);
-      Break;
-    end;
-  end;
-
-  // Wurzel (untere Plane-Kante) auf die Oberflaeche setzen: Mittelpunkt um
-  // halbe Hoehe nach oben (Welt-Oben = -Y)
-  LH := 0;
-  if Assigned(FPreview) and Assigned(FPreview.Plane) then
-    LH := FPreview.Plane.Height * FPreview.Plane.Scale.Y;  // inkl. Mausrad-Skalierung
-
-  Result := Point3D(LHit.X, LHit.Y - LH / 2, LHit.Z);
-  Result.X := Max(-19.0, Min(19.0, Result.X));
-  Result.Z := Max(-19.0, Min(19.0, Result.Z));
-end;
-*)
-
-function TEditorFrame.MouseToTankPoint(const APt: TPointF): TPoint3D;
-var
-  LOrigin, LDir : TPoint3D;
-begin
-  Result := Point3D(0, 4.5, 0);
-  if not CameraRay(APt, LOrigin, LDir) then
-    Exit;
-
-  if Assigned(FPlacingElement)
-  and (FPlacingElement.Kind in [akPlant, akCoral]) then
-  begin
-    // Pflanzen/Korallen: auf Geometrie (Rock) bzw. Boden mit Bodenkontakt
-    Result := SurfacePlacement(APt, LOrigin, LDir);
-  end
-  else
-  begin
-    // Fische/Quallen: frei schwebend auf der vertikalen Ebene Z = 0
-    if RayPlaneHit(LOrigin, LDir, 2, 0.0, Result) then
-    begin
-      Result.X := Max(-9.0, Min(9.0, Result.X));
-      Result.Y := Max( 3.0, Min(7.0, Result.Y));
-      Result.Z := 0;
-    end
-    else
-      Result := Point3D(0, 4.5, 0);
-  end;
-end;
-
-procedure TEditorFrame.ViewportMouseMove(Sender: TObject; Shift: TShiftState;
-  X, Y: Single);
-begin
-  if not Assigned(FPreview) then
-    Exit;
-  FLastMousePt := PointF(X, Y);
-  FPreview.SetBasePosition(MouseToTankPoint(FLastMousePt));
-end;
-
-procedure TEditorFrame.ViewportMouseWheel(Sender: TObject; Shift: TShiftState;
-  WheelDelta: Integer; var Handled: Boolean);
-begin
-  if not Assigned(FPreview) then
-    Exit;
-
-  // Groesse anpassen (multiplikativ -> gleichmaessige Schritte), begrenzt
-  if WheelDelta > 0 then
-    FPlaceScale := FPlaceScale * 1.1
-  else
-    FPlaceScale := FPlaceScale / 1.1;
-  FPlaceScale := Max(0.2, Min(6.0, FPlaceScale));
-
-  FPreview.SetSizeScale(FPlaceScale);
-  // Position/Wurzel an die neue Groesse nachfuehren (ohne Mausbewegung)
-  FPreview.SetBasePosition(MouseToTankPoint(FLastMousePt));
-
-  Handled := True;   // Kamera-Zoom der Viewport unterdruecken
-end;
-
-procedure TEditorFrame.ViewportMouseDown(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Single);
-begin
-  if not Assigned(FPreview) then
-    Exit;
-
-  case Button of
-    TMouseButton.mbLeft:
-      begin
-        // Vorschau an aktueller Stelle "festsetzen" (taut auf -> beginnt zu
-        // schwimmen/schwingen) und sofort eine neue Vorschau erzeugen.
-        FPreview.SetBasePosition(MouseToTankPoint(PointF(X, Y)));
-        FPreview.Frozen := False;
-
-        FPreview := FScene.Spawn(FPlacingElement);
-        FPreview.Frozen := True;
-        FPreview.SetSizeScale(FPlaceScale);   // gewaehlte Groesse beibehalten
-        FPreview.SetBasePosition(MouseToTankPoint(PointF(X, Y)));
-      end;
-
-    TMouseButton.mbRight:
-      ExitPlacement();
-  end;
+  FPlacement.Start(FLibrary.Items[ElementsList.ItemIndex]);
 end;
 
 { ----------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 unit Aquarium.Elements;
 
 {
-  Drawquarium - Aquariumselemente
+  SketchQuarium - Aquariumselemente
 
   Diese Unit kapselt drei Dinge:
     1. TAquariumKind            - die Art eines Elements (Fisch, Qualle, ...)
