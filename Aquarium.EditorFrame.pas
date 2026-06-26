@@ -21,7 +21,8 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Math,
-  System.Math.Vectors, System.Generics.Collections,
+  System.Math.Vectors, System.Generics.Collections, System.IOUtils,
+  System.Skia, FMX.Skia,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Objects,
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.Layouts, FMX.Edit, FMX.ListBox,
   FMX.Types3D, FMX.Controls3D,
@@ -30,6 +31,13 @@ uses
   Aquarium.Elements;
 
 type
+  /// <summary>Eine aus einer SVG-Datei geladene Schablonen-Vorlage.</summary>
+  TStencilItem = record
+    Kind : TAquariumKind;   // zu welcher Art gehoert die Vorlage
+    Name : String;          // Dateiname (ohne Endung) -> Hinweistext
+    Svg  : String;          // roher SVG-Inhalt (von Skia gerendert)
+  end;
+
   TEditorFrame = class(TFrame)
     HeaderLabel: TLabel;
     LeftPanel: TRectangle;
@@ -124,11 +132,15 @@ type
     FSelColorSwatch : TRectangle;
     FSelBrushSwatch : TRectangle;
 
-    // Schablonen (Silhouetten zum Ausmalen)
-    FStencilActive : Boolean;
-    FStencilMask   : TArray<Single>;   // 0..1 Deckung der Form, in Bitmap-Pixeln
-    FStencilGuide  : TImage;           // Kontur-Overlay ueber der Zeichenflaeche
-    FSelStencil    : TRectangle;       // aktuell umrahmtes Schablonenfeld
+    // Schablonen (aus SVG-Vorlagen geladene Silhouetten zum Ausmalen)
+    FStencilActive   : Boolean;
+    FStencilMask     : TArray<Single>;   // 0..1 Deckung der Form, in Bitmap-Pixeln
+    FStencilGuide    : TImage;           // Kontur-Overlay ueber der Zeichenflaeche
+    FSelStencil      : TRectangle;       // aktuell umrahmtes Schablonenfeld
+    FStencils        : TList<TStencilItem>;  // alle geladenen Vorlagen (nach Art)
+    FStencilSwatches : TList<TRectangle>;    // dynamische Felder der aktuellen Art
+    FSvgBrush        : TSkSvgBrush;          // Skia-Renderer fuer die SVGs
+    FUpdatingKind    : Boolean;          // unterdrueckt KindCombo.OnChange-Reentrancy
 
     // Zustand fuer den weichen Pinsel: ein Schnappschuss des Bildes zu
     // Strichbeginn plus ein Deckungspuffer. So laesst sich der Strich aus der
@@ -157,14 +169,17 @@ type
     procedure SelectColorSwatch(ASwatch: TRectangle);
     procedure SelectBrushSwatch(ASwatch: TRectangle);
 
-    // Schablonen
-    function  StencilPathData(AKind: TAquariumKind): TPathData;
-    procedure DrawSilhouette(ACanvas: TCanvas; APath: TPathData; AW, AH: Single;
-                AFill, AStroke: TAlphaColor; AStrokeW: Single);
-    procedure BuildStencilPreviews();
-    procedure ActivateStencil(AKind: TAquariumKind; ASwatch: TRectangle);
+    // Schablonen (aus SVG-Vorlagen via Skia)
+    function  ShapesDir(): String;
+    procedure LoadStencils();
+    procedure RenderStencil(const ASvg: String; ADst: TBitmap; const ADest: TRectF;
+                ATint: TAlphaColor);
+    procedure RebuildStencilBar(AKind: TAquariumKind);
+    procedure BuildStencilMask(const ASvg: String);
+    procedure ActivateStencil(AIndex: Integer; ASwatch: TRectangle);
     procedure DeactivateStencil();
     procedure ApplyStencilClip(const A, B: TPointF);
+    procedure KindComboChange(Sender: TObject);
 
     function  ImageToBitmap(const APt: TPointF): TPointF;
     procedure StrokeTo(const APt: TPointF);
@@ -230,25 +245,6 @@ const
   XSOFT_SCALE = 1.7;    // Radius-Faktor (noch groesser)
   XSOFT_PEAK  = 0.6;    // maximale Deckung in der Mitte (< 1 -> weicher)
 
-  // Schablonen-Silhouetten als SVG-Pfade in einem 0..100-Koordinatenraum.
-  STENCIL_FISH =
-    'M88,50 C88,61 74.6,70 58,70 C41.4,70 28,61 28,50 ' +
-    'C28,39 41.4,30 58,30 C74.6,30 88,39 88,50 Z ' +
-    'M31,50 L10,33 L10,67 Z';
-  STENCIL_JELLY =
-    'M16,46 C16,14 84,14 84,46 Z ' +
-    'M24,46 L32,46 L29,78 L26,78 Z M40,46 L48,46 L46,82 L42,82 Z ' +
-    'M56,46 L64,46 L62,78 L58,78 Z M70,46 L77,46 L75,74 L71,74 Z';
-  STENCIL_PLANT =
-    'M50,96 C40,72 40,40 50,10 C60,40 60,72 50,96 Z ' +
-    'M50,96 C34,76 26,48 20,24 C34,42 46,70 50,96 Z ' +
-    'M50,96 C66,76 74,48 80,24 C66,42 54,70 50,96 Z';
-  STENCIL_CORAL =
-    'M16,92 L84,92 L84,76 L16,76 Z ' +
-    'M24,78 C20,56 20,40 30,40 C40,40 40,56 36,78 Z ' +
-    'M46,78 C42,50 42,26 52,26 C62,26 62,50 58,78 Z ' +
-    'M66,78 C62,56 62,42 72,42 C80,42 80,56 76,78 Z';
-
   // Vorschaufarben der Schablonen (je Art ein typischer Ton)
   STENCIL_COLORS : array[TAquariumKind] of TAlphaColor = (
     TAlphaColor($FFEF8A3B),   // Fisch  - orange
@@ -271,6 +267,11 @@ begin
 
   FControls3D := TList<TGorillaMesh>.Create();
 
+  FStencils        := TList<TStencilItem>.Create();
+  FStencilSwatches := TList<TRectangle>.Create();
+  FSvgBrush        := TSkSvgBrush.Create();
+  FSvgBrush.WrapMode := TSkSvgWrapMode.Fit;   // Silhouette in das Feld einpassen
+
   FCurrentColor := TAlphaColorRec.Black;
   FBrushType    := 0;
   FEraser       := False;
@@ -283,6 +284,10 @@ begin
   ClearCanvas();
   RefreshElementsList();
 
+  // Maus fangen, damit das MouseUp auch dann ankommt, wenn man beim Zeichnen
+  // ueber den Rand der Zeichenflaeche hinauszieht und dort loslaesst.
+  CanvasImage.AutoCapture := True;
+
   // Pinselvorschauen rendern und Startauswahl (Schwarz / runder Pinsel) rahmen
   BuildBrushPreviews();
   SelectColorSwatch(SwatchBlack);
@@ -293,11 +298,26 @@ begin
   FStencilGuide := TImage.Create(Self);
   FStencilGuide.Parent := CanvasBg;
   FStencilGuide.Align := TAlignLayout.Client;
-  FStencilGuide.Margins.Rect := RectF(4, 4, 4, 4);
+  // Muss exakt das Anzeige-Rechteck von CanvasImage abdecken, sonst liegt die
+  // Kontur versetzt/groesser ueber dem tatsaechlich geklippten Bereich.
+  // -> dieselben Raender wie CanvasImage (16 px).
+  FStencilGuide.Margins.Rect := RectF(16, 16, 16, 16);
   FStencilGuide.HitTest := False;
   FStencilGuide.WrapMode := TImageWrapMode.Stretch;
   FStencilGuide.Visible := False;
-  BuildStencilPreviews();
+
+  // Die vier festen Entwurfszeit-Felder werden durch dynamische, aus den
+  // SVG-Vorlagen erzeugte Felder ersetzt -> aus der Leiste nehmen.
+  StencilFish.Parent  := nil;
+  StencilJelly.Parent := nil;
+  StencilPlant.Parent := nil;
+  StencilCoral.Parent := nil;
+
+  // SVG-Vorlagen laden und die Leiste fuer die aktuell gewaehlte Art aufbauen.
+  // Ein Wechsel der Art (KindCombo) baut die Leiste neu auf.
+  LoadStencils();
+  KindCombo.OnChange := KindComboChange;
+  RebuildStencilBar(TAquariumKind(Max(0, KindCombo.ItemIndex)));
 end;
 
 destructor TEditorFrame.Destroy();
@@ -308,6 +328,9 @@ begin
   FControls3D.Free();
   FLibrary.Free();
   FStrokeBase.Free();
+  FStencils.Free();
+  FStencilSwatches.Free();
+  FSvgBrush.Free();
   inherited;
 end;
 
@@ -534,148 +557,202 @@ end;
   Schablonen (Silhouetten zum Ausmalen)
   ---------------------------------------------------------------------------- }
 
-function TEditorFrame.StencilPathData(AKind: TAquariumKind): TPathData;
+// Sucht den Ordner assets/shapes ausgehend vom Programmverzeichnis nach oben
+// (deckt EXE im Projektordner wie auch in Win64\Debug o.ae. ab).
+function TEditorFrame.ShapesDir(): String;
+var
+  LBase, LCand : String;
+  i : Integer;
 begin
-  Result := TPathData.Create();
-  case AKind of
-    akFish      : Result.Data := STENCIL_FISH;
-    akJellyfish : Result.Data := STENCIL_JELLY;
-    akPlant     : Result.Data := STENCIL_PLANT;
-    akCoral     : Result.Data := STENCIL_CORAL;
-  end;
-end;
-
-// Zeichnet die (im 0..100-Raum definierte) Silhouette skaliert auf AW x AH.
-procedure TEditorFrame.DrawSilhouette(ACanvas: TCanvas; APath: TPathData;
-  AW, AH: Single; AFill, AStroke: TAlphaColor; AStrokeW: Single);
-var LPath : TPathData;
-begin
-  LPath := TPathData.Create();
-  try
-    LPath.Assign(APath);
-    LPath.ApplyMatrix(TMatrix.CreateScaling(AW / 100, AH / 100));
-
-    if TAlphaColorRec(AFill).A > 0 then
-    begin
-      ACanvas.Fill.Kind := TBrushKind.Solid;
-      ACanvas.Fill.Color := AFill;
-      ACanvas.FillPath(LPath, 1);
-    end;
-
-    if (AStrokeW > 0) and (TAlphaColorRec(AStroke).A > 0) then
-    begin
-      ACanvas.Stroke.Kind := TBrushKind.Solid;
-      ACanvas.Stroke.Color := AStroke;
-      ACanvas.Stroke.Thickness := AStrokeW;
-      ACanvas.Stroke.Join := TStrokeJoin.Round;
-      ACanvas.DrawPath(LPath, 1);
-    end;
-  finally
-    LPath.Free();
-  end;
-end;
-
-procedure TEditorFrame.BuildStencilPreviews();
-
-  procedure MakePreview(ASwatch: TRectangle; AKind: TAquariumKind);
-  var
-    LImg : TImage;
-    bmp  : TBitmap;
-    path : TPathData;
+  Result := '';
+  LBase := System.IOUtils.TPath.GetDirectoryName(ParamStr(0));
+  for i := 0 to 6 do
   begin
-    if not Assigned(ASwatch) then
-      Exit;
+    if LBase = '' then
+      Break;
+    LCand := System.IOUtils.TPath.Combine(System.IOUtils.TPath.Combine(LBase, 'assets'), 'shapes');
+    if TDirectory.Exists(LCand) then
+      Exit(LCand);
+    LBase := System.IOUtils.TPath.GetDirectoryName(LBase);
+  end;
+end;
 
-    LImg := TImage.Create(ASwatch);
-    LImg.Parent := ASwatch;
+// Liest alle SVG-Vorlagen je Art aus assets/shapes/<unterordner> ein.
+procedure TEditorFrame.LoadStencils();
+const
+  KIND_DIRS : array[TAquariumKind] of String =
+    ('fish', 'jelly', 'plant', 'coral');
+var
+  LRoot, LDir, LFile : String;
+  LKind : TAquariumKind;
+  LItem : TStencilItem;
+begin
+  FStencils.Clear();
+  LRoot := ShapesDir();
+  if LRoot = '' then
+    Exit;
+
+  for LKind := Low(TAquariumKind) to High(TAquariumKind) do
+  begin
+    LDir := System.IOUtils.TPath.Combine(LRoot, KIND_DIRS[LKind]);
+    if not TDirectory.Exists(LDir) then
+      Continue;
+    for LFile in TDirectory.GetFiles(LDir, '*.svg') do
+    begin
+      try
+        LItem.Svg := TFile.ReadAllText(LFile);
+      except
+        Continue;     // unlesbare Datei ueberspringen
+      end;
+      if Trim(LItem.Svg) = '' then
+        Continue;
+      LItem.Kind := LKind;
+      LItem.Name := System.IOUtils.TPath.GetFileNameWithoutExtension(LFile);
+      FStencils.Add(LItem);
+    end;
+  end;
+end;
+
+// Rendert eine SVG-Silhouette per Skia in ADest (Bereich der bereits
+// dimensionierten Bitmap ADst). ATint faerbt die gesamte Form ein.
+procedure TEditorFrame.RenderStencil(const ASvg: String; ADst: TBitmap;
+  const ADest: TRectF; ATint: TAlphaColor);
+begin
+  FSvgBrush.Source := TSkSvgSource(ASvg);
+  FSvgBrush.OverrideColor := ATint;
+  // SkiaDraw loescht die Bitmap transparent (AStartClean) und rendert dann.
+  ADst.SkiaDraw(
+    procedure (const ACanvas: ISkCanvas)
+    begin
+      FSvgBrush.Render(ACanvas, ADest, 1);
+    end);
+end;
+
+// Baut die Schablonen-Leiste fuer eine Art neu auf: ein Feld je Vorlage.
+procedure TEditorFrame.RebuildStencilBar(AKind: TAquariumKind);
+var
+  i    : Integer;
+  LSw  : TRectangle;
+  LImg : TImage;
+begin
+  // alte dynamische Felder entfernen
+  for i := 0 to FStencilSwatches.Count - 1 do
+    FStencilSwatches[i].Free();
+  FStencilSwatches.Clear();
+  FSelStencil := nil;
+
+  for i := 0 to FStencils.Count - 1 do
+  begin
+    if FStencils[i].Kind <> AKind then
+      Continue;
+
+    LSw := TRectangle.Create(Self);
+    LSw.Parent := StencilBar;
+    LSw.Width := 44;
+    LSw.Height := 44;
+    LSw.Margins.Rect := RectF(3, 3, 3, 3);
+    LSw.Fill.Color := TAlphaColorRec.White;
+    LSw.Stroke.Color := SWATCH_STROKE_DEF;
+    LSw.Stroke.Thickness := SWATCH_THICK_DEF;
+    LSw.XRadius := 6;
+    LSw.YRadius := 6;
+    LSw.Cursor := crHandPoint;
+    LSw.Hint := FStencils[i].Name;
+    LSw.ShowHint := True;
+    LSw.Tag := i;                       // Index in FStencils
+    LSw.OnClick := StencilSwatchClick;
+
+    LImg := TImage.Create(LSw);
+    LImg.Parent := LSw;
     LImg.Align := TAlignLayout.Client;
-    LImg.Margins.Rect := RectF(5, 5, 5, 5);
+    LImg.Margins.Rect := RectF(4, 4, 4, 4);
     LImg.HitTest := False;
     LImg.WrapMode := TImageWrapMode.Fit;
+    LImg.Bitmap.SetSize(64, 64);
+    RenderStencil(FStencils[i].Svg, LImg.Bitmap, RectF(4, 4, 60, 60),
+      STENCIL_COLORS[AKind]);
 
-    bmp := LImg.Bitmap;
-    bmp.SetSize(64, 64);
-    bmp.Clear(TAlphaColorRec.Null);
-
-    path := StencilPathData(AKind);
-    try
-      if bmp.Canvas.BeginScene() then
-      try
-        DrawSilhouette(bmp.Canvas, path, 64, 64,
-          STENCIL_COLORS[AKind], $66303030, 2);
-      finally
-        bmp.Canvas.EndScene();
-      end;
-    finally
-      path.Free();
-    end;
-    LImg.Repaint();
+    FStencilSwatches.Add(LSw);
   end;
 
-begin
-  MakePreview(StencilFish,  akFish);
-  MakePreview(StencilJelly, akJellyfish);
-  MakePreview(StencilPlant, akPlant);
-  MakePreview(StencilCoral, akCoral);
+  // "Freihand"-Schaltflaeche stets ans Ende der Leiste schieben.
+  FreehandBtn.Parent := nil;
+  FreehandBtn.Parent := StencilBar;
 end;
 
-procedure TEditorFrame.ActivateStencil(AKind: TAquariumKind; ASwatch: TRectangle);
+// Rendert die Silhouette gross (CANVAS_PX) und leitet daraus die Deckungsmaske
+// sowie das Kontur-Overlay ab.
+procedure TEditorFrame.BuildStencilMask(const ASvg: String);
+const
+  MARGIN = 0.08;   // Rand, damit die Form nicht am Canvas-Rand klebt
 var
-  bmp  : TBitmap;
-  path : TPathData;
-  LData: TBitmapData;
-  i    : Integer;
+  bmp   : TBitmap;
+  LData : TBitmapData;
+  GData : TBitmapData;
+  W, H, x, y, idx : Integer;
 begin
-  // 1) Maske rendern: Silhouette weiss auf transparent, dann Alpha als Deckung.
-  SetLength(FStencilMask, CANVAS_PX * CANVAS_PX);
-  bmp := TBitmap.Create(CANVAS_PX, CANVAS_PX);
+  W := CANVAS_PX;
+  H := CANVAS_PX;
+  SetLength(FStencilMask, W * H);
+
+  // 1) Silhouette weiss rendern -> Alpha = Deckung der Form.
+  bmp := TBitmap.Create(W, H);
   try
-    bmp.Clear(TAlphaColorRec.Null);
-    path := StencilPathData(AKind);
-    try
-      if bmp.Canvas.BeginScene() then
-      try
-        DrawSilhouette(bmp.Canvas, path, CANVAS_PX, CANVAS_PX,
-          TAlphaColorRec.White, TAlphaColorRec.White, 1);  // Kontur mitfuellen
-      finally
-        bmp.Canvas.EndScene();
-      end;
-    finally
-      path.Free();
-    end;
+    RenderStencil(ASvg, bmp,
+      RectF(W * MARGIN, H * MARGIN, W * (1 - MARGIN), H * (1 - MARGIN)),
+      TAlphaColorRec.White);
 
     if bmp.Map(TMapAccess.Read, LData) then
     try
-      for i := 0 to CANVAS_PX * CANVAS_PX - 1 do
-        FStencilMask[i] :=
-          TAlphaColorRec(LData.GetPixel(i mod CANVAS_PX, i div CANVAS_PX)).A / 255;
+      for idx := 0 to W * H - 1 do
+        FStencilMask[idx] :=
+          TAlphaColorRec(LData.GetPixel(idx mod W, idx div W)).A / 255;
     finally
       bmp.Unmap(LData);
     end;
   finally
     bmp.Free();
   end;
-  FStencilActive := True;
 
-  // 2) Kontur-Overlay ueber der Zeichenflaeche anzeigen (wird nicht gespeichert).
-  FStencilGuide.Bitmap.SetSize(CANVAS_PX, CANVAS_PX);
+  // 2) Kontur-Overlay aus der Maske ableiten: Innenpixel mit Aussennachbar
+  //    markieren (3 px dick). Wird angezeigt, aber nicht mitgespeichert.
+  FStencilGuide.Bitmap.SetSize(W, H);
   FStencilGuide.Bitmap.Clear(TAlphaColorRec.Null);
-  path := StencilPathData(AKind);
+  if FStencilGuide.Bitmap.Map(TMapAccess.ReadWrite, GData) then
   try
-    if FStencilGuide.Bitmap.Canvas.BeginScene() then
-    try
-      DrawSilhouette(FStencilGuide.Bitmap.Canvas, path, CANVAS_PX, CANVAS_PX,
-        TAlphaColorRec.Null, STENCIL_GUIDE_INK, 3);   // nur Kontur
-    finally
-      FStencilGuide.Bitmap.Canvas.EndScene();
-    end;
+    for y := 1 to H - 2 do
+      for x := 1 to W - 2 do
+      begin
+        idx := y * W + x;
+        if FStencilMask[idx] < 0.5 then
+          Continue;
+        if (FStencilMask[idx - 1] < 0.5) or (FStencilMask[idx + 1] < 0.5)
+        or (FStencilMask[idx - W] < 0.5) or (FStencilMask[idx + W] < 0.5) then
+        begin
+          GData.SetPixel(x,     y,     STENCIL_GUIDE_INK);
+          GData.SetPixel(x - 1, y,     STENCIL_GUIDE_INK);
+          GData.SetPixel(x + 1, y,     STENCIL_GUIDE_INK);
+          GData.SetPixel(x,     y - 1, STENCIL_GUIDE_INK);
+          GData.SetPixel(x,     y + 1, STENCIL_GUIDE_INK);
+        end;
+      end;
   finally
-    path.Free();
+    FStencilGuide.Bitmap.Unmap(GData);
   end;
+end;
+
+procedure TEditorFrame.ActivateStencil(AIndex: Integer; ASwatch: TRectangle);
+begin
+  if (AIndex < 0) or (AIndex >= FStencils.Count) then
+    Exit;
+
+  // Maske + Kontur aus der SVG-Vorlage erzeugen und Schablone scharf schalten.
+  BuildStencilMask(FStencils[AIndex].Svg);
+  FStencilActive := True;
   FStencilGuide.Visible := True;
   FStencilGuide.BringToFront();
 
-  // 3) Auswahlrahmen + Art synchronisieren
+  // Auswahlrahmen umsetzen
   if Assigned(FSelStencil) then
   begin
     FSelStencil.Stroke.Color := SWATCH_STROKE_DEF;
@@ -687,10 +764,26 @@ begin
     ASwatch.Stroke.Color := SWATCH_STROKE_SEL;
     ASwatch.Stroke.Thickness := SWATCH_THICK_SEL;
   end;
-  KindCombo.ItemIndex := Ord(AKind);
+
+  // Art synchronisieren - ohne die Leiste neu aufzubauen (gleiche Art).
+  FUpdatingKind := True;
+  try
+    KindCombo.ItemIndex := Ord(FStencils[AIndex].Kind);
+  finally
+    FUpdatingKind := False;
+  end;
 
   FEraser := False;
   EraserBtn.Text := 'Radierer';
+end;
+
+// Wechsel der Art: aktive Schablone loesen und die Leiste neu aufbauen.
+procedure TEditorFrame.KindComboChange(Sender: TObject);
+begin
+  if FUpdatingKind then
+    Exit;
+  DeactivateStencil();
+  RebuildStencilBar(TAquariumKind(Max(0, KindCombo.ItemIndex)));
 end;
 
 procedure TEditorFrame.DeactivateStencil();
@@ -1021,6 +1114,16 @@ var P : TPointF;
 begin
   if not FDrawing then
     Exit;
+
+  // Schutz fuer den Fall, dass ein MouseUp verloren ging (z.B. ausserhalb des
+  // Controls losgelassen): ohne gedrueckte linke Taste keinen Strich fortsetzen.
+  if not (ssLeft in Shift) then
+  begin
+    FDrawing := False;
+    FStrokeActive := False;
+    Exit;
+  end;
+
   P := ImageToBitmap(PointF(X, Y));
   if FEraser then
     EraseAt(P)
@@ -1058,7 +1161,7 @@ procedure TEditorFrame.StencilSwatchClick(Sender: TObject);
 var LSw : TRectangle;
 begin
   LSw := Sender as TRectangle;
-  ActivateStencil(TAquariumKind(LSw.Tag), LSw);
+  ActivateStencil(Integer(LSw.Tag), LSw);   // Tag = Index in FStencils
 end;
 
 procedure TEditorFrame.FreehandClick(Sender: TObject);

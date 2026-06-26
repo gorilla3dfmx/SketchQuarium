@@ -22,6 +22,10 @@ object EditorFrame: TEditorFrame
   object LeftPanel: TRectangle
     Align = Left
     Fill.Color = x22FFFFFF
+    Padding.Left = 8.000000000000000000
+    Padding.Top = 8.000000000000000000
+    Padding.Right = 8.000000000000000000
+    Padding.Bottom = 8.000000000000000000
     Margins.Left = 16.000000000000000000
     Margins.Top = 8.000000000000000000
     Margins.Right = 8.000000000000000000
@@ -32,6 +36,7 @@ object EditorFrame: TEditorFrame
     Size.Height = 648.000000000000000000
     Size.PlatformDefault = False
     Stroke.Color = x33555555
+    Stroke.Thickness = 8.000000000000000000
     XRadius = 6.000000000000000000
     YRadius = 6.000000000000000000
     object LeftHeader: TLabel
@@ -40,9 +45,9 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 8.000000000000000000
-      Size.Width = 264.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 16.000000000000000000
+      Size.Width = 248.000000000000000000
       Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
       TextSettings.Font.Size = 15.000000000000000000
@@ -55,9 +60,10 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 610.000000000000000000
-      Size.Width = 264.000000000000000000
+      Margins.Bottom = 8.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 594.000000000000000000
+      Size.Width = 248.000000000000000000
       Size.Height = 38.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 1
@@ -69,9 +75,9 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 564.000000000000000000
-      Size.Width = 264.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 548.000000000000000000
+      Size.Width = 248.000000000000000000
       Size.Height = 38.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 2
@@ -83,9 +89,9 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 518.000000000000000000
-      Size.Width = 264.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 502.000000000000000000
+      Size.Width = 248.000000000000000000
       Size.Height = 38.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 3
@@ -97,9 +103,9 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 472.000000000000000000
-      Size.Width = 264.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 456.000000000000000000
+      Size.Width = 248.000000000000000000
       Size.Height = 38.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 4
@@ -111,9 +117,9 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 426.000000000000000000
-      Size.Width = 264.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 410.000000000000000000
+      Size.Width = 248.000000000000000000
       Size.Height = 38.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 5
@@ -125,9 +131,8 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 4.000000000000000000
       Margins.Right = 8.000000000000000000
-      Margins.Bottom = 4.000000000000000000
-      Size.Width = 264.000000000000000000
-      Size.Height = 378.000000000000000000
+      Size.Width = 248.000000000000000000
+      Size.Height = 358.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 6
       DisableFocusEffect = True
@@ -135,13 +140,17 @@ object EditorFrame: TEditorFrame
       DefaultItemStyles.ItemStyle = ''
       DefaultItemStyles.GroupHeaderStyle = ''
       DefaultItemStyles.GroupFooterStyle = ''
-      Viewport.Width = 260.000000000000000000
-      Viewport.Height = 374.000000000000000000
+      Viewport.Width = 244.000000000000000000
+      Viewport.Height = 354.000000000000000000
     end
   end
   object RightPanel: TRectangle
     Align = Right
     Fill.Color = x22FFFFFF
+    Padding.Left = 8.000000000000000000
+    Padding.Top = 8.000000000000000000
+    Padding.Right = 8.000000000000000000
+    Padding.Bottom = 8.000000000000000000
     Margins.Left = 8.000000000000000000
     Margins.Top = 8.000000000000000000
     Margins.Right = 16.000000000000000000
@@ -152,6 +161,7 @@ object EditorFrame: TEditorFrame
     Size.Height = 648.000000000000000000
     Size.PlatformDefault = False
     Stroke.Color = x33555555
+    Stroke.Thickness = 8.000000000000000000
     XRadius = 6.000000000000000000
     YRadius = 6.000000000000000000
     object ArtLabel: TLabel
@@ -160,9 +170,9 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 8.000000000000000000
-      Size.Width = 244.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 16.000000000000000000
+      Size.Width = 228.000000000000000000
       Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
       TextSettings.Font.Size = 15.000000000000000000
@@ -181,9 +191,9 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 4.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 36.000000000000000000
-      Size.Width = 244.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 44.000000000000000000
+      Size.Width = 228.000000000000000000
       Size.Height = 34.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 1
@@ -194,9 +204,9 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 78.000000000000000000
-      Size.Width = 244.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 86.000000000000000000
+      Size.Width = 228.000000000000000000
       Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
       TextSettings.Font.Size = 15.000000000000000000
@@ -208,12 +218,12 @@ object EditorFrame: TEditorFrame
       Touch.InteractiveGestures = [LongTap, DoubleTap]
       Align = Top
       TabOrder = 3
-      Position.X = 8.000000000000000000
-      Position.Y = 106.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 114.000000000000000000
       Margins.Left = 8.000000000000000000
       Margins.Top = 4.000000000000000000
       Margins.Right = 8.000000000000000000
-      Size.Width = 244.000000000000000000
+      Size.Width = 228.000000000000000000
       Size.Height = 34.000000000000000000
       Size.PlatformDefault = False
       TextPrompt = 'z.B. Nemo'
@@ -224,9 +234,9 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 148.000000000000000000
-      Size.Width = 244.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 156.000000000000000000
+      Size.Width = 228.000000000000000000
       Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
       TextSettings.Font.Size = 15.000000000000000000
@@ -239,9 +249,9 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 4.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 176.000000000000000000
-      Size.Width = 244.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 184.000000000000000000
+      Size.Width = 228.000000000000000000
       Size.Height = 100.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 5
@@ -493,36 +503,34 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 230.000000000000000000
-      Size.Width = 244.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 292.000000000000000000
+      Size.Width = 228.000000000000000000
       Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
       TextSettings.Font.Size = 15.000000000000000000
       TextSettings.Font.StyleExt = {00070000000000000004000000}
       Text = 'Pinselart'
-      TabOrder = 12
+      TabOrder = 10
     end
     object BrushRow: TFlowLayout
       Align = Top
       Margins.Left = 8.000000000000000000
       Margins.Top = 4.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 258.000000000000000000
-      Size.Width = 244.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 320.000000000000000000
+      Size.Width = 228.000000000000000000
       Size.Height = 52.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 13
+      TabOrder = 12
       Justify = Left
       JustifyLastLine = Left
       FlowDirection = LeftToRight
       object BrushRound: TRectangle
         Cursor = crHandPoint
-        Tag = 0
-        Hint = 'Normal'
-        ShowHint = True
         Fill.Color = claWhite
+        Hint = 'Normal'
         Margins.Left = 3.000000000000000000
         Margins.Top = 3.000000000000000000
         Margins.Right = 3.000000000000000000
@@ -535,14 +543,15 @@ object EditorFrame: TEditorFrame
         Stroke.Color = claGray
         XRadius = 6.000000000000000000
         YRadius = 6.000000000000000000
+        ParentShowHint = False
+        ShowHint = True
         OnClick = BrushSwatchClick
       end
       object BrushSoft: TRectangle
-        Cursor = crHandPoint
         Tag = 1
-        Hint = 'Sehr weich'
-        ShowHint = True
+        Cursor = crHandPoint
         Fill.Color = claWhite
+        Hint = 'Sehr weich'
         Margins.Left = 3.000000000000000000
         Margins.Top = 3.000000000000000000
         Margins.Right = 3.000000000000000000
@@ -555,14 +564,15 @@ object EditorFrame: TEditorFrame
         Stroke.Color = claGray
         XRadius = 6.000000000000000000
         YRadius = 6.000000000000000000
+        ParentShowHint = False
+        ShowHint = True
         OnClick = BrushSwatchClick
       end
       object BrushExtraSoft: TRectangle
-        Cursor = crHandPoint
         Tag = 3
-        Hint = 'Extra weich'
-        ShowHint = True
+        Cursor = crHandPoint
         Fill.Color = claWhite
+        Hint = 'Extra weich'
         Margins.Left = 3.000000000000000000
         Margins.Top = 3.000000000000000000
         Margins.Right = 3.000000000000000000
@@ -575,14 +585,15 @@ object EditorFrame: TEditorFrame
         Stroke.Color = claGray
         XRadius = 6.000000000000000000
         YRadius = 6.000000000000000000
+        ParentShowHint = False
+        ShowHint = True
         OnClick = BrushSwatchClick
       end
       object BrushElongated: TRectangle
-        Cursor = crHandPoint
         Tag = 2
-        Hint = 'L'#228'nglich'
-        ShowHint = True
+        Cursor = crHandPoint
         Fill.Color = claWhite
+        Hint = 'L'#228'nglich'
         Margins.Left = 3.000000000000000000
         Margins.Top = 3.000000000000000000
         Margins.Right = 3.000000000000000000
@@ -595,6 +606,8 @@ object EditorFrame: TEditorFrame
         Stroke.Color = claGray
         XRadius = 6.000000000000000000
         YRadius = 6.000000000000000000
+        ParentShowHint = False
+        ShowHint = True
         OnClick = BrushSwatchClick
       end
     end
@@ -604,9 +617,9 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 284.000000000000000000
-      Size.Width = 244.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 380.000000000000000000
+      Size.Width = 228.000000000000000000
       Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
       TextSettings.Font.Size = 15.000000000000000000
@@ -623,9 +636,9 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 4.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 312.000000000000000000
-      Size.Width = 244.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 408.000000000000000000
+      Size.Width = 228.000000000000000000
       Size.Height = 19.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 7
@@ -636,9 +649,9 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 339.000000000000000000
-      Size.Width = 244.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 435.000000000000000000
+      Size.Width = 228.000000000000000000
       Size.Height = 38.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 8
@@ -650,9 +663,9 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 385.000000000000000000
-      Size.Width = 244.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 481.000000000000000000
+      Size.Width = 228.000000000000000000
       Size.Height = 38.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 9
@@ -665,9 +678,9 @@ object EditorFrame: TEditorFrame
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
       Margins.Bottom = 8.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 602.000000000000000000
-      Size.Width = 244.000000000000000000
+      Position.X = 16.000000000000000000
+      Position.Y = 594.000000000000000000
+      Size.Width = 228.000000000000000000
       Size.Height = 38.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 11
@@ -686,6 +699,7 @@ object EditorFrame: TEditorFrame
     Size.Height = 648.000000000000000000
     Size.PlatformDefault = False
     Stroke.Kind = None
+    Stroke.Thickness = 0.000000000000000000
     object StencilBar: TFlowLayout
       Align = Top
       Margins.Left = 8.000000000000000000
@@ -713,20 +727,17 @@ object EditorFrame: TEditorFrame
         Size.PlatformDefault = False
         TextSettings.Font.Size = 15.000000000000000000
         TextSettings.Font.StyleExt = {00070000000000000004000000}
-        TextSettings.VertAlign = Center
         Text = 'Schablonen:'
       end
       object StencilFish: TRectangle
         Cursor = crHandPoint
-        Tag = 0
-        Hint = 'Fisch-Schablone'
-        ShowHint = True
         Fill.Color = claWhite
+        Hint = 'Fisch-Schablone'
         Margins.Left = 3.000000000000000000
         Margins.Top = 3.000000000000000000
         Margins.Right = 3.000000000000000000
         Margins.Bottom = 3.000000000000000000
-        Position.X = 106.000000000000000000
+        Position.X = 109.000000000000000000
         Position.Y = 3.000000000000000000
         Size.Width = 44.000000000000000000
         Size.Height = 44.000000000000000000
@@ -734,19 +745,20 @@ object EditorFrame: TEditorFrame
         Stroke.Color = claGray
         XRadius = 6.000000000000000000
         YRadius = 6.000000000000000000
+        ParentShowHint = False
+        ShowHint = True
         OnClick = StencilSwatchClick
       end
       object StencilJelly: TRectangle
-        Cursor = crHandPoint
         Tag = 1
-        Hint = 'Quallen-Schablone'
-        ShowHint = True
+        Cursor = crHandPoint
         Fill.Color = claWhite
+        Hint = 'Quallen-Schablone'
         Margins.Left = 3.000000000000000000
         Margins.Top = 3.000000000000000000
         Margins.Right = 3.000000000000000000
         Margins.Bottom = 3.000000000000000000
-        Position.X = 156.000000000000000000
+        Position.X = 159.000000000000000000
         Position.Y = 3.000000000000000000
         Size.Width = 44.000000000000000000
         Size.Height = 44.000000000000000000
@@ -754,19 +766,20 @@ object EditorFrame: TEditorFrame
         Stroke.Color = claGray
         XRadius = 6.000000000000000000
         YRadius = 6.000000000000000000
+        ParentShowHint = False
+        ShowHint = True
         OnClick = StencilSwatchClick
       end
       object StencilPlant: TRectangle
-        Cursor = crHandPoint
         Tag = 2
-        Hint = 'Pflanzen-Schablone'
-        ShowHint = True
+        Cursor = crHandPoint
         Fill.Color = claWhite
+        Hint = 'Pflanzen-Schablone'
         Margins.Left = 3.000000000000000000
         Margins.Top = 3.000000000000000000
         Margins.Right = 3.000000000000000000
         Margins.Bottom = 3.000000000000000000
-        Position.X = 206.000000000000000000
+        Position.X = 209.000000000000000000
         Position.Y = 3.000000000000000000
         Size.Width = 44.000000000000000000
         Size.Height = 44.000000000000000000
@@ -774,19 +787,20 @@ object EditorFrame: TEditorFrame
         Stroke.Color = claGray
         XRadius = 6.000000000000000000
         YRadius = 6.000000000000000000
+        ParentShowHint = False
+        ShowHint = True
         OnClick = StencilSwatchClick
       end
       object StencilCoral: TRectangle
-        Cursor = crHandPoint
         Tag = 3
-        Hint = 'Korallen-Schablone'
-        ShowHint = True
+        Cursor = crHandPoint
         Fill.Color = claWhite
+        Hint = 'Korallen-Schablone'
         Margins.Left = 3.000000000000000000
         Margins.Top = 3.000000000000000000
         Margins.Right = 3.000000000000000000
         Margins.Bottom = 3.000000000000000000
-        Position.X = 256.000000000000000000
+        Position.X = 259.000000000000000000
         Position.Y = 3.000000000000000000
         Size.Width = 44.000000000000000000
         Size.Height = 44.000000000000000000
@@ -794,13 +808,15 @@ object EditorFrame: TEditorFrame
         Stroke.Color = claGray
         XRadius = 6.000000000000000000
         YRadius = 6.000000000000000000
+        ParentShowHint = False
+        ShowHint = True
         OnClick = StencilSwatchClick
       end
       object FreehandBtn: TButton
         Margins.Left = 12.000000000000000000
         Margins.Top = 6.000000000000000000
         Margins.Right = 3.000000000000000000
-        Position.X = 315.000000000000000000
+        Position.X = 318.000000000000000000
         Position.Y = 6.000000000000000000
         Size.Width = 104.000000000000000000
         Size.Height = 38.000000000000000000
@@ -816,7 +832,7 @@ object EditorFrame: TEditorFrame
       Size.Height = 560.000000000000000000
       Size.PlatformDefault = False
       Stroke.Color = x66333333
-      Stroke.Thickness = 2.000000000000000000
+      Stroke.Thickness = 8.000000000000000000
       XRadius = 6.000000000000000000
       YRadius = 6.000000000000000000
       object CanvasImage: TImage
@@ -824,12 +840,12 @@ object EditorFrame: TEditorFrame
           item
           end>
         Align = Client
-        Margins.Left = 4.000000000000000000
-        Margins.Top = 4.000000000000000000
-        Margins.Right = 4.000000000000000000
-        Margins.Bottom = 4.000000000000000000
-        Size.Width = 552.000000000000000000
-        Size.Height = 552.000000000000000000
+        Margins.Left = 16.000000000000000000
+        Margins.Top = 16.000000000000000000
+        Margins.Right = 16.000000000000000000
+        Margins.Bottom = 16.000000000000000000
+        Size.Width = 528.000000000000000000
+        Size.Height = 528.000000000000000000
         Size.PlatformDefault = False
         WrapMode = Stretch
         OnMouseDown = CanvasMouseDown
