@@ -110,7 +110,11 @@ begin
   // Falls noch ein Platzierungsmodus laeuft: Vorschau entfernen und die
   // Viewport-Maus-Events wieder loesen (Szene/Viewport leben noch).
   Stop();
+
+  for var I := 0 to FControls3D.Count - 1 do
+    (FControls3D[I].Def as TMeshDef).ReleaseBVH();
   FControls3D.Free();
+
   // FHintBar gehoert FOwner und wird von diesem freigegeben.
   inherited;
 end;
@@ -163,7 +167,8 @@ begin
   // Raycast getroffen werden kann.
   for var I := 0 to FControls3D.Count - 1 do
   begin
-    (FControls3D[I].Def as TMeshDef).AcquireBVH();
+    if (FControls3D[I].Def as TMeshDef).BVH = nil then
+      (FControls3D[I].Def as TMeshDef).AcquireBVH();
     FControls3D[I].SetHitTestValue(false);
   end;
 
@@ -212,7 +217,7 @@ begin
   for var I := 0 to FControls3D.Count - 1 do
   begin
     FControls3D[I].SetHitTestValue(false);
-    (FControls3D[I].Def as TMeshDef).ReleaseBVH();
+    //(FControls3D[I].Def as TMeshDef).ReleaseBVH();
   end;
 end;
 
@@ -308,8 +313,8 @@ begin
     RayPlaneHit(AOrigin, ADir, 1, FLOOR_Y, LHit);
 
   LH := 0;
-  if Assigned(FPreview) and Assigned(FPreview.Plane) then
-    LH := FPreview.Plane.Height * FPreview.Plane.Scale.Y;
+  if Assigned(FPreview) then
+    LH := FPreview.WorldHeight();
 
   Result := Point3D(LHit.X, LHit.Y - LH / 2, LHit.Z);
   Result.X := Max(-19.0, Min(19.0, Result.X));

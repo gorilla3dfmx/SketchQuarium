@@ -3,18 +3,27 @@ unit Aquarium.Elements;
 {
   SketchQuarium - Aquariumselemente
 
-  Diese Unit kapselt drei Dinge:
+  Diese Unit kapselt vier Dinge:
     1. TAquariumKind            - die Art eines Elements (Fisch, Qualle, ...)
     2. TAquariumLibrary         - das Speichern/Laden gezeichneter Elemente
                                   (PNG + Manifest im Dokumente-Ordner)
-    3. TAquariumScene           - das Erzeugen animierter Planes in der 3D-Szene
-                                  inkl. der pro-Frame Vertex-Deformation
+    3. TAquariumScene           - das Erzeugen platzierter Elemente in der Szene
+    4. TSpawnedElement          - eine platzierte Instanz (TGorillaModel)
 
-  Die eigentliche 3D-Geometrie ist ein TGorillaPlane mit Subdivisions, dem ein
-  TGorillaBlinnMaterialSource mit der gezeichneten Textur (Texture0) zugewiesen
-  wird. Damit transparente Bereiche nicht schwarz erscheinen, wird das Plane als
-  nicht-opak (Opaque := False) gerendert und das Material nutzt die Alpha-Kanal-
-  Transparenz der Textur.
+  Die 3D-Geometrie wird ueber den CustomMesh-Ansatz von Gorilla3D aufgebaut:
+  je Art wird einmalig ein TModelDef erzeugt (unterteiltes Quad als TMeshDef,
+  ein Material und eine Eigen-Animation). Aus diesem ModelDef wird beim Spawnen
+  per TGorillaModel.LoadNewModelFromDef eine Instanz materialisiert.
+
+  Wichtig - zwei getrennte Animationsebenen:
+    * Die EIGEN-Animation (Wabbeln/Puls/Schwingen) steckt als gebackene
+      Vertex-Animation (TMeshInterpolatorDef) im ModelDef und wird von der
+      Engine abgespielt. Sie beschreibt nur die Deformation des Elements selbst.
+    * Die RAUM-Bewegung (Schwimmen/Treiben) wird weiterhin pro Frame im Code
+      (TSpawnedElement.Animate) auf Position/RotationAngle des Models gerechnet.
+
+  Die gezeichnete Textur ist pro Instanz verschieden und wird nach dem
+  Materialisieren als MaterialSource (Blinn, nicht-opak) auf das Model gelegt.
 }
 
 interface
@@ -23,7 +32,8 @@ uses
   System.SysUtils, System.Classes, System.Types, System.UITypes, System.Math,
   System.Math.Vectors, System.Generics.Collections, System.IOUtils,
   FMX.Graphics, FMX.Types3D, FMX.Controls3D,
-  Gorilla.Viewport, Gorilla.Plane, Gorilla.Material.Blinn;
+  Gorilla.Viewport, Gorilla.Mesh, Gorilla.Model, Gorilla.DefTypes,
+  Gorilla.Loader, Gorilla.Animation, Gorilla.AssetsManager;
 
 type
   /// <summary>Art eines Aquariumselements - bestimmt Aussehen und Animation.</summary>
@@ -94,22 +104,23 @@ type
   end;
 
   /// <summary>
-  ///  Eine in der Szene platzierte Instanz eines Elements. Haelt das Plane,
-  ///  die unverformten Ausgangs-Vertices (Ruhelage) sowie Parameter fuer die
-  ///  Animation.
+  ///  Eine in der Szene platzierte Instanz eines Elements. Haelt das
+  ///  TGorillaModel (mit laufender Eigen-Animation) und die Parameter fuer die
+  ///  pro-Frame berechnete Raumbewegung.
   /// </summary>
   TSpawnedElement = class
   private
-    FPlane     : TGorillaPlane;
-    FMaterial  : TGorillaBlinnMaterialSource;
+    FModel     : TGorillaModel;
     FKind      : TAquariumKind;
-    FRestVerts : TArray<TPoint3D>;
     FBasePos   : TPoint3D;
-    FPhase     : Single;
+    FBaseW     : Single;        // Grundbreite der Art (lokale Quad-Groesse)
+    FBaseH     : Single;        // Grundhoehe der Art
+    FScale     : Single;        // per Mausrad eingestellte Groesse
+    FPhase     : Single;        // Phasenversatz der Raumbewegung
     FFrozen    : Boolean;
-    procedure CaptureRestVertices();
+    procedure ApplyScale();
   public
-    /// <summary>Berechnet und setzt die Vertexpositionen fuer den Zeitpunkt ATime.</summary>
+    /// <summary>Rechnet die Raumbewegung (nur Position/Rotation) fuer ATime.</summary>
     procedure Animate(ATime: Single);
 
     /// <summary>Setzt Basis- und aktuelle Position (z.B. fuer die Vorschau).</summary>
@@ -118,7 +129,10 @@ type
     /// <summary>Skaliert das Element gleichmaessig (1.0 = Ausgangsgroesse).</summary>
     procedure SetSizeScale(const AFactor: Single);
 
-    property Plane : TGorillaPlane read FPlane;
+    /// <summary>Aktuelle Welthoehe (fuer Bodenkontakt bei der Platzierung).</summary>
+    function  WorldHeight(): Single;
+
+    property Model : TGorillaModel read FModel;
     property Kind  : TAquariumKind read FKind;
     /// <summary>
     ///  Im eingefrorenen Zustand bleibt das Element exakt an seiner Position
@@ -134,15 +148,24 @@ type
   /// </summary>
   TAquariumScene = class
   private
-    FViewport : TGorillaViewport;
-    FOwner    : TComponent;
-    FItems    : TObjectList<TSpawnedElement>;
-    function BuildMaterial(ABitmap: TBitmap): TGorillaBlinnMaterialSource;
+    FViewport  : TGorillaViewport;
+    FOwner     : TComponent;
+    FModelDefs : TDictionary<String, TModelDef>;
+    FItems     : TObjectList<TSpawnedElement>;
+    /// <summary>
+    ///  Baut ein frisches ModelDef (Quad-Mesh, texturiertes Material und
+    ///  Eigen-Animation). Die gezeichnete Textur wird direkt ins Material-Def
+    ///  gelegt; das Materialisieren erzeugt daraus automatisch die MaterialSource.
+    ///  Das Eigentum am Def geht an das TGorillaModel ueber (gibt es selbst frei)
+    ///  -> daher pro Spawn neu.
+    /// </summary>
+    function BuildModelDef(const AName: String; AKind: TAquariumKind;
+      ABitmap: TBitmap): TModelDef;
   public
     constructor Create(AViewport: TGorillaViewport; AOwner: TComponent);
     destructor Destroy(); override;
 
-    /// <summary>Platziert ein Element als animiertes Plane in der Szene.</summary>
+    /// <summary>Platziert ein Element als animiertes Model in der Szene.</summary>
     function Spawn(AElement: TAquariumElement): TSpawnedElement;
 
     /// <summary>Entfernt ein platziertes Element wieder aus der Szene.</summary>
@@ -168,7 +191,15 @@ uses
 
 const
   MANIFEST_SEP   = '|';
-  SUBDIVISIONS   = 24;     // Aufloesung des Plane-Meshes (pro Achse)
+  SUBDIVISIONS   = 24;     // Aufloesung des Quad-Meshes (pro Achse)
+  ANIM_KEYS      = 24;     // Keyframes pro Loop der Eigen-Animation
+
+  // Grundgroesse (lokale Quad-Breite/Hoehe) je Art - Reihenfolge wie TAquariumKind.
+  AQUARIUM_BASE_W : array[TAquariumKind] of Single = (2.6, 2.2, 2.2, 2.6);
+  AQUARIUM_BASE_H : array[TAquariumKind] of Single = (1.9, 2.4, 3.4, 2.2);
+
+  // Loop-Dauer der Eigen-Animation je Art (Sekunden).
+  AQUARIUM_LOOP_S : array[TAquariumKind] of Single = (1.6, 2.6, 3.0, 3.4);
 
 function AquariumKindToStr(AKind: TAquariumKind): String;
 begin
@@ -376,125 +407,107 @@ end;
 
 { TSpawnedElement }
 
-procedure TSpawnedElement.CaptureRestVertices();
-var
-  LData : TMeshData;
-  i, n  : Integer;
+procedure TSpawnedElement.ApplyScale();
 begin
-  LData := FPlane.MeshData;
-  n := LData.VertexBuffer.Length;
-  SetLength(FRestVerts, n);
-  for i := 0 to n - 1 do
-    FRestVerts[i] := LData.VertexBuffer.Vertices[i];
+  // Grundgroesse je Art (X/Y) mal Mausrad-Skalierung. Z nur die Skalierung,
+  // damit die gebackene Z-Deformation - wie frueher beim Plane - unabhaengig
+  // von der Breite bleibt.
+  if Assigned(FModel) then
+    FModel.Scale.Point := Point3D(FBaseW * FScale, FBaseH * FScale, FScale);
 end;
 
 procedure TSpawnedElement.Animate(ATime: Single);
-var
-  LData : TMeshData;
-  i, n  : Integer;
-  u, v  : Single;       // lokale Vertexkoordinaten in [-0.5 .. 0.5]
-  r, w  : Single;
-  dx, dz, z : Single;
-  pulse : Single;
-  t     : Single;
-  P     : TPoint3D;
+var t : Single;
 begin
+  // Nur die Raumbewegung - die Eigen-Deformation laeuft als Engine-Animation.
+  // Im eingefrorenen Zustand (Vorschau) bleibt das Element exakt stehen.
+  if FFrozen or not Assigned(FModel) then
+    Exit;
+
   t := ATime + FPhase;
-  LData := FPlane.MeshData;
-  n := Length(FRestVerts);
-  if (n = 0) or (LData.VertexBuffer.Length < n) then
-    Exit;
-
-  // 1) Vertex-Deformation (lokaler Wabbel/Schwung des Meshes)
-  for i := 0 to n - 1 do
-  begin
-    P := FRestVerts[i];
-    u := P.X;
-    v := P.Y;
-    dx := 0; dz := 0; z := 0;
-
-    case FKind of
-      akFish:
-        begin
-          // Wanderwelle entlang X: Kopf (-X) ruhig, Schwanz (+X) schwingt
-          w := u + 0.5;                       // 0 am Kopf .. 1 am Schwanz
-          z := 0.18 * (w * w) * Sin(6.0 * u - 6.0 * t);
-        end;
-
-      akJellyfish:
-        begin
-          // Pulsierende Glocke: Mitte woelbt sich, Rand (Tentakel) folgt
-          r := Sqrt(u * u + v * v);
-          pulse := 0.5 + 0.5 * Sin(2.4 * t);
-          z := 0.22 * Cos(r * PI) * pulse;
-          // Tentakel-Saum unten leicht nachziehen
-          if v > 0 then
-            z := z + 0.10 * v * Sin(3.0 * t - v * 4.0);
-        end;
-
-      akPlant:
-        begin
-          // Verwurzelt unten (v=+0.5), schwingt nach oben (v=-0.5) zunehmend
-          w := 0.5 - v;                       // 0 an der Wurzel .. 1 an der Spitze
-          dx := 0.26 * (w * w) * Sin(2.0 * t + v * 3.0);
-          dz := 0.10 * (w * w) * Cos(1.4 * t);
-        end;
-
-      akCoral:
-        begin
-          // Steifer als Pflanze: kleinere Amplitude, hoehere Frequenz
-          w := 0.5 - v;
-          dx := 0.09 * (w * w * w) * Sin(3.2 * t + v * 2.0);
-          dz := 0.05 * (w * w * w) * Cos(2.6 * t);
-        end;
-    end;
-
-    LData.VertexBuffer.Vertices[i] := Point3D(u + dx, v, P.Z + z + dz);
-  end;
-
-  // 2) Transform-Animation (Bewegung des gesamten Plane)
-  //    Im eingefrorenen Zustand (Vorschau) entfaellt die freie Bewegung -
-  //    das Element bleibt exakt unter dem Mauszeiger und wabbelt nur.
-  if FFrozen then
-    Exit;
-
   case FKind of
     akFish:
       begin
-        // sanftes Hin- und Herschwimmen + leichtes Auf/Ab, Blick in Schwimmrichtung
-        FPlane.Position.Point := Point3D(
+        // sanftes Hin- und Herschwimmen + leichtes Auf/Ab, Blick in Richtung
+        FModel.Position.Point := Point3D(
           FBasePos.X + 3.0 * Sin(0.4 * t),
           FBasePos.Y + 0.3 * Sin(1.5 * t),
           FBasePos.Z);
         if Cos(0.4 * t) >= 0 then
-          FPlane.RotationAngle.Y := 0
+          FModel.RotationAngle.Y := 0
         else
-          FPlane.RotationAngle.Y := 180;
+          FModel.RotationAngle.Y := 180;
       end;
 
     akJellyfish:
-      begin
-        // gemaechliches Auf- und Abtreiben
-        FPlane.Position.Point := Point3D(
-          FBasePos.X + 0.5 * Sin(0.3 * t),
-          FBasePos.Y + 0.8 * Sin(0.8 * t),
-          FBasePos.Z);
-      end;
+      // gemaechliches Auf- und Abtreiben
+      FModel.Position.Point := Point3D(
+        FBasePos.X + 0.5 * Sin(0.3 * t),
+        FBasePos.Y + 0.8 * Sin(0.8 * t),
+        FBasePos.Z);
 
     akPlant, akCoral:
-      ; // bleiben am Platz - nur die Vertices schwingen
+      ; // bleiben am Platz - nur die Vertices schwingen (Engine-Animation)
   end;
 end;
 
 procedure TSpawnedElement.SetBasePosition(const APos: TPoint3D);
 begin
   FBasePos := APos;
-  FPlane.Position.Point := APos;
+  if Assigned(FModel) then
+    FModel.Position.Point := APos;
 end;
 
 procedure TSpawnedElement.SetSizeScale(const AFactor: Single);
 begin
-  FPlane.Scale.Point := Point3D(AFactor, AFactor, AFactor);
+  FScale := AFactor;
+  ApplyScale();
+end;
+
+function TSpawnedElement.WorldHeight(): Single;
+begin
+  // Lokale Quad-Hoehe ist 1.0 (Bereich -0.5..0.5) -> Welt-Hoehe = FBaseH * FScale.
+  Result := FBaseH * FScale;
+end;
+
+// Lokale Eigen-Deformation eines Vertex (u,v in -0.5..0.5) zum Loop-Winkel
+// theta in [0..2*PI). Alle Zeitterme sind ganzzahlige Vielfache von theta,
+// damit die gebackene Animation nahtlos in sich zurueckkehrt.
+function DeformedVertex(AKind: TAquariumKind; u, v, theta: Single): TPoint3D;
+var w, r, zz, dx, dz, pulse : Single;
+begin
+  dx := 0; dz := 0; zz := 0;
+  case AKind of
+    akFish:
+      begin
+        w := u + 0.5;                       // 0 am Kopf .. 1 am Schwanz
+        zz := 0.18 * (w * w) * Sin(6.0 * u - theta);   // Wanderwelle entlang X
+      end;
+
+    akJellyfish:
+      begin
+        r := Sqrt(u * u + v * v);
+        pulse := 0.5 + 0.5 * Sin(theta);    // pulsierende Glocke
+        zz := 0.22 * Cos(r * PI) * pulse;
+        if v > 0 then                       // Tentakel-Saum unten nachziehen
+          zz := zz + 0.10 * v * Sin(3.0 * theta - v * 4.0);
+      end;
+
+    akPlant:
+      begin
+        w := 0.5 - v;                       // 0 an der Wurzel .. 1 an der Spitze
+        dx := 0.26 * (w * w) * Sin(theta + v * 3.0);
+        dz := 0.10 * (w * w) * Cos(theta);
+      end;
+
+    akCoral:
+      begin
+        w := 0.5 - v;                       // steifer: kleinere Amplitude
+        dx := 0.09 * (w * w * w) * Sin(theta + v * 2.0);
+        dz := 0.05 * (w * w * w) * Cos(theta);
+      end;
+  end;
+  Result := Point3D(u + dx, v, zz + dz);
 end;
 
 { TAquariumScene }
@@ -504,86 +517,192 @@ begin
   inherited Create();
   FViewport := AViewport;
   FOwner    := AOwner;
+  FModelDefs := TDictionary<String, TModelDef>.Create();
   FItems    := TObjectList<TSpawnedElement>.Create(True);
 end;
 
 destructor TAquariumScene.Destroy();
 begin
+  // Die ModelDefs gehoeren nach dem Materialisieren den jeweiligen Models und
+  // werden von diesen freigegeben - hier nichts zu tun.
   FItems.Free();
+  FModelDefs.Free();
+
   inherited;
 end;
 
-function TAquariumScene.BuildMaterial(ABitmap: TBitmap): TGorillaBlinnMaterialSource;
+function TAquariumScene.BuildModelDef(const AName: String; AKind: TAquariumKind;
+  ABitmap: TBitmap): TModelDef;
+const
+  N = SUBDIVISIONS;
+var
+  LMesh  : TMeshDef;
+  LData  : TMeshData;
+  LMat   : TMaterialDef;
+  LAsset : TGorillaTextureAsset;
+  LAnim  : TAnimationDef;
+  LStage : TAnimationStageDef;
+  LInter : TMeshInterpolatorDef;
+  X, Y, idx, k, ver : Integer;
+  u, v, theta : Single;
+  verts : TPoint3DDynArray;
 begin
-  Result := TGorillaBlinnMaterialSource.Create(FOwner);
-  Result.UseTexturing := True;
-  Result.UseTexture0  := True;
-  // Wie ein Sprite darstellen: keine Beleuchtung/Specular, damit die Zeichnung
-  // in Originalfarben erscheint und unter Wasser nicht abdunkelt.
-//  Result.UseLighting  := False;
-//  Result.UseSpecular  := False;
-  // Die gezeichnete Textur als Texture0. Transparente Bildbereiche bleiben
-  // dank Alpha-Kanal transparent (siehe Opaque := False am Plane).
-  Result.Texture := ABitmap;
+  if FModelDefs.TryGetValue(AName, Result) then
+    Exit;
+
+  Result := TModelDef.Create(nil, nil);
+  Result.Id := 'aq_' + AquariumKindToStr(AKind);
+
+  ver := (N + 1) * (N + 1);
+
+  // 1) Quad-Geometrie als TMeshData (unterteilt, mit planaren UVs) -> MeshDef.
+  LMesh := TMeshDef.Create(Result);
+  LMesh.Id := 'mesh';
+  LMesh.FaceOrientation := TFaceOrientation.TwoFace;   // beidseitig sichtbar
+
+  LData := TMeshData.Create();
+  try
+    LData.VertexBuffer.Length := ver;
+    for Y := 0 to N do
+      for X := 0 to N do
+      begin
+        idx := X + Y * (N + 1);
+        LData.VertexBuffer.Vertices[idx]  := Point3D(-0.5 + X / N, -0.5 + Y / N, 0);
+        LData.VertexBuffer.Normals[idx]   := Point3D(0, 0, -1);
+        LData.VertexBuffer.TexCoord0[idx] := PointF(X / N, Y / N);
+      end;
+
+    LData.IndexBuffer.Length := N * N * 6;
+    for Y := 0 to N - 1 do
+      for X := 0 to N - 1 do
+      begin
+        idx := (X + Y * N) * 6;
+        LData.IndexBuffer[idx + 0] := X     +  Y      * (N + 1);
+        LData.IndexBuffer[idx + 1] := X + 1 +  Y      * (N + 1);
+        LData.IndexBuffer[idx + 2] := X     + (Y + 1) * (N + 1);
+        LData.IndexBuffer[idx + 3] := X     + (Y + 1) * (N + 1);
+        LData.IndexBuffer[idx + 4] := X + 1 +  Y      * (N + 1);
+        LData.IndexBuffer[idx + 5] := X + 1 + (Y + 1) * (N + 1);
+      end;
+
+    LMesh.ApplyFromMeshData(LData);
+  finally
+    LData.Free();
+  end;
+  Result.AddChild(LMesh);
+
+  // 2) Material mit der gezeichneten Textur. Wie ein Sprite: unbeleuchtet
+  //    (echte Farben, kein Abdunkeln/Schwarz beim Umdrehen), beidseitig, die
+  //    Alpha-Transparenz der Zeichnung uebernimmt das nicht-opake Rendern.
+  LMat := TMaterialDef.Create(Result, 'mat');
+  LMat.Kind := TMaterialDefKind.mkBlinnPhong;
+  LMat.UseTexturing := True;
+  LMat.UseTexture0  := True;
+  LMat.UseLighting  := False;
+  LMat.UseSpecular  := False;
+  LMat.DoubleSided  := True;
+  LMat.AlphaCutoff := 0.1;
+  LMat.UseAlphaCutoff := true;
+  LMat.Diffuse := TAlphaColorF.Create(1, 1, 1, 1);
+
+  // Textur aus dem gezeichneten Bitmap (wird intern geklont -> Original bleibt).
+  LAsset := TGorillaTextureAsset.Create(nil);
+  LAsset.ImportFromCachedBitmap('drawing.png', ABitmap);
+  LMat.AddTexture(TColorChannelDef.Diffuse, LAsset, True);  // Material besitzt Asset
+
+  LMesh.SetMaterialReference(LMat);
+
+  // 3) Eigen-Animation: die prozedurale Deformation als gebackene Vertex-Loop.
+  LAnim := TAnimationDef.Create(Result);
+  LAnim.Id := 'self';
+  Result.AddAnimation(LAnim);
+
+  LStage := TAnimationStageDef.Create(LAnim);
+  LStage.Id := 'meshstage';
+  LStage.Reference := LMesh;                 // dieses Mesh wird deformiert
+  LAnim.AddStage(LStage);
+
+  LInter := TMeshInterpolatorDef.Create(LStage);
+  LInter.Id := 'deform';
+  LInter.Duration := AQUARIUM_LOOP_S[AKind];
+  LInter.Loop := True;
+  LStage.AddInterpolator(LInter);
+
+  // Keyframes ueber eine Loop-Periode sampeln (Schluesselzeiten 0..1 normiert).
+  for k := 0 to ANIM_KEYS do
+  begin
+    theta := 2 * PI * (k / ANIM_KEYS);
+    verts := nil;                            // frischer Puffer je Key
+    SetLength(verts, ver);
+    for Y := 0 to N do
+      for X := 0 to N do
+      begin
+        idx := X + Y * (N + 1);
+        u := -0.5 + X / N;
+        v := -0.5 + Y / N;
+        verts[idx] := DeformedVertex(AKind, u, v, theta);
+      end;
+    LInter.AddKey(k / ANIM_KEYS, verts, TAnimationKeyInterpolationType.Linear);
+  end;
+
+  FModelDefs.Add(AName, Result);
 end;
 
 function TAquariumScene.Spawn(AElement: TAquariumElement): TSpawnedElement;
 var
-  LPlane : TGorillaPlane;
-  LMat   : TGorillaBlinnMaterialSource;
+  LDef   : TModelDef;
+  LModel : TGorillaModel;
   LSpawn : TSpawnedElement;
   LW, LH : Single;
+  LAnim  : TGorillaAnimation;
 begin
-  LMat := BuildMaterial(AElement.Bitmap);
+  // Request a new model definition or if we already have created one - reuse it
+  LDef := BuildModelDef(AElement.Name, AElement.Kind, AElement.Bitmap);
 
-  LPlane := TGorillaPlane.Create(FOwner);
-  LPlane.Parent := FViewport;
+  // Take the definition object and create a visual representation
+  LModel := TGorillaModel.LoadNewModelFromDef(FOwner, LDef,
+    []{GORILLA_ANIMATION_CACHING_DEFAULT});
+  LModel.Parent := FViewport;
+//  LModel.SetOpacityValue(0.995);
+  LModel.SetHitTestValue(false);
+  LModel.FrustumCullingCheck := False;
 
-  // Geometrie: feines Plane fuer weiche Deformation
-  LPlane.SubdivisionsWidth  := SUBDIVISIONS;
-  LPlane.SubdivisionsHeight := SUBDIVISIONS;
+  // !!! if the model is getting destroyed we do not destroy the multiple referenced definition
+  LModel.IsDefOwner := false;
 
-  // Groesse je nach Art
-  case AElement.Kind of
-    akFish      : begin LW := 2.6; LH := 1.9; end;
-    akJellyfish : begin LW := 2.2; LH := 2.4; end;
-    akPlant     : begin LW := 2.2; LH := 3.4; end;
-    akCoral     : begin LW := 2.6; LH := 2.2; end;
-  else
-    LW := 2.5; LH := 2.5;
-  end;
-  LPlane.Width  := LW;
-  LPlane.Height := LH;
+  LW := AQUARIUM_BASE_W[AElement.Kind];
+  LH := AQUARIUM_BASE_H[AElement.Kind];
 
-  LPlane.MaterialSource := LMat;
-  LPlane.TwoSide := True;            // von beiden Seiten sichtbar
-  LPlane.Opaque := False;           // -> Alpha-Transparenz statt schwarz
-  LPlane.SetHitTestValue(false);
-  LPlane.FrustumCullingCheck := False; // nicht wegculllen, da es sich bewegt/verformt
+  LSpawn := TSpawnedElement.Create();
+  LSpawn.FModel    := LModel;
+  LSpawn.FKind     := AElement.Kind;
+  LSpawn.FBaseW    := LW;
+  LSpawn.FBaseH    := LH;
+  LSpawn.FScale    := 1.0;
+  LSpawn.FPhase    := Random * 2 * PI;
+  LSpawn.ApplyScale();
 
-  // Dynamisch machen: kopiert die Vertices aus der MeshDef zurueck in die
-  // MeshData, sodass sie pro Frame veraendert werden koennen.
-  LPlane.IsStatic := False;
-
-  // Position bestimmen (Tank: X/Z ca. [-8..8], Boden bei Y~7.2, Oberflaeche Y~2.5)
+  // Startposition (Tank: X/Z ca. [-8..8], Boden bei Y~7.2, Oberflaeche Y~2.5)
   Randomize();
   case AElement.Kind of
     akFish, akJellyfish:
-      LPlane.Position.Point := Point3D(
-        -5 + Random * 10, 3.5 + Random * 2.0, -5 + Random * 10);
+      LSpawn.SetBasePosition(Point3D(
+        -5 + Random * 10, 3.5 + Random * 2.0, -5 + Random * 10));
     akPlant, akCoral:
       // Wurzel am Boden: Mittelpunkt um halbe Hoehe nach oben (= kleineres Y)
-      LPlane.Position.Point := Point3D(
-        -7 + Random * 14, 7.2 - LH / 2, -7 + Random * 12);
+      LSpawn.SetBasePosition(Point3D(
+        -7 + Random * 14, 7.2 - LH / 2, -7 + Random * 12));
   end;
 
-  LSpawn := TSpawnedElement.Create();
-  LSpawn.FPlane    := LPlane;
-  LSpawn.FMaterial := LMat;
-  LSpawn.FKind     := AElement.Kind;
-  LSpawn.FBasePos  := LPlane.Position.Point;
-  LSpawn.FPhase    := Random * 2 * PI;
-  LSpawn.CaptureRestVertices();
+  // Eigen-Animation starten. Wichtig: Das treibende Skeleton muss auf Loop
+  // gesetzt werden - sonst laeuft die Animation nur einmal ueber ihre Dauer
+  // und bleibt dann stehen (der Interpolator-Loop allein genuegt nicht).
+  if Assigned(LModel.AnimationManager)
+  and (LModel.AnimationManager.Animations.Count > 0) then
+  begin
+    LAnim := LModel.AnimationManager.GetAnimation('self');
+    LModel.AnimationManager.PlayAnimation(LAnim);
+  end;
 
   FItems.Add(LSpawn);
   Result := LSpawn;
@@ -594,18 +713,14 @@ begin
   if not Assigned(ASpawn) then
     Exit;
 
-  // Plane + Material werden vom Formular (FOwner) verwaltet; explizites
-  // Freigeben entfernt sie aus der Szene und aus der Besitzerliste.
-  if Assigned(ASpawn.FPlane) then
+  // Das Model wird vom Formular (FOwner) verwaltet; explizites Freigeben
+  // entfernt es aus der Szene und gibt sein ModelDef (inkl. Material/Textur)
+  // mit frei.
+  if Assigned(ASpawn.FModel) then
   begin
-    ASpawn.FPlane.Parent := nil;
-    ASpawn.FPlane.Free();
-    ASpawn.FPlane := nil;
-  end;
-  if Assigned(ASpawn.FMaterial) then
-  begin
-    ASpawn.FMaterial.Free();
-    ASpawn.FMaterial := nil;
+    ASpawn.FModel.Parent := nil;
+    ASpawn.FModel.Free();
+    ASpawn.FModel := nil;
   end;
 
   FItems.Remove(ASpawn);   // OwnsObjects -> gibt nur das Wrapper-Objekt frei
