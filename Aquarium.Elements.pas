@@ -121,11 +121,13 @@ type
     FBaseH     : Single;        // Grundhoehe der Art
     FScale     : Single;        // per Mausrad eingestellte Groesse
     FFrozen    : Boolean;
+    FFastSwim  : Boolean;            // schaltet zwischen 'self'- und 'fast'-Wabbeln
     FMoveAnim  : TPoint3DAnimation;  // entkoppelte Raumbewegung (Eigentum des Models)
     FMoveDur   : Single;             // Dauer eines Bewegungs-Hin/Her (variiert je Instanz)
     FLastX     : Single;             // letzte X-Position (fuer die Blickrichtung)
     procedure ApplyScale();
     procedure SetFrozen(const AValue: Boolean);
+    procedure SetFastSwim(const AValue: Boolean);
     /// <summary>Konfiguriert die Raumbewegung um FBasePos und startet sie.</summary>
     procedure StartMovement();
   public
@@ -150,6 +152,12 @@ type
     ///  entkoppelte Raumbewegung (TPoint3DAnimation).
     /// </summary>
     property Frozen : Boolean read FFrozen write SetFrozen;
+    /// <summary>
+    ///  Schaltet das Wabbeln zwischen dem ruhigen Grundzustand ('self') und dem
+    ///  schnellen Schwimmen ('fast', schnellere Welle + staerkere Schwanzflosse)
+    ///  um. Nur Fische besitzen die 'fast'-Animation; bei anderen Arten wirkungslos.
+    /// </summary>
+    property FastSwim : Boolean read FFastSwim write SetFastSwim;
   end;
 
   /// <summary>
@@ -489,6 +497,26 @@ begin
   end;
 end;
 
+procedure TSpawnedElement.SetFastSwim(const AValue: Boolean);
+var LId : String;
+begin
+  if FFastSwim = AValue then
+    Exit;
+  FFastSwim := AValue;
+
+  if not Assigned(FModel) or not Assigned(FModel.AnimationManager) then
+    Exit;
+
+  if FFastSwim then
+    LId := 'fast'
+  else
+    LId := 'self';
+
+  // PlayAnimation stoppt die laufende und aktiviert die gewuenschte Animation;
+  // existiert sie nicht (z.B. 'fast' nur beim Fisch), passiert nichts.
+  FModel.AnimationManager.PlayAnimation(LId);
+end;
+
 procedure TSpawnedElement.SetBasePosition(const APos: TPoint3D);
 begin
   FBasePos := APos;
@@ -512,15 +540,32 @@ end;
 // Lokale Eigen-Deformation eines Vertex (u,v in -0.5..0.5) zum Loop-Winkel
 // theta in [0..2*PI). Alle Zeitterme sind ganzzahlige Vielfache von theta,
 // damit die gebackene Animation nahtlos in sich zurueckkehrt.
-function DeformedVertex(AKind: TAquariumKind; u, v, theta: Single): TPoint3D;
-var w, r, zz, dx, dz, pulse : Single;
+//   AAmp     - Amplitudenfaktor (1.0 = Grundstaerke des Wabbelns)
+//   ASpeed   - Wellen-Zyklen je Loop (MUSS ganzzahlig sein -> nahtloser Loop);
+//              hoeher = schnelleres Wabbeln
+//   ATailPow - Exponent der Schwanzbetonung (hoeher = Bewegung staerker hinten
+//              an der Flosse konzentriert)
+//   ARamp    - zeitliche Verstaerkung: 0 = gleichmaessig, >0 = das Wabbeln baut
+//              sich zum (spaeten) Loop-Ende hin auf und kehrt zum Grundwert
+//              zurueck, damit die Animation weiterhin nahtlos loopt.
+function DeformedVertex(AKind: TAquariumKind; u, v, theta: Single;
+  AAmp: Single = 1.0; ASpeed: Single = 1.0; ATailPow: Single = 2.0;
+  ARamp: Single = 0.0): TPoint3D;
+var w, r, zz, dx, dz, pulse, p, tenv : Single;
 begin
   dx := 0; dz := 0; zz := 0;
   case AKind of
     akFish:
       begin
-        w := u + 0.5;                       // 0 am Kopf .. 1 am Schwanz
-        zz := 0.18 * (w * w) * Sin(6.0 * u - theta);   // Wanderwelle entlang X
+        // Schwanz-Koordinate: 1 an der Schwanzflosse (u=-0.5), 0 am Kopf (u=+0.5)
+        w := 0.5 - u;
+        // Zeitliche Huellkurve: steigt ueber den Loop an, Spitze gegen Ende
+        // (p^3 schiebt das Maximum nach hinten), faellt zum Loop-Punkt wieder
+        // auf den Grundwert -> tenv(0)=tenv(1)=1, dazwischen bis 1+ARamp.
+        p    := theta / (2 * PI);
+        tenv := 1.0 + ARamp * (0.5 - 0.5 * Cos(2 * PI * Power(p, 3.0)));
+        // Wanderwelle entlang X; Amplitude waechst per ATailPow zur Flosse hin.
+        zz := 0.30 * AAmp * tenv * Power(w, ATailPow) * Sin(6.0 * u - ASpeed * theta);
       end;
 
     akJellyfish:
@@ -598,12 +643,54 @@ var
   LData  : TMeshData;
   LMat   : TMaterialDef;
   LAsset : TGorillaTextureAsset;
-  LAnim  : TAnimationDef;
-  LStage : TAnimationStageDef;
-  LInter : TMeshInterpolatorDef;
-  X, Y, idx, k, ver : Integer;
-  u, v, theta : Single;
-  verts : TPoint3DDynArray;
+  X, Y, idx, ver : Integer;
+
+  // Backt eine gebackene Vertex-Animation (Wabbel-Loop) ins ModelDef. AAmp/
+  // ASpeed/ATailPow steuern Staerke, Tempo und Schwanzbetonung (siehe
+  // DeformedVertex). Jede Animation deformiert dasselbe Mesh - es laeuft immer
+  // nur eine zur Zeit.
+  procedure AddWobble(const AId: String; ADuration, AAmp, ASpeed, ATailPow, ARamp: Single);
+  var
+    LAnim  : TAnimationDef;
+    LStage : TAnimationStageDef;
+    LInter : TMeshInterpolatorDef;
+    k, lx, ly, lidx : Integer;
+    theta, lu, lv : Single;
+    verts : TPoint3DDynArray;
+  begin
+    LAnim := TAnimationDef.Create(Result);
+    LAnim.Id := AId;
+    Result.AddAnimation(LAnim);
+
+    LStage := TAnimationStageDef.Create(LAnim);
+    LStage.Id := AId + '_stage';
+    LStage.Reference := LMesh;                 // dieses Mesh wird deformiert
+    LAnim.AddStage(LStage);
+
+    LInter := TMeshInterpolatorDef.Create(LStage);
+    LInter.Id := AId + '_deform';
+    LInter.Duration := ADuration;
+    LInter.Loop := True;
+    LStage.AddInterpolator(LInter);
+
+    // Keyframes ueber eine Loop-Periode sampeln (Schluesselzeiten 0..1 normiert).
+    for k := 0 to ANIM_KEYS do
+    begin
+      theta := 2 * PI * (k / ANIM_KEYS);
+      verts := nil;                            // frischer Puffer je Key
+      SetLength(verts, ver);
+      for ly := 0 to N do
+        for lx := 0 to N do
+        begin
+          lidx := lx + ly * (N + 1);
+          lu := -0.5 + lx / N;
+          lv := -0.5 + ly / N;
+          verts[lidx] := DeformedVertex(AKind, lu, lv, theta, AAmp, ASpeed, ATailPow, ARamp);
+        end;
+      LInter.AddKey(k / ANIM_KEYS, verts, TAnimationKeyInterpolationType.Linear);
+    end;
+  end;
+
 begin
   if FModelDefs.TryGetValue(AName, Result) then
     Exit;
@@ -671,38 +758,20 @@ begin
 
   LMesh.SetMaterialReference(LMat);
 
-  // 3) Eigen-Animation: die prozedurale Deformation als gebackene Vertex-Loop.
-  LAnim := TAnimationDef.Create(Result);
-  LAnim.Id := 'self';
-  Result.AddAnimation(LAnim);
-
-  LStage := TAnimationStageDef.Create(LAnim);
-  LStage.Id := 'meshstage';
-  LStage.Reference := LMesh;                 // dieses Mesh wird deformiert
-  LAnim.AddStage(LStage);
-
-  LInter := TMeshInterpolatorDef.Create(LStage);
-  LInter.Id := 'deform';
-  LInter.Duration := AQUARIUM_LOOP_S[AKind];
-  LInter.Loop := True;
-  LStage.AddInterpolator(LInter);
-
-  // Keyframes ueber eine Loop-Periode sampeln (Schluesselzeiten 0..1 normiert).
-  for k := 0 to ANIM_KEYS do
+  // 3) Eigen-Animation(en): prozedurale Deformation als gebackene Vertex-Loops.
+  //    Der Fisch bekommt zwei Loops auf demselben Mesh:
+  //      'self' - ruhiges, kraeftiges Wabbeln (Grundzustand)
+  //      'fast' - schnelles Schwimmen: schnellere Welle (2 Zyklen/Loop, kuerzere
+  //               Dauer) und staerker zur Schwanzflosse hin betont (ATailPow 3).
+  //    Umgeschaltet wird zur Laufzeit ueber TSpawnedElement.FastSwim.
+  if AKind = akFish then
   begin
-    theta := 2 * PI * (k / ANIM_KEYS);
-    verts := nil;                            // frischer Puffer je Key
-    SetLength(verts, ver);
-    for Y := 0 to N do
-      for X := 0 to N do
-      begin
-        idx := X + Y * (N + 1);
-        u := -0.5 + X / N;
-        v := -0.5 + Y / N;
-        verts[idx] := DeformedVertex(AKind, u, v, theta);
-      end;
-    LInter.AddKey(k / ANIM_KEYS, verts, TAnimationKeyInterpolationType.Linear);
-  end;
+    //                Id      Dauer                  Amp  Speed TailPow Ramp
+    AddWobble('self', AQUARIUM_LOOP_S[akFish],       1.0, 1.0,  2.5,    0.0);
+    AddWobble('fast', 0.85,                          1.4, 2.0,  3.0,    0.9);
+  end
+  else
+    AddWobble('self', AQUARIUM_LOOP_S[AKind],        1.0, 1.0,  2.5,    0.0);
 
   FModelDefs.Add(AName, Result);
 end;
@@ -783,6 +852,7 @@ begin
   end;
 
   FItems.Add(LSpawn);
+  //LSpawn.FastSwim := true;
   Result := LSpawn;
 end;
 

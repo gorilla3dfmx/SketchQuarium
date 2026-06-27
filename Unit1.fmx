@@ -28,6 +28,7 @@ object Form1: TForm1
     TranslucentSaturation = 1.500000000000000000
     EmissiveBlur = 0
     Shadows.Enabled = True
+    Shadows.MapResolution = 512
     Shadows.MaxDirLights = 0
     Shadows.MaxPointLights = 1
     Shadows.CascadeSplitLambda = 0.750000000000000000
