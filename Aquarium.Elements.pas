@@ -19,8 +19,11 @@ unit Aquarium.Elements;
     * Die EIGEN-Animation (Wabbeln/Puls/Schwingen) steckt als gebackene
       Vertex-Animation (TMeshInterpolatorDef) im ModelDef und wird von der
       Engine abgespielt. Sie beschreibt nur die Deformation des Elements selbst.
-    * Die RAUM-Bewegung (Schwimmen/Treiben) wird weiterhin pro Frame im Code
-      (TSpawnedElement.Animate) auf Position/RotationAngle des Models gerechnet.
+    * Die RAUM-Bewegung (Schwimmen/Treiben) laeuft als eigenstaendige
+      TPoint3DAnimation auf der Position des Models. Sie ist von der Wabbel-
+      Animation entkoppelt, damit ein Element spaeter gezielt gesteuert werden
+      kann (die Animation einfach stoppen/ersetzen). TSpawnedElement.Animate
+      richtet nur noch die Blickrichtung an der Bewegungsrichtung aus.
 
   Die gezeichnete Textur ist pro Instanz verschieden und wird nach dem
   Materialisieren als MaterialSource (Blinn, nicht-opak) auf das Model gelegt.
@@ -31,9 +34,10 @@ interface
 uses
   System.SysUtils, System.Classes, System.Types, System.UITypes, System.Math,
   System.Math.Vectors, System.Generics.Collections, System.IOUtils,
-  FMX.Graphics, FMX.Types3D, FMX.Controls3D,
+  FMX.Types, FMX.Graphics, FMX.Types3D, FMX.Controls3D, FMX.Materials, FMX.Ani,
   Gorilla.Viewport, Gorilla.Mesh, Gorilla.Model, Gorilla.DefTypes,
-  Gorilla.Loader, Gorilla.Animation, Gorilla.AssetsManager;
+  Gorilla.Loader, Gorilla.Animation, Gorilla.AssetsManager,
+  Gorilla.Material.Default;
 
 type
   /// <summary>Art eines Aquariumselements - bestimmt Aussehen und Animation.</summary>
@@ -116,11 +120,16 @@ type
     FBaseW     : Single;        // Grundbreite der Art (lokale Quad-Groesse)
     FBaseH     : Single;        // Grundhoehe der Art
     FScale     : Single;        // per Mausrad eingestellte Groesse
-    FPhase     : Single;        // Phasenversatz der Raumbewegung
     FFrozen    : Boolean;
+    FMoveAnim  : TPoint3DAnimation;  // entkoppelte Raumbewegung (Eigentum des Models)
+    FMoveDur   : Single;             // Dauer eines Bewegungs-Hin/Her (variiert je Instanz)
+    FLastX     : Single;             // letzte X-Position (fuer die Blickrichtung)
     procedure ApplyScale();
+    procedure SetFrozen(const AValue: Boolean);
+    /// <summary>Konfiguriert die Raumbewegung um FBasePos und startet sie.</summary>
+    procedure StartMovement();
   public
-    /// <summary>Rechnet die Raumbewegung (nur Position/Rotation) fuer ATime.</summary>
+    /// <summary>Richtet nur die Blickrichtung an der Bewegungsrichtung aus.</summary>
     procedure Animate(ATime: Single);
 
     /// <summary>Setzt Basis- und aktuelle Position (z.B. fuer die Vorschau).</summary>
@@ -137,9 +146,10 @@ type
     /// <summary>
     ///  Im eingefrorenen Zustand bleibt das Element exakt an seiner Position
     ///  (es wabbelt nur), bewegt sich aber nicht frei. Wird fuer die
-    ///  Maus-Vorschau verwendet.
+    ///  Maus-Vorschau verwendet. Das Umschalten stoppt bzw. startet die
+    ///  entkoppelte Raumbewegung (TPoint3DAnimation).
     /// </summary>
-    property Frozen : Boolean read FFrozen write FFrozen;
+    property Frozen : Boolean read FFrozen write SetFrozen;
   end;
 
   /// <summary>
@@ -417,43 +427,72 @@ begin
 end;
 
 procedure TSpawnedElement.Animate(ATime: Single);
-var t : Single;
+var dx : Single;
 begin
-  // Nur die Raumbewegung - die Eigen-Deformation laeuft als Engine-Animation.
-  // Im eingefrorenen Zustand (Vorschau) bleibt das Element exakt stehen.
+  // Die Raumbewegung selbst treibt die TPoint3DAnimation (entkoppelt). Hier
+  // wird nur noch die Blickrichtung des Fisches an seine Bewegungsrichtung
+  // angepasst. Im eingefrorenen Zustand (Vorschau) bleibt alles stehen.
   if FFrozen or not Assigned(FModel) then
     Exit;
 
-  t := ATime + FPhase;
+  if FKind = akFish then
+  begin
+    dx := FModel.Position.X - FLastX;
+    FLastX := FModel.Position.X;
+    if dx > 0.0001 then
+      FModel.RotationAngle.Y := 0          // schwimmt nach rechts -> Vorderseite
+    else if dx < -0.0001 then
+      FModel.RotationAngle.Y := 180;       // schwimmt nach links  -> Rueckseite
+  end;
+end;
+
+procedure TSpawnedElement.StartMovement();
+begin
+  if not Assigned(FMoveAnim) then
+    Exit;
+
+  // Die Bewegung pendelt (AutoReverse + Loop) um FBasePos. Start-/Stopp-Punkt
+  // je nach Art; spaeter kann diese Animation einfach durch eine gezielte
+  // Steuerung ersetzt werden.
   case FKind of
     akFish:
       begin
-        // sanftes Hin- und Herschwimmen + leichtes Auf/Ab, Blick in Richtung
-        FModel.Position.Point := Point3D(
-          FBasePos.X + 3.0 * Sin(0.4 * t),
-          FBasePos.Y + 0.3 * Sin(1.5 * t),
-          FBasePos.Z);
-        if Cos(0.4 * t) >= 0 then
-          FModel.RotationAngle.Y := 0
-        else
-          FModel.RotationAngle.Y := 180;
+        FMoveAnim.StartValue.Point := Point3D(FBasePos.X - 3.0, FBasePos.Y - 0.3, FBasePos.Z);
+        FMoveAnim.StopValue.Point  := Point3D(FBasePos.X + 3.0, FBasePos.Y + 0.3, FBasePos.Z);
       end;
-
     akJellyfish:
-      // gemaechliches Auf- und Abtreiben
-      FModel.Position.Point := Point3D(
-        FBasePos.X + 0.5 * Sin(0.3 * t),
-        FBasePos.Y + 0.8 * Sin(0.8 * t),
-        FBasePos.Z);
+      begin
+        FMoveAnim.StartValue.Point := Point3D(FBasePos.X - 0.5, FBasePos.Y - 0.8, FBasePos.Z);
+        FMoveAnim.StopValue.Point  := Point3D(FBasePos.X + 0.5, FBasePos.Y + 0.8, FBasePos.Z);
+      end;
+  else
+    Exit;  // Pflanze/Koralle bewegen sich nicht im Raum
+  end;
 
-    akPlant, akCoral:
-      ; // bleiben am Platz - nur die Vertices schwingen (Engine-Animation)
+  FLastX := FBasePos.X;
+  FMoveAnim.Duration := FMoveDur;
+  FMoveAnim.Start();
+end;
+
+procedure TSpawnedElement.SetFrozen(const AValue: Boolean);
+begin
+  if FFrozen = AValue then
+    Exit;
+  FFrozen := AValue;
+
+  if Assigned(FMoveAnim) then
+  begin
+    if FFrozen then
+      FMoveAnim.Stop()        // Vorschau: exakt stehen bleiben (nur wabbeln)
+    else
+      StartMovement();        // platziert: Raumbewegung um FBasePos aufnehmen
   end;
 end;
 
 procedure TSpawnedElement.SetBasePosition(const APos: TPoint3D);
 begin
   FBasePos := APos;
+  FLastX   := APos.X;
   if Assigned(FModel) then
     FModel.Position.Point := APos;
 end;
@@ -508,6 +547,25 @@ begin
       end;
   end;
   Result := Point3D(u + dx, v, zz + dz);
+end;
+
+// Schaltet die Beleuchtung fuer ein Mesh und alle Submeshes ab (rekursiv).
+// Noetig, weil TGorillaMaterial.CreateMaterial fuer mkBlinnPhong UseLighting
+// hart auf TRUE setzt und das ADef.UseLighting-Flag ignoriert -> ein beleuchtetes
+// Sprite wird beim Umdrehen (Rueckseite vom Licht abgewandt) schwarz. Ohne Licht
+// zeigt die Textur auf beiden Seiten ihre echten Farben.
+procedure DisableLighting(AMesh: TGorillaMesh);
+var i : Integer;
+begin
+  if not Assigned(AMesh) then
+    Exit;
+
+  if AMesh.MaterialSource is TGorillaDefaultMaterialSource then
+    TGorillaDefaultMaterialSource(AMesh.MaterialSource).UseLighting := False;
+
+  if Assigned(AMesh.Meshes) then
+    for i := 0 to AMesh.Meshes.Count - 1 do
+      DisableLighting(AMesh.Meshes[i]);
 end;
 
 { TAquariumScene }
@@ -585,6 +643,7 @@ begin
         LData.IndexBuffer[idx + 5] := X + 1 + (Y + 1) * (N + 1);
       end;
 
+    LData.CalcTangentBinormals();
     LMesh.ApplyFromMeshData(LData);
   finally
     LData.Free();
@@ -663,9 +722,13 @@ begin
   LModel := TGorillaModel.LoadNewModelFromDef(FOwner, LDef,
     []{GORILLA_ANIMATION_CACHING_DEFAULT});
   LModel.Parent := FViewport;
-//  LModel.SetOpacityValue(0.995);
   LModel.SetHitTestValue(false);
+  LModel.SetTwoSide(true);
   LModel.FrustumCullingCheck := False;
+
+  // Sprite-Look erzwingen: Beleuchtung abschalten (sonst Rueckseite schwarz,
+  // siehe DisableLighting). Erst nach dem Materialisieren moeglich.
+  DisableLighting(LModel);
 
   // !!! if the model is getting destroyed we do not destroy the multiple referenced definition
   LModel.IsDefOwner := false;
@@ -679,11 +742,26 @@ begin
   LSpawn.FBaseW    := LW;
   LSpawn.FBaseH    := LH;
   LSpawn.FScale    := 1.0;
-  LSpawn.FPhase    := Random * 2 * PI;
   LSpawn.ApplyScale();
 
-  // Startposition (Tank: X/Z ca. [-8..8], Boden bei Y~7.2, Oberflaeche Y~2.5)
+  // Entkoppelte Raumbewegung: eine TPoint3DAnimation auf der Model-Position.
+  // Nur Fisch/Qualle bewegen sich; Pflanze/Koralle bleiben verwurzelt. Die
+  // Animation gehoert dem Model (Owner+Parent) und wird mit ihm freigegeben.
+  // Gestartet wird sie erst beim Platzieren (Frozen := False -> StartMovement).
   Randomize();
+  if AElement.Kind in [akFish, akJellyfish] then
+  begin
+    LSpawn.FMoveDur := 5.0 + Random * 4.0;   // variiert -> Instanzen laufen nicht im Gleichschritt
+    LSpawn.FMoveAnim := TPoint3DAnimation.Create(LModel);
+    LSpawn.FMoveAnim.Parent       := LModel;
+    LSpawn.FMoveAnim.PropertyName := 'Position.Point';
+    LSpawn.FMoveAnim.Interpolation := TInterpolationType.Sinusoidal;
+    LSpawn.FMoveAnim.AnimationType := TAnimationType.InOut;
+    LSpawn.FMoveAnim.AutoReverse  := True;
+    LSpawn.FMoveAnim.Loop         := True;
+  end;
+
+  // Startposition (Tank: X/Z ca. [-8..8], Boden bei Y~7.2, Oberflaeche Y~2.5)
   case AElement.Kind of
     akFish, akJellyfish:
       LSpawn.SetBasePosition(Point3D(
