@@ -27,7 +27,7 @@ uses
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.Layouts, FMX.Edit, FMX.ListBox,
   FMX.Types3D, FMX.Controls3D,
   Gorilla.Viewport, Gorilla.Mesh, Gorilla.Model, Gorilla.DefTypes, Gorilla.Control,
-  Gorilla.Terrain,
+  Gorilla.Terrain, Gorilla.Utils.Inventory,
   Aquarium.Elements, Aquarium.Placement;
 
 type
@@ -116,7 +116,7 @@ type
   private
     { Private-Deklarationen }
     FScene    : TAquariumScene;       // 3D-Szene (Eigentum des Formulars)
-    FLibrary  : TAquariumLibrary;     // gespeicherte Elemente (Eigentum des Frames)
+    FLibrary  : TAquariumLibrary;     // geteiltes Inventar (Eigentum des Formulars)
     FViewport : TGorillaViewport;     // 3D-Viewport (Eigentum des Formulars)
     FHost     : TControl;             // Popup-Flaeche, die der Frame ausblenden darf
     FPlacement : TAquariumPlacement;  // Platzierungsmodus (eigene Unit)
@@ -183,13 +183,26 @@ type
     destructor Destroy(); override;
 
     /// <summary>
-    ///  Verknuepft den Editor mit der 3D-Szene und initialisiert ihn:
-    ///  laedt die Bibliothek, leert die Zeichenflaeche und baut die Liste auf.
+    ///  Verknuepft den Editor mit der 3D-Szene und dem geteilten Inventar und
+    ///  initialisiert ihn: leert die Zeichenflaeche und baut die Liste auf.
+    ///  Das Inventar (ALibrary) gehoert dem Aufrufer (Formular).
     /// </summary>
-    procedure Init(AScene: TAquariumScene; AViewport: TGorillaViewport;
-      ARock: TGorillaModel; AHost: TControl);
+    procedure Init(AScene: TAquariumScene; ALibrary: TAquariumLibrary;
+      AViewport: TGorillaViewport; ARock: TGorillaModel; AHost: TControl);
 
     procedure Place3DObject(ACtrl : TGorillaMesh);
+
+    /// <summary>
+    ///  Baut die Elementliste neu auf (z.B. nachdem von aussen ein Setup
+    ///  geladen wurde und sich der Vorlagenbestand geaendert hat).
+    /// </summary>
+    procedure RefreshLibrary();
+
+    /// <summary>
+    ///  Startet den Platzierungsmodus fuer eine Vorlage (z.B. aus dem
+    ///  Inventar-Katalog des Hauptfensters) und blendet das Host-Popup aus.
+    /// </summary>
+    procedure PlaceTemplate(ATemplate: TGorillaInventoryItemTemplate);
   end;
 
 implementation
@@ -230,10 +243,11 @@ const
   Initialisierung / Aufraeumen
   ---------------------------------------------------------------------------- }
 
-procedure TEditorFrame.Init(AScene: TAquariumScene; AViewport: TGorillaViewport;
-  ARock: TGorillaModel; AHost: TControl);
+procedure TEditorFrame.Init(AScene: TAquariumScene; ALibrary: TAquariumLibrary;
+  AViewport: TGorillaViewport; ARock: TGorillaModel; AHost: TControl);
 begin
   FScene    := AScene;
+  FLibrary  := ALibrary;
   FViewport := AViewport;
   FHost     := AHost;
 
@@ -248,9 +262,6 @@ begin
   FCurrentColor := TAlphaColorRec.Black;
   FBrushType    := 0;
   FEraser       := False;
-
-  FLibrary := TAquariumLibrary.Create();
-  FLibrary.LoadFromDisk();
 
   ClearCanvas();
   RefreshElementsList();
@@ -296,7 +307,7 @@ begin
   // Beendet einen evtl. laufenden Platzierungsmodus und loest die
   // Viewport-Maus-Events (Szene/Viewport leben zu diesem Zeitpunkt noch).
   FPlacement.Free();
-  FLibrary.Free();
+  // FLibrary gehoert dem Formular und wird von diesem freigegeben.
   FStrokeBase.Free();
   FStencils.Free();
   FStencilSwatches.Free();
@@ -309,21 +320,27 @@ begin
   FPlacement.RegisterSurface(ACtrl);
 end;
 
+procedure TEditorFrame.RefreshLibrary();
+begin
+  RefreshElementsList();
+end;
+
 procedure TEditorFrame.RefreshElementsList();
 var
   i     : Integer;
-  LEl   : TAquariumElement;
+  LTpl  : TGorillaInventoryItemTemplate;
   LItem : TListBoxItem;
   LBg   : TRectangle;
   LImg  : TImage;
   LLbl  : TLabel;
+  LBmp  : TBitmap;
 begin
   ElementsList.BeginUpdate();
   try
     ElementsList.Clear();
-    for i := 0 to FLibrary.Items.Count - 1 do
+    for i := 0 to FLibrary.Count - 1 do
     begin
-      LEl := FLibrary.Items[i];
+      LTpl := FLibrary.GetTemplate(i);
 
       LItem := TListBoxItem.Create(ElementsList);
       LItem.Parent := ElementsList;
@@ -347,7 +364,9 @@ begin
       LImg.Margins.Rect := RectF(2, 2, 2, 2);
       LImg.WrapMode := TImageWrapMode.Fit;
       LImg.HitTest := False;
-      LImg.Bitmap.Assign(LEl.Bitmap);
+      LBmp := AquariumTemplateBitmap(LTpl);
+      if Assigned(LBmp) then
+        LImg.Bitmap.Assign(LBmp);
 
       LLbl := TLabel.Create(LItem);
       LLbl.Parent := LItem;
@@ -356,7 +375,8 @@ begin
       LLbl.HitTest := False;
       LLbl.StyledSettings := LLbl.StyledSettings - [TStyledSetting.Size];
       LLbl.TextSettings.Font.Size := 14;
-      LLbl.Text := AQUARIUM_KIND_NAMES[LEl.Kind] + ': ' + LEl.Name;
+      LLbl.Text := AQUARIUM_KIND_NAMES[AquariumTemplateKind(LTpl)] + ': ' +
+                   AquariumTemplateName(LTpl);
     end;
   finally
     ElementsList.EndUpdate();
@@ -1138,7 +1158,7 @@ begin
   end;
 
   LKind := TAquariumKind(KindCombo.ItemIndex);
-  FLibrary.SaveElement(LKind, NameEdit.Text, CanvasImage.Bitmap);
+  FLibrary.AddDrawing(LKind, NameEdit.Text, CanvasImage.Bitmap);
 
   RefreshElementsList();
   ElementsList.ItemIndex := ElementsList.Count - 1;
@@ -1151,15 +1171,23 @@ end;
 procedure TEditorFrame.PlaceClick(Sender: TObject);
 begin
   if (ElementsList.ItemIndex < 0)
-  or (ElementsList.ItemIndex >= FLibrary.Items.Count) then
+  or (ElementsList.ItemIndex >= FLibrary.Count) then
   begin
     ShowMessage('Bitte ein Element aus der Liste waehlen.');
     Exit;
   end;
 
+  PlaceTemplate(FLibrary.GetTemplate(ElementsList.ItemIndex));
+end;
+
+procedure TEditorFrame.PlaceTemplate(ATemplate: TGorillaInventoryItemTemplate);
+begin
+  if not Assigned(ATemplate) then
+    Exit;
+
   if Assigned(FHost) then
     FHost.Visible := False;
-  FPlacement.Start(FLibrary.Items[ElementsList.ItemIndex]);
+  FPlacement.Start(ATemplate);
 end;
 
 { ----------------------------------------------------------------------------
@@ -1167,44 +1195,50 @@ end;
   ---------------------------------------------------------------------------- }
 
 procedure TEditorFrame.EditClick(Sender: TObject);
-var LEl : TAquariumElement;
+var
+  LTpl : TGorillaInventoryItemTemplate;
+  LBmp : TBitmap;
 begin
   if (ElementsList.ItemIndex < 0)
-  or (ElementsList.ItemIndex >= FLibrary.Items.Count) then
+  or (ElementsList.ItemIndex >= FLibrary.Count) then
   begin
     ShowMessage('Bitte ein Element zum Bearbeiten waehlen.');
     Exit;
   end;
 
-  // Gewaehltes Element in den Editor laden
+  // Gewaehlte Vorlage in den Editor laden
   DeactivateStencil();   // geladene Zeichnung frei bearbeitbar machen
-  LEl := FLibrary.Items[ElementsList.ItemIndex];
-  KindCombo.ItemIndex := Ord(LEl.Kind);
-  NameEdit.Text := LEl.Name;
+  LTpl := FLibrary.GetTemplate(ElementsList.ItemIndex);
+  KindCombo.ItemIndex := Ord(AquariumTemplateKind(LTpl));
+  NameEdit.Text := AquariumTemplateName(LTpl);
   if (CanvasImage.Bitmap.Width <> CANVAS_PX) then
     CanvasImage.Bitmap.SetSize(CANVAS_PX, CANVAS_PX);
-  CanvasImage.Bitmap.Assign(LEl.Bitmap);
+  LBmp := AquariumTemplateBitmap(LTpl);
+  if Assigned(LBmp) then
+    CanvasImage.Bitmap.Assign(LBmp);
   CanvasImage.Repaint();
 end;
 
 procedure TEditorFrame.UpdateClick(Sender: TObject);
 var
   LIdx  : Integer;
+  LTpl  : TGorillaInventoryItemTemplate;
   LKind : TAquariumKind;
 begin
   LIdx := ElementsList.ItemIndex;
-  if (LIdx < 0) or (LIdx >= FLibrary.Items.Count) then
+  if (LIdx < 0) or (LIdx >= FLibrary.Count) then
   begin
     ShowMessage('Bitte ein Element zum Aktualisieren waehlen.');
     Exit;
   end;
 
+  LTpl := FLibrary.GetTemplate(LIdx);
   if KindCombo.ItemIndex < 0 then
-    LKind := FLibrary.Items[LIdx].Kind
+    LKind := AquariumTemplateKind(LTpl)
   else
     LKind := TAquariumKind(KindCombo.ItemIndex);
 
-  FLibrary.UpdateElement(LIdx, LKind, NameEdit.Text, CanvasImage.Bitmap);
+  FLibrary.UpdateDrawing(LTpl, LKind, NameEdit.Text, CanvasImage.Bitmap);
   RefreshElementsList();
   ElementsList.ItemIndex := LIdx;
 end;
@@ -1213,13 +1247,13 @@ procedure TEditorFrame.DeleteClick(Sender: TObject);
 var LIdx : Integer;
 begin
   LIdx := ElementsList.ItemIndex;
-  if (LIdx < 0) or (LIdx >= FLibrary.Items.Count) then
+  if (LIdx < 0) or (LIdx >= FLibrary.Count) then
   begin
     ShowMessage('Bitte ein Element zum Loeschen waehlen.');
     Exit;
   end;
 
-  FLibrary.DeleteElement(LIdx);
+  FLibrary.DeleteDrawing(FLibrary.GetTemplate(LIdx));
   RefreshElementsList();
 end;
 

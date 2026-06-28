@@ -163,6 +163,8 @@ object Form1: TForm1
         Refractions = False
         Environment = False
         UseDisplacementMapping = False
+        UseDisplacementEdgeFade = False
+        DisplacementEdgeFade = 0.100000001490116100
         UseNormalMapping = False
         UseSpecularMapping = False
         UseEmissiveColoring = True
@@ -263,6 +265,8 @@ object Form1: TForm1
         RefractionPower = 1.000000000000000000
         Environment = False
         UseDisplacementMapping = True
+        UseDisplacementEdgeFade = False
+        DisplacementEdgeFade = 0.100000001490116100
         UseNormalMapping = True
         UseSpecularMapping = False
         UseEmissiveColoring = True
@@ -10087,6 +10091,8 @@ object Form1: TForm1
         Refractions = False
         Environment = False
         UseDisplacementMapping = False
+        UseDisplacementEdgeFade = False
+        DisplacementEdgeFade = 0.100000001490116100
         UseNormalMapping = False
         UseSpecularMapping = False
         UseEmissiveColoring = True
@@ -34335,6 +34341,114 @@ object Form1: TForm1
           TabOrder = 0
         end
       end
+      object InventoryButton: TRectangle
+        Align = MostTop
+        Cursor = crHandPoint
+        Fill.Color = claCornflowerblue
+        Margins.Left = 8.000000000000000000
+        Margins.Top = 8.000000000000000000
+        Margins.Right = 8.000000000000000000
+        Margins.Bottom = 8.000000000000000000
+        Position.X = 8.000000000000000000
+        Position.Y = 140.000000000000000000
+        Size.Width = 48.000000000000000000
+        Size.Height = 50.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = x33555555
+        Stroke.Thickness = 4.000000000000000000
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = InventoryButtonClick
+        object Label3: TLabel
+          Align = Client
+          StyledSettings = [Family]
+          Size.Width = 48.000000000000000000
+          Size.Height = 50.000000000000000000
+          Size.PlatformDefault = False
+          TextSettings.Font.Size = 32.000000000000000000
+          TextSettings.Font.StyleExt = {00070000000000000004000000}
+          TextSettings.FontColor = claWhite
+          TextSettings.HorzAlign = Center
+          Text = #9776
+          TabOrder = 0
+        end
+      end
+      object SaveButton: TRectangle
+        Align = MostTop
+        Cursor = crHandPoint
+        Fill.Color = claCornflowerblue
+        Margins.Left = 8.000000000000000000
+        Margins.Top = 8.000000000000000000
+        Margins.Right = 8.000000000000000000
+        Margins.Bottom = 8.000000000000000000
+        Position.X = 8.000000000000000000
+        Position.Y = 206.000000000000000000
+        Size.Width = 48.000000000000000000
+        Size.Height = 50.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = x33555555
+        Stroke.Thickness = 4.000000000000000000
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = SaveButtonClick
+        object Label4: TLabel
+          Align = Client
+          StyledSettings = [Family]
+          Size.Width = 48.000000000000000000
+          Size.Height = 50.000000000000000000
+          Size.PlatformDefault = False
+          TextSettings.Font.Size = 28.000000000000000000
+          TextSettings.Font.StyleExt = {00070000000000000004000000}
+          TextSettings.FontColor = claWhite
+          TextSettings.HorzAlign = Center
+          Text = #55357#56510
+          TabOrder = 0
+        end
+      end
+      object LoadButton: TRectangle
+        Align = MostTop
+        Cursor = crHandPoint
+        Fill.Color = claCornflowerblue
+        Margins.Left = 8.000000000000000000
+        Margins.Top = 8.000000000000000000
+        Margins.Right = 8.000000000000000000
+        Margins.Bottom = 8.000000000000000000
+        Position.X = 8.000000000000000000
+        Position.Y = 272.000000000000000000
+        Size.Width = 48.000000000000000000
+        Size.Height = 50.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = x33555555
+        Stroke.Thickness = 4.000000000000000000
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = LoadButtonClick
+        object Label5: TLabel
+          Align = Client
+          StyledSettings = [Family]
+          Size.Width = 48.000000000000000000
+          Size.Height = 50.000000000000000000
+          Size.PlatformDefault = False
+          TextSettings.Font.Size = 28.000000000000000000
+          TextSettings.Font.StyleExt = {00070000000000000004000000}
+          TextSettings.FontColor = claWhite
+          TextSettings.HorzAlign = Center
+          Text = #55357#56514
+          TabOrder = 0
+        end
+      end
+    end
+    object InventoryArea: TRectangle
+      Align = Client
+      Fill.Color = x55E0E0E0
+      Size.Width = 1216.000000000000000000
+      Size.Height = 720.000000000000000000
+      Size.PlatformDefault = False
+      Stroke.Color = x33555555
+      Stroke.Thickness = 10.000000000000000000
+      Visible = False
+      XRadius = 8.000000000000000000
+      YRadius = 8.000000000000000000
     end
     object PopupArea: TRectangle
       Align = Client
@@ -38729,6 +38843,8 @@ object Form1: TForm1
         Refractions = False
         Environment = False
         UseDisplacementMapping = True
+        UseDisplacementEdgeFade = True
+        DisplacementEdgeFade = 0.100000001490116100
         UseNormalMapping = True
         UseSpecularMapping = False
         UseEmissiveColoring = True
@@ -125652,19 +125768,6 @@ object Form1: TForm1
         Top = 16
       end
     end
-    object GorillaMaterialCausticsBehaviour1: TGorillaMaterialCausticsBehaviour
-      Viewport = GorillaViewport1
-      CausticsColor = claBlack
-      Caustics = 5
-      CausticsSpeed = 2.000000000000000000
-      CausticsSeed = 225.000000000000000000
-      CausticsMix = 0.250000000000000000
-      CausticsTilingX = 4.000000000000000000
-      CausticsTilingY = 4.000000000000000000
-      ClippingPlaneDistance = -2.000000000000000000
-      ClippingPlaneNormal.Y = 1.000000000000000000
-      ClippingPlaneFade = 1.000000000000000000
-    end
     object GorillaPhysicsSystem1: TGorillaPhysicsSystem
       Width = 500.000000000000000000
       Height = 500.000000000000000000
@@ -125787,6 +125890,19 @@ object Form1: TForm1
           AllowSubColliders = True
         end>
       Joints = <>
+    end
+    object GorillaMaterialCausticsBehaviour1: TGorillaMaterialCausticsBehaviour
+      Viewport = GorillaViewport1
+      CausticsColor = claBlack
+      Caustics = 5
+      CausticsSpeed = 2.000000000000000000
+      CausticsSeed = 225.000000000000000000
+      CausticsMix = 0.250000000000000000
+      CausticsTilingX = 4.000000000000000000
+      CausticsTilingY = 4.000000000000000000
+      ClippingPlaneDistance = -2.000000000000000000
+      ClippingPlaneNormal.Y = 1.000000000000000000
+      ClippingPlaneFade = 1.000000000000000000
     end
   end
   object GorillaRenderPassRefraction1: TGorillaRenderPassRefraction

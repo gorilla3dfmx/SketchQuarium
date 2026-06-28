@@ -310,6 +310,7 @@
         </DCCReference>
         <DCCReference Include="Aquarium.Elements.pas"/>
         <DCCReference Include="Aquarium.Placement.pas"/>
+        <DCCReference Include="Aquarium.InventoryUI.pas"/>
         <DCCReference Include="Aquarium.EditorFrame.pas">
             <Form>EditorFrame</Form>
             <FormType>fmx</FormType>

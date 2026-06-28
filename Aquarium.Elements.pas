@@ -33,79 +33,83 @@ interface
 
 uses
   System.SysUtils, System.Classes, System.Types, System.UITypes, System.Math,
-  System.Math.Vectors, System.Generics.Collections, System.IOUtils,
+  System.Math.Vectors, System.Generics.Collections, System.IOUtils, System.Rtti,
   FMX.Types, FMX.Graphics, FMX.Types3D, FMX.Controls3D, FMX.Materials, FMX.Ani,
   Gorilla.Viewport, Gorilla.Mesh, Gorilla.Model, Gorilla.DefTypes,
   Gorilla.Loader, Gorilla.Animation, Gorilla.AssetsManager,
   Gorilla.Material.Default, Gorilla.Sphere, Gorilla.Material.Lambert,
-  Gorilla.Physics, Gorilla.Physics.Types;
+  Gorilla.Physics, Gorilla.Physics.Types, Gorilla.Utils.Inventory;
 
 type
   /// <summary>Art eines Aquariumselements - bestimmt Aussehen und Animation.</summary>
   TAquariumKind = (akFish, akJellyfish, akPlant, akCoral);
 
   /// <summary>
-  ///  Ein gespeichertes (gezeichnetes) Aquariumselement: Name, Art und das
-  ///  zugehoerige Bild (das spaeter als Textur verwendet wird).
-  /// </summary>
-  TAquariumElement = class
-  private
-    FName     : String;
-    FKind     : TAquariumKind;
-    FFileName : String;       // absoluter Pfad zur PNG-Datei
-    FBitmap   : TBitmap;      // im Speicher gehaltene Kopie der Zeichnung
-  public
-    constructor Create(const AName: String; AKind: TAquariumKind;
-      const AFileName: String; ABitmap: TBitmap);
-    destructor Destroy(); override;
-
-    /// <summary>Aktualisiert Art, Name und Bild (z.B. beim Ueberschreiben).</summary>
-    procedure Update(AKind: TAquariumKind; const AName: String; ABitmap: TBitmap);
-
-    property Name     : String        read FName;
-    property Kind     : TAquariumKind read FKind;
-    property FileName : String        read FFileName;
-    property Bitmap   : TBitmap       read FBitmap;
-  end;
-
-  /// <summary>
-  ///  Verwaltet alle gespeicherten Elemente und kuemmert sich um Persistenz.
-  ///  Die Bilder werden als PNG im Dokumente-Ordner abgelegt, eine kleine
-  ///  Manifest-Datei haelt Name + Art + Dateiname je Zeile fest.
+  ///  Verwaltet alle gespeicherten Zeichnungs-Vorlagen ueber das Gorilla-
+  ///  Inventory: jede Zeichnung ist ein TGorillaInventoryItemTemplate (Vorlage),
+  ///  kategorisiert in eine Gruppe je Art. Die gezeichnete Textur haengt am
+  ///  Template in dessen Data-Eigenschaft (TBitmap) und wird zusaetzlich als PNG
+  ///  abgelegt; ein VisualItem haelt den Dateinamen fuer die Persistenz.
+  ///  Das gesamte Inventar wird als XML im Dokumente-Ordner gespeichert.
   /// </summary>
   TAquariumLibrary = class
   private
-    FItems        : TObjectList<TAquariumElement>;
+    FInventory    : TGorillaInventory;
     FElementsDir  : String;
-    FManifestPath : String;
+    FFilePath     : String;       // absoluter Pfad zur Inventar-XML
     procedure EnsureDirectories();
-    procedure SaveManifest();
+    procedure EnsureGroups();
+    function  GroupForKind(AKind: TAquariumKind): TGorillaInventoryGroup;
+    function  VisualFileOf(ATemplate: TGorillaInventoryItemTemplate): String;
+    procedure LoadBitmaps();
+    procedure FreeBitmaps();
+    procedure SyncImageIndices();
   public
     constructor Create();
     destructor Destroy(); override;
 
-    /// <summary>Liest das Manifest und laedt alle gespeicherten Elemente.</summary>
+    /// <summary>Laedt das Inventar-XML und die zugehoerigen PNG-Texturen.</summary>
     procedure LoadFromDisk();
+    /// <summary>Schreibt das gesamte Inventar als XML in den Dokumente-Ordner.</summary>
+    procedure SaveToDisk();
 
     /// <summary>
-    ///  Speichert eine Zeichnung als neues Element. Es wird eine PNG-Datei
-    ///  erzeugt, das Manifest geschrieben und das Element in die Liste
-    ///  aufgenommen. Das Ergebnis ist das neu erstellte Element.
+    ///  Speichert das komplette Aquarium (Vorlagen + Gruppen + platzierte
+    ///  Instanzen/Collectables) in eine frei waehlbare Datei. Die Texturen
+    ///  bleiben als PNG im Inventar-Ordner; die Datei verweist auf sie.
     /// </summary>
-    function SaveElement(AKind: TAquariumKind; const AName: String;
-      ASource: TBitmap): TAquariumElement;
+    procedure SaveSetupToFile(const APath: String);
+    /// <summary>
+    ///  Laedt ein zuvor gespeichertes Setup (Vorlagen + Instanzen) aus einer
+    ///  Datei. Die enthaltenen Collectables bleiben erhalten, damit die Szene
+    ///  daraus wieder aufgebaut werden kann (Texturen werden nachgeladen).
+    /// </summary>
+    procedure LoadSetupFromFile(const APath: String);
+
+    /// <summary>Anzahl der gespeicherten Vorlagen.</summary>
+    function  Count(): Integer;
+    /// <summary>Vorlage an Position AIndex (Reihenfolge wie im Inventar).</summary>
+    function  GetTemplate(AIndex: Integer): TGorillaInventoryItemTemplate;
 
     /// <summary>
-    ///  Ueberschreibt ein vorhandenes Element (gleiche Datei) mit neuer Art,
-    ///  neuem Namen und neuer Zeichnung.
+    ///  Speichert eine Zeichnung als neue Vorlage (Template + VisualItem + PNG)
+    ///  und gibt das neue Template zurueck.
     /// </summary>
-    procedure UpdateElement(AIndex: Integer; AKind: TAquariumKind;
-      const AName: String; ASource: TBitmap);
+    function  AddDrawing(AKind: TAquariumKind; const AName: String;
+      ASource: TBitmap): TGorillaInventoryItemTemplate;
 
-    /// <summary>Loescht ein Element samt PNG-Datei und Manifest-Eintrag.</summary>
-    procedure DeleteElement(AIndex: Integer);
+    /// <summary>
+    ///  Ueberschreibt eine vorhandene Vorlage mit neuer Art, neuem Namen und
+    ///  neuer Zeichnung (gleiche PNG-Datei).
+    /// </summary>
+    procedure UpdateDrawing(ATemplate: TGorillaInventoryItemTemplate;
+      AKind: TAquariumKind; const AName: String; ASource: TBitmap);
 
-    property Items : TObjectList<TAquariumElement> read FItems;
+    /// <summary>Loescht eine Vorlage samt PNG-Datei und Inventar-Eintrag.</summary>
+    procedure DeleteDrawing(ATemplate: TGorillaInventoryItemTemplate);
+
+    /// <summary>Das zugrunde liegende Inventar (Templates/Gruppen/Items).</summary>
+    property Inventory : TGorillaInventory read FInventory;
   end;
 
   /// <summary>
@@ -117,6 +121,7 @@ type
   private
     FModel     : TGorillaModel;
     FKind      : TAquariumKind;
+    FCollectable : TGorillaInventoryCollectable; // Inventar-Instanz dieser Vorlage
     FSpeciesId : String;        // Identitaet fuer Schwarmbildung (gleiche Zeichnung)
     FBasePos   : TPoint3D;
     FBaseW     : Single;        // Grundbreite der Art (lokale Quad-Groesse)
@@ -153,6 +158,11 @@ type
 
     property Model : TGorillaModel read FModel;
     property Kind  : TAquariumKind read FKind;
+    /// <summary>
+    ///  Die zugehoerige Inventar-Instanz (Collectable) dieser platzierten
+    ///  Vorlage. Wird beim Spawn erzeugt und beim Entfernen wieder abgeworfen.
+    /// </summary>
+    property Collectable : TGorillaInventoryCollectable read FCollectable;
     /// <summary>
     ///  Im eingefrorenen Zustand bleibt das Element exakt an seiner Position
     ///  (es wabbelt nur), bewegt sich aber nicht frei. Wird fuer die
@@ -206,6 +216,20 @@ type
     function BuildModelDef(const AName: String; AKind: TAquariumKind;
       ABitmap: TBitmap): TModelDef;
 
+    /// <summary>
+    ///  Baut das animierte Model + Wrapper einer Vorlage auf (ohne Collectable,
+    ///  ohne Position, noch nicht in FItems). Gemeinsame Basis von Spawn() und
+    ///  der Wiederherstellung aus einem gespeicherten Setup.
+    /// </summary>
+    function BuildSpawn(ATemplate: TGorillaInventoryItemTemplate): TSpawnedElement;
+    /// <summary>
+    ///  Stellt die Szenen-Instanz fuer einen bereits vorhandenen Collectable
+    ///  her (beim Laden eines Setups): Model bauen, an den Collectable koppeln,
+    ///  Position/Groesse aus dessen Parametern uebernehmen, Bewegung aufnehmen.
+    /// </summary>
+    function SpawnFromCollectable(
+      ACollectable: TGorillaInventoryCollectable): TSpawnedElement;
+
     /// <summary>Stellt das gemeinsame Futter-Material her (einmalig).</summary>
     procedure EnsureFoodMaterial();
     /// <summary>Laesst alle Kapseln absinken und entfernt gefressene/alte.</summary>
@@ -225,11 +249,31 @@ type
       AOwner: TComponent);
     destructor Destroy(); override;
 
-    /// <summary>Platziert ein Element als animiertes Model in der Szene.</summary>
-    function Spawn(AElement: TAquariumElement): TSpawnedElement;
+    /// <summary>
+    ///  Platziert eine Vorlage als animiertes Model in der Szene und legt dafuer
+    ///  eine Inventar-Instanz (Collectable) an.
+    /// </summary>
+    function Spawn(ATemplate: TGorillaInventoryItemTemplate): TSpawnedElement;
 
     /// <summary>Entfernt ein platziertes Element wieder aus der Szene.</summary>
     procedure Remove(ASpawn: TSpawnedElement);
+
+    /// <summary>Entfernt alle platzierten Elemente (samt ihrer Collectables).</summary>
+    procedure ClearScene();
+
+    /// <summary>
+    ///  Schreibt Position und Groesse jeder platzierten Instanz in die Parameter
+    ///  ihres Collectables, damit ein anschliessendes Speichern den Becken-Zustand
+    ///  vollstaendig erfasst.
+    /// </summary>
+    procedure SyncCollectables();
+
+    /// <summary>
+    ///  Baut die Szene aus den im Inventar enthaltenen Collectables neu auf
+    ///  (z.B. nach dem Laden eines gespeicherten Setups). Vorher sollte die Szene
+    ///  geleert werden (ClearScene).
+    /// </summary>
+    procedure RestoreFromInventory(AInventory: TGorillaInventory);
 
     /// <summary>
     ///  Wirft eine Futterkapsel an der angegebenen Stelle ins Wasser. Die Kapsel
@@ -249,13 +293,19 @@ const
 function AquariumKindToStr(AKind: TAquariumKind): String;
 function StrToAquariumKind(const AValue: String): TAquariumKind;
 
+/// <summary>Liest die Art einer Vorlage aus ihrer Inventar-Gruppe.</summary>
+function AquariumTemplateKind(ATemplate: TGorillaInventoryItemTemplate): TAquariumKind;
+/// <summary>Anzeigename einer Vorlage (Sprach-Map, Fallback: Id).</summary>
+function AquariumTemplateName(ATemplate: TGorillaInventoryItemTemplate): String;
+/// <summary>Die am Template (Data) gehaltene gezeichnete Textur, oder nil.</summary>
+function AquariumTemplateBitmap(ATemplate: TGorillaInventoryItemTemplate): TBitmap;
+
 implementation
 
 uses
   System.RTLConsts, System.Generics.Defaults, Gorilla.Control;
 
 const
-  MANIFEST_SEP   = '|';
   SUBDIVISIONS   = 24;     // Aufloesung des Quad-Meshes (pro Achse)
   ANIM_KEYS      = 24;     // Keyframes pro Loop der Eigen-Animation
 
@@ -328,6 +378,36 @@ begin
   Result := Point3D(r * Cos(t), r * Sin(t), z);
 end;
 
+const
+  // Parameter-Schluessel + Trenner fuer "px;py;pz;scale" einer Instanz. Bewusst
+  // als String kodiert, damit der Wert unabhaengig von der Parameter-
+  // Serialisierung des Inventory (typbewusst oder Legacy-String) round-trippt.
+  PARAM_XFORM = 'aqx';
+  XFORM_SEP   = ';';
+
+// Liest Position + Groesse einer gespeicherten Instanz aus dem Transform-
+// Parameter ihres Collectables. Fehlt ein Wert, bleibt der uebergebene
+// Default erhalten.
+procedure ReadXformParam(const ACollectable: TGorillaInventoryCollectable;
+  var APos: TPoint3D; var AScale: Single);
+var
+  LVal   : TValue;
+  LParts : TArray<String>;
+  LFmt   : TFormatSettings;
+begin
+  if not Assigned(ACollectable) then
+    Exit;
+  if not ACollectable.Parameters.TryGetValue(PARAM_XFORM, LVal) then
+    Exit;
+
+  LFmt   := TFormatSettings.Invariant;
+  LParts := LVal.ToString().Split([XFORM_SEP]);
+  if Length(LParts) > 0 then APos.X := StrToFloatDef(LParts[0], APos.X, LFmt);
+  if Length(LParts) > 1 then APos.Y := StrToFloatDef(LParts[1], APos.Y, LFmt);
+  if Length(LParts) > 2 then APos.Z := StrToFloatDef(LParts[2], APos.Z, LFmt);
+  if Length(LParts) > 3 then AScale := StrToFloatDef(LParts[3], AScale, LFmt);
+end;
+
 function AquariumKindToStr(AKind: TAquariumKind): String;
 begin
   case AKind of
@@ -350,33 +430,31 @@ begin
   else Result := akFish;
 end;
 
-{ TAquariumElement }
-
-constructor TAquariumElement.Create(const AName: String; AKind: TAquariumKind;
-  const AFileName: String; ABitmap: TBitmap);
+function AquariumTemplateKind(ATemplate: TGorillaInventoryItemTemplate): TAquariumKind;
 begin
-  inherited Create();
-  FName     := AName;
-  FKind     := AKind;
-  FFileName := AFileName;
-  FBitmap   := TBitmap.Create();
-  if Assigned(ABitmap) then
-    FBitmap.Assign(ABitmap);
+  Result := akFish;
+  if Assigned(ATemplate) and Assigned(ATemplate.Group) then
+    Result := StrToAquariumKind(ATemplate.Group.Id);
 end;
 
-destructor TAquariumElement.Destroy();
+function AquariumTemplateName(ATemplate: TGorillaInventoryItemTemplate): String;
 begin
-  FBitmap.Free();
-  inherited;
+  Result := '';
+  if not Assigned(ATemplate) then
+    Exit;
+  Result := ATemplate.GetCurrentName();
+  if Result = '' then
+    Result := ATemplate.Id;
 end;
 
-procedure TAquariumElement.Update(AKind: TAquariumKind; const AName: String;
-  ABitmap: TBitmap);
+function AquariumTemplateBitmap(ATemplate: TGorillaInventoryItemTemplate): TBitmap;
 begin
-  FKind := AKind;
-  FName := AName;
-  if Assigned(ABitmap) then
-    FBitmap.Assign(ABitmap);
+  Result := nil;
+  if not Assigned(ATemplate) then
+    Exit;
+  if (not ATemplate.Data.IsEmpty) and ATemplate.Data.IsObject
+  and (ATemplate.Data.AsObject is TBitmap) then
+    Result := TBitmap(ATemplate.Data.AsObject);
 end;
 
 { TAquariumLibrary }
@@ -384,18 +462,21 @@ end;
 constructor TAquariumLibrary.Create();
 begin
   inherited Create();
-  FItems := TObjectList<TAquariumElement>.Create(True);
+  // Das Inventar besitzt die Library (Owner=nil -> wir geben es selbst frei).
+  FInventory := TGorillaInventory.Create(nil);
 
-  FElementsDir  := TPath.Combine(
-    TPath.Combine(TPath.GetDocumentsPath, 'SketchQuarium'), 'elements');
-  FManifestPath := TPath.Combine(FElementsDir, 'elements.idx');
+  FElementsDir := TPath.Combine(
+    TPath.Combine(TPath.GetDocumentsPath, 'SketchQuarium'), 'inventory');
+  FFilePath := TPath.Combine(FElementsDir, 'inventory.xml');
 
   EnsureDirectories();
+  EnsureGroups();
 end;
 
 destructor TAquariumLibrary.Destroy();
 begin
-  FItems.Free();
+  FreeBitmaps();
+  FInventory.Free();
   inherited;
 end;
 
@@ -405,131 +486,254 @@ begin
     TDirectory.CreateDirectory(FElementsDir);
 end;
 
-procedure TAquariumLibrary.LoadFromDisk();
+procedure TAquariumLibrary.EnsureGroups();
 var
-  LLines   : TStringList;
-  i        : Integer;
-  LParts   : TArray<String>;
-  LBmp     : TBitmap;
-  LFile    : String;
-  LElement : TAquariumElement;
+  LKind : TAquariumKind;
+  LGrp  : TGorillaInventoryGroup;
 begin
-  FItems.Clear();
+  for LKind := Low(TAquariumKind) to High(TAquariumKind) do
+  begin
+    if Assigned(FInventory.FindGroup(AquariumKindToStr(LKind))) then
+      Continue;
+    LGrp := FInventory.AddGroup(AquariumKindToStr(LKind));
+    LGrp.Name.AddOrSetValue(FInventory.GetCurrentLanguageName(),
+      AQUARIUM_KIND_NAMES[LKind]);
+  end;
+end;
 
-  if not TFile.Exists(FManifestPath) then
+function TAquariumLibrary.GroupForKind(AKind: TAquariumKind): TGorillaInventoryGroup;
+begin
+  Result := FInventory.FindGroup(AquariumKindToStr(AKind));
+end;
+
+function TAquariumLibrary.VisualFileOf(
+  ATemplate: TGorillaInventoryItemTemplate): String;
+var LVi : TGorillaInventoryVisualItem;
+begin
+  Result := '';
+  if not Assigned(ATemplate) then
     Exit;
-
-  LLines := TStringList.Create();
-  try
-    LLines.LoadFromFile(FManifestPath);
-    for i := 0 to LLines.Count - 1 do
-    begin
-      if Trim(LLines[i]) = '' then
-        Continue;
-
-      LParts := LLines[i].Split([MANIFEST_SEP]);
-      if Length(LParts) < 3 then
-        Continue;
-
-      LFile := TPath.Combine(FElementsDir, LParts[2]);
-      if not TFile.Exists(LFile) then
-        Continue;
-
-      LBmp := TBitmap.Create();
-      try
-        LBmp.LoadFromFile(LFile);
-        LElement := TAquariumElement.Create(
-          LParts[1], StrToAquariumKind(LParts[0]), LFile, LBmp);
-        FItems.Add(LElement);
-      finally
-        LBmp.Free();
-      end;
-    end;
-  finally
-    LLines.Free();
-  end;
+  LVi := FInventory.GetVisualItemByName(ATemplate.Id);
+  if Assigned(LVi) then
+    Result := LVi.Resources[GORILLA_INVENTORY_VISUALITEM_RESOURCE_IMGLOD0];
 end;
 
-procedure TAquariumLibrary.SaveManifest();
+// Bindet jedem Template seinen ImageIndex an die Position seines VisualItems
+// (nach Strukturaenderungen, damit das Inventar-Image-List konsistent bleibt).
+procedure TAquariumLibrary.SyncImageIndices();
 var
-  LLines : TStringList;
-  i      : Integer;
-  LEl    : TAquariumElement;
+  i   : Integer;
+  LTpl : TGorillaInventoryItemTemplate;
+  LVi  : TGorillaInventoryVisualItem;
 begin
-  LLines := TStringList.Create();
-  try
-    for i := 0 to FItems.Count - 1 do
-    begin
-      LEl := FItems[i];
-      LLines.Add(AquariumKindToStr(LEl.Kind) + MANIFEST_SEP +
-                 LEl.Name + MANIFEST_SEP +
-                 TPath.GetFileName(LEl.FileName));
-    end;
-    LLines.SaveToFile(FManifestPath, TEncoding.UTF8);
-  finally
-    LLines.Free();
+  for i := 0 to FInventory.ItemTemplates.Count - 1 do
+  begin
+    LTpl := FInventory.ItemTemplates.Items[i] as TGorillaInventoryItemTemplate;
+    LVi  := FInventory.GetVisualItemByName(LTpl.Id);
+    if Assigned(LVi) then
+      LTpl.ImageIndex := LVi.Index
+    else
+      LTpl.ImageIndex := -1;
   end;
 end;
 
-function TAquariumLibrary.SaveElement(AKind: TAquariumKind; const AName: String;
-  ASource: TBitmap): TAquariumElement;
+procedure TAquariumLibrary.LoadBitmaps();
 var
-  LName, LFileName, LFullPath : String;
-  LGuid : TGUID;
+  i    : Integer;
+  LTpl : TGorillaInventoryItemTemplate;
+  LRel, LFull : String;
+  LBmp : TBitmap;
+begin
+  for i := 0 to FInventory.ItemTemplates.Count - 1 do
+  begin
+    LTpl := FInventory.ItemTemplates.Items[i] as TGorillaInventoryItemTemplate;
+    LRel := VisualFileOf(LTpl);
+    if LRel = '' then
+      Continue;
+    LFull := TPath.Combine(FElementsDir, LRel);
+    if not TFile.Exists(LFull) then
+      Continue;
+    LBmp := TBitmap.Create();
+    LBmp.LoadFromFile(LFull);
+    LTpl.Data := TValue.From<TBitmap>(LBmp);
+  end;
+end;
+
+procedure TAquariumLibrary.FreeBitmaps();
+var
+  i    : Integer;
+  LTpl : TGorillaInventoryItemTemplate;
+  LBmp : TBitmap;
+begin
+  for i := 0 to FInventory.ItemTemplates.Count - 1 do
+  begin
+    LTpl := FInventory.ItemTemplates.Items[i] as TGorillaInventoryItemTemplate;
+    LBmp := AquariumTemplateBitmap(LTpl);
+    if Assigned(LBmp) then
+    begin
+      LTpl.Data := TValue.Empty;
+      LBmp.Free();
+    end;
+  end;
+end;
+
+procedure TAquariumLibrary.LoadFromDisk();
 begin
   EnsureDirectories();
 
+  // Eigene Data-Bitmaps freigeben, bevor das Inventar neu aufgebaut wird.
+  FreeBitmaps();
+
+  if TFile.Exists(FFilePath) then
+    FInventory.LoadFromFile(FFilePath);
+
+  EnsureGroups();
+
+  // Sauberer Schnitt: ein frisch geladenes Inventar startet mit leerem Becken.
+  FInventory.CollectedItems.Clear();
+
+  LoadBitmaps();
+end;
+
+procedure TAquariumLibrary.SaveToDisk();
+begin
+  EnsureDirectories();
+  FInventory.SaveToFile(FFilePath);
+end;
+
+procedure TAquariumLibrary.SaveSetupToFile(const APath: String);
+begin
+  FInventory.SaveToFile(APath);
+end;
+
+procedure TAquariumLibrary.LoadSetupFromFile(const APath: String);
+begin
+  FreeBitmaps();
+  FInventory.LoadFromFile(APath);
+  EnsureGroups();
+  LoadBitmaps();
+  // Collectables (= gespeicherte Instanzen) bleiben erhalten -> Szene baut sie
+  // ueber TAquariumScene.RestoreFromInventory wieder auf.
+end;
+
+function TAquariumLibrary.Count(): Integer;
+begin
+  Result := FInventory.ItemTemplates.Count;
+end;
+
+function TAquariumLibrary.GetTemplate(
+  AIndex: Integer): TGorillaInventoryItemTemplate;
+begin
+  Result := nil;
+  if (AIndex >= 0) and (AIndex < FInventory.ItemTemplates.Count) then
+    Result := FInventory.ItemTemplates.Items[AIndex] as TGorillaInventoryItemTemplate;
+end;
+
+function TAquariumLibrary.AddDrawing(AKind: TAquariumKind; const AName: String;
+  ASource: TBitmap): TGorillaInventoryItemTemplate;
+var
+  LName, LId, LFileName, LFullPath : String;
+  LBmp : TBitmap;
+  LVi  : TGorillaInventoryVisualItem;
+begin
+  EnsureDirectories();
+  EnsureGroups();
+
   LName := Trim(AName);
   if LName = '' then
-    LName := AQUARIUM_KIND_NAMES[AKind] + ' ' + (FItems.Count + 1).ToString;
-  // Trennzeichen darf nicht im Namen vorkommen
-  LName := StringReplace(LName, MANIFEST_SEP, '/', [rfReplaceAll]);
+    LName := AQUARIUM_KIND_NAMES[AKind] + ' ' + (Count() + 1).ToString;
 
-  LGuid := TGUID.NewGuid();
-  LFileName := AquariumKindToStr(AKind) + '_' +
-    LGuid.ToString.Replace('{', '').Replace('}', '').Replace('-', '') + '.png';
+  LId := TGUID.NewGuid().ToString
+           .Replace('{', '').Replace('}', '').Replace('-', '');
+  LFileName := AquariumKindToStr(AKind) + '_' + LId + '.png';
   LFullPath := TPath.Combine(FElementsDir, LFileName);
-
   ASource.SaveToFile(LFullPath);
 
-  Result := TAquariumElement.Create(LName, AKind, LFullPath, ASource);
-  FItems.Add(Result);
-  SaveManifest();
+  Result := FInventory.AddItemTemplate(LId);
+  Result.Group    := GroupForKind(AKind);
+  Result.IsPooled := False;   // jede Platzierung wird eine eigene Instanz
+  Result.Enabled  := True;
+  Result.Name.AddOrSetValue(FInventory.GetCurrentLanguageName(), LName);
+
+  // VisualItem haelt den (relativen) Dateinamen fuer die Persistenz.
+  LVi := FInventory.AddVisualItem(-1, LId, LFileName, LFileName, LFileName, '');
+  Result.ImageIndex := LVi.Index;
+
+  // gezeichnete Textur am Template halten (Eigentum der Library).
+  LBmp := TBitmap.Create();
+  LBmp.Assign(ASource);
+  Result.Data := TValue.From<TBitmap>(LBmp);
+
+  SaveToDisk();
 end;
 
-procedure TAquariumLibrary.UpdateElement(AIndex: Integer; AKind: TAquariumKind;
+procedure TAquariumLibrary.UpdateDrawing(
+  ATemplate: TGorillaInventoryItemTemplate; AKind: TAquariumKind;
   const AName: String; ASource: TBitmap);
 var
-  LEl   : TAquariumElement;
-  LName : String;
+  LName, LRel, LFull : String;
+  LOld, LBmp : TBitmap;
 begin
-  if (AIndex < 0) or (AIndex >= FItems.Count) then
+  if not Assigned(ATemplate) then
     Exit;
-
-  LEl := FItems[AIndex];
 
   LName := Trim(AName);
   if LName = '' then
-    LName := LEl.Name;
-  LName := StringReplace(LName, MANIFEST_SEP, '/', [rfReplaceAll]);
+    LName := AquariumTemplateName(ATemplate);
 
-  // gleiche Datei ueberschreiben
-  ASource.SaveToFile(LEl.FileName);
-  LEl.Update(AKind, LName, ASource);
+  // gleiche PNG-Datei ueberschreiben
+  LRel := VisualFileOf(ATemplate);
+  if LRel <> '' then
+  begin
+    LFull := TPath.Combine(FElementsDir, LRel);
+    ASource.SaveToFile(LFull);
+  end;
 
-  SaveManifest();
+  ATemplate.Group := GroupForKind(AKind);
+  ATemplate.Name.AddOrSetValue(FInventory.GetCurrentLanguageName(), LName);
+
+  // alte Textur freigeben, neue uebernehmen
+  LOld := AquariumTemplateBitmap(ATemplate);
+  LBmp := TBitmap.Create();
+  LBmp.Assign(ASource);
+  ATemplate.Data := TValue.From<TBitmap>(LBmp);
+  if Assigned(LOld) then
+    LOld.Free();
+
+  SaveToDisk();
 end;
 
-procedure TAquariumLibrary.DeleteElement(AIndex: Integer);
+procedure TAquariumLibrary.DeleteDrawing(ATemplate: TGorillaInventoryItemTemplate);
+var
+  LRel, LFull : String;
+  LBmp : TBitmap;
+  LId  : String;
 begin
-  if (AIndex < 0) or (AIndex >= FItems.Count) then
+  if not Assigned(ATemplate) then
     Exit;
 
-  if TFile.Exists(FItems[AIndex].FileName) then
-    TFile.Delete(FItems[AIndex].FileName);
+  LId  := ATemplate.Id;
+  LRel := VisualFileOf(ATemplate);
 
-  FItems.Delete(AIndex);   // Liste besitzt das Objekt -> wird freigegeben
-  SaveManifest();
+  LBmp := AquariumTemplateBitmap(ATemplate);
+  if Assigned(LBmp) then
+  begin
+    ATemplate.Data := TValue.Empty;
+    LBmp.Free();
+  end;
+
+  FInventory.RemoveVisualItem(LId);
+  FInventory.RemoveItemTemplate(ATemplate);   // entfernt auch zugehoerige Items
+
+  if LRel <> '' then
+  begin
+    LFull := TPath.Combine(FElementsDir, LRel);
+    if TFile.Exists(LFull) then
+      TFile.Delete(LFull);
+  end;
+
+  SyncImageIndices();
+  SaveToDisk();
 end;
 
 { TSpawnedElement }
@@ -927,16 +1131,27 @@ begin
   FModelDefs.Add(AName, Result);
 end;
 
-function TAquariumScene.Spawn(AElement: TAquariumElement): TSpawnedElement;
+function TAquariumScene.BuildSpawn(
+  ATemplate: TGorillaInventoryItemTemplate): TSpawnedElement;
 var
   LDef   : TModelDef;
   LModel : TGorillaModel;
   LSpawn : TSpawnedElement;
-  LW, LH : Single;
+  LKind  : TAquariumKind;
+  LBmp   : TBitmap;
   LAnim  : TGorillaAnimation;
 begin
+  Result := nil;
+  if not Assigned(ATemplate) then
+    Exit;
+
+  LKind := AquariumTemplateKind(ATemplate);
+  LBmp  := AquariumTemplateBitmap(ATemplate);
+  if not Assigned(LBmp) then
+    Exit;   // ohne Textur laesst sich kein ModelDef aufbauen
+
   // Request a new model definition or if we already have created one - reuse it
-  LDef := BuildModelDef(AElement.Name, AElement.Kind, AElement.Bitmap);
+  LDef := BuildModelDef(ATemplate.Id, LKind, LBmp);
 
   // Take the definition object and create a visual representation
   LModel := TGorillaModel.LoadNewModelFromDef(FOwner, LDef,
@@ -949,33 +1164,16 @@ begin
   // !!! if the model is getting destroyed we do not destroy the multiple referenced definition
   LModel.IsDefOwner := false;
 
-  LW := AQUARIUM_BASE_W[AElement.Kind];
-  LH := AQUARIUM_BASE_H[AElement.Kind];
-
   LSpawn := TSpawnedElement.Create();
   LSpawn.FModel     := LModel;
-  LSpawn.FKind      := AElement.Kind;
-  LSpawn.FSpeciesId := AElement.Name;   // Schwarm bilden nur Fische gleicher Zeichnung
-  LSpawn.FBaseW     := LW;
-  LSpawn.FBaseH     := LH;
+  LSpawn.FKind      := LKind;
+  LSpawn.FSpeciesId := ATemplate.Id;    // Schwarm bilden nur Fische gleicher Vorlage
+  LSpawn.FBaseW     := AQUARIUM_BASE_W[LKind];
+  LSpawn.FBaseH     := AQUARIUM_BASE_H[LKind];
   LSpawn.FScale     := 1.0;
   // Hoechstgeschwindigkeit leicht variieren -> Schwarm wirkt natuerlicher.
   LSpawn.FMaxSpeed  := FISH_MAX_SPEED * (0.8 + Random * 0.4);
   LSpawn.ApplyScale();
-
-  // Startposition (Tank: X/Z ca. [-8..8], Boden bei Y~7, Oberflaeche Y~0).
-  // Fische/Quallen schwimmen frei im Raum (X/Y/Z); Pflanzen/Korallen wurzeln.
-  case AElement.Kind of
-    akFish, akJellyfish:
-      LSpawn.SetBasePosition(Point3D(
-        TANK_MIN_X + Random * (TANK_MAX_X - TANK_MIN_X),
-        TANK_MIN_Y + Random * (TANK_MAX_Y - TANK_MIN_Y),
-        TANK_MIN_Z + Random * (TANK_MAX_Z - TANK_MIN_Z)));
-    akPlant, akCoral:
-      // Wurzel am Boden: Mittelpunkt um halbe Hoehe nach oben (= kleineres Y)
-      LSpawn.SetBasePosition(Point3D(
-        -7 + Random * 14, 7.2 - LH / 2, -7 + Random * 12));
-  end;
 
   // Eigen-Animation starten. Wichtig: Das treibende Skeleton muss auf Loop
   // gesetzt werden - sonst laeuft die Animation nur einmal ueber ihre Dauer
@@ -987,8 +1185,80 @@ begin
     LModel.AnimationManager.PlayAnimation(LAnim);
   end;
 
+  Result := LSpawn;
+end;
+
+function TAquariumScene.Spawn(ATemplate: TGorillaInventoryItemTemplate): TSpawnedElement;
+var LSpawn : TSpawnedElement;
+begin
+  LSpawn := BuildSpawn(ATemplate);
+  if not Assigned(LSpawn) then
+    Exit(nil);
+
+  // Inventar-Instanz (Collectable) dieser Vorlage anlegen und wechselseitig
+  // verknuepfen. Build() liefert nil, falls (theoretisch) nicht sammelbar.
+  LSpawn.FCollectable := ATemplate.Build();
+  if Assigned(LSpawn.FCollectable) then
+    LSpawn.FCollectable.Data := TValue.From<TSpawnedElement>(LSpawn);
+
+  // Startposition (Tank: X/Z ca. [-8..8], Boden bei Y~7, Oberflaeche Y~0).
+  // Fische/Quallen schwimmen frei im Raum (X/Y/Z); Pflanzen/Korallen wurzeln.
+  case LSpawn.FKind of
+    akFish, akJellyfish:
+      LSpawn.SetBasePosition(Point3D(
+        TANK_MIN_X + Random * (TANK_MAX_X - TANK_MIN_X),
+        TANK_MIN_Y + Random * (TANK_MAX_Y - TANK_MIN_Y),
+        TANK_MIN_Z + Random * (TANK_MAX_Z - TANK_MIN_Z)));
+    akPlant, akCoral:
+      // Wurzel am Boden: Mittelpunkt um halbe Hoehe nach oben (= kleineres Y)
+      LSpawn.SetBasePosition(Point3D(
+        -7 + Random * 14, 7.2 - LSpawn.FBaseH / 2, -7 + Random * 12));
+  end;
+
   FItems.Add(LSpawn);
-  //LSpawn.FastSwim := true;
+  Result := LSpawn;
+end;
+
+function TAquariumScene.SpawnFromCollectable(
+  ACollectable: TGorillaInventoryCollectable): TSpawnedElement;
+var
+  LSpawn : TSpawnedElement;
+  LPos   : TPoint3D;
+  LScale : Single;
+begin
+  Result := nil;
+  if not Assigned(ACollectable) or not Assigned(ACollectable.Template) then
+    Exit;
+
+  LSpawn := BuildSpawn(ACollectable.Template);
+  if not Assigned(LSpawn) then
+    Exit;
+
+  // den bereits geladenen Collectable wiederverwenden (NICHT Build aufrufen)
+  LSpawn.FCollectable := ACollectable;
+  ACollectable.Data := TValue.From<TSpawnedElement>(LSpawn);
+
+  // Position/Groesse aus den Parametern wiederherstellen (Defaults: Tankmitte)
+  LPos   := Point3D(0, 4.5, 0);
+  LScale := 1.0;
+  ReadXformParam(ACollectable, LPos, LScale);
+
+  LSpawn.SetSizeScale(LScale);
+  LSpawn.SetBasePosition(LPos);
+
+  // Bewegung aufnehmen, ohne die wiederhergestellte Position zu veraendern
+  // (anders als der Frozen-Setter, der Fisch/Qualle neu auf Z verteilt).
+  LSpawn.FFrozen := False;
+  if LSpawn.FKind in [akFish, akJellyfish] then
+  begin
+    LSpawn.FWanderDir := RandomUnit3D();
+    if LSpawn.FKind = akFish then
+      LSpawn.FVelocity := LSpawn.FWanderDir * (LSpawn.FMaxSpeed * 0.4)
+    else
+      LSpawn.FVelocity := LSpawn.FWanderDir * 0.3;
+  end;
+
+  FItems.Add(LSpawn);
   Result := LSpawn;
 end;
 
@@ -996,6 +1266,13 @@ procedure TAquariumScene.Remove(ASpawn: TSpawnedElement);
 begin
   if not Assigned(ASpawn) then
     Exit;
+
+  // Inventar-Instanz wieder abwerfen (haelt Becken-Liste und Szene synchron).
+  if Assigned(ASpawn.FCollectable) then
+  begin
+    ASpawn.FCollectable.Inventory.DropCollectedItem(ASpawn.FCollectable, -1);
+    ASpawn.FCollectable := nil;
+  end;
 
   // Das Model wird vom Formular (FOwner) verwaltet; explizites Freigeben
   // entfernt es aus der Szene und gibt sein ModelDef (inkl. Material/Textur)
@@ -1008,6 +1285,55 @@ begin
   end;
 
   FItems.Remove(ASpawn);   // OwnsObjects -> gibt nur das Wrapper-Objekt frei
+end;
+
+procedure TAquariumScene.ClearScene();
+begin
+  // rueckwaerts entfernen; Remove() wirft auch die zugehoerigen Collectables ab
+  while FItems.Count > 0 do
+    Remove(FItems[FItems.Count - 1]);
+end;
+
+procedure TAquariumScene.SyncCollectables();
+var
+  i     : Integer;
+  LEl   : TSpawnedElement;
+  LPos  : TPoint3D;
+  LFmt  : TFormatSettings;
+  LStr  : String;
+begin
+  LFmt := TFormatSettings.Invariant;
+  for i := 0 to FItems.Count - 1 do
+  begin
+    LEl := FItems[i];
+    if not Assigned(LEl.FCollectable) or not Assigned(LEl.FModel) then
+      Continue;
+
+    LPos := LEl.FModel.Position.Point;
+    // Position + Groesse als "px;py;pz;scale" ablegen.
+    LStr := FloatToStr(LPos.X, LFmt) + XFORM_SEP + FloatToStr(LPos.Y, LFmt) +
+            XFORM_SEP + FloatToStr(LPos.Z, LFmt) + XFORM_SEP +
+            FloatToStr(LEl.FScale, LFmt);
+    LEl.FCollectable.Parameters.AddOrSetValue(PARAM_XFORM, TValue.From<String>(LStr));
+  end;
+end;
+
+procedure TAquariumScene.RestoreFromInventory(AInventory: TGorillaInventory);
+var
+  i     : Integer;
+  LColls : TArray<TGorillaInventoryCollectable>;
+begin
+  if not Assigned(AInventory) then
+    Exit;
+
+  // Snapshot der Collectables ziehen (SpawnFromCollectable aendert die Sammlung
+  // nicht, aber so sind wir gegen kuenftige Aenderungen abgesichert).
+  SetLength(LColls, AInventory.CollectedItems.Count);
+  for i := 0 to AInventory.CollectedItems.Count - 1 do
+    LColls[i] := AInventory.CollectedItems.Items[i] as TGorillaInventoryCollectable;
+
+  for i := Low(LColls) to High(LColls) do
+    SpawnFromCollectable(LColls[i]);
 end;
 
 procedure TAquariumScene.EnsureFoodMaterial();

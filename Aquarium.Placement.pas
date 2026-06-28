@@ -32,6 +32,7 @@ uses
   FMX.Types, FMX.Controls, FMX.Graphics, FMX.Objects, FMX.StdCtrls,
   FMX.Types3D, FMX.Controls3D,
   Gorilla.Viewport, Gorilla.Mesh, Gorilla.DefTypes, Gorilla.Control,
+  Gorilla.Utils.Inventory,
   Aquarium.Elements;
 
 type
@@ -47,7 +48,7 @@ type
     FSurfaces : TList<TGorillaMesh>;  // registrierte Auflageflaechen
 
     FHintBar         : TRectangle;
-    FPlacingElement  : TAquariumElement;   // gerade aktives Element (oder nil)
+    FPlacingTemplate : TGorillaInventoryItemTemplate;  // gerade aktive Vorlage (oder nil)
     FPreview         : TSpawnedElement;    // Vorschau-Instanz, folgt der Maus
     FPlaceScale      : Single;             // per Mausrad einstellbare Groesse
     FLastMousePt     : TPointF;            // letzte Mausposition (fuer Mausrad)
@@ -78,8 +79,8 @@ type
     /// <summary>Registriert eine Auflageflaeche (Terrain, Stein) fuer den Raycast.</summary>
     procedure RegisterSurface(ACtrl: TGorillaMesh);
 
-    /// <summary>Startet den Platzierungsmodus fuer ein Element.</summary>
-    procedure Start(AElement: TAquariumElement);
+    /// <summary>Startet den Platzierungsmodus fuer eine Vorlage (Template).</summary>
+    procedure Start(ATemplate: TGorillaInventoryItemTemplate);
 
     /// <summary>Beendet den Platzierungsmodus und raeumt die Vorschau auf.</summary>
     procedure Stop();
@@ -159,9 +160,12 @@ end;
   Rechtsklick beendet den Modus.
   ---------------------------------------------------------------------------- }
 
-procedure TAquariumPlacement.Start(AElement: TAquariumElement);
+procedure TAquariumPlacement.Start(ATemplate: TGorillaInventoryItemTemplate);
 begin
   Stop();   // evtl. laufende Vorschau zuerst aufraeumen
+
+  if not Assigned(ATemplate) then
+    Exit;
 
   // Sicherstellen, dass das Stein-Modell (inkl. geladener Submeshes) per
   // Raycast getroffen werden kann.
@@ -172,10 +176,15 @@ begin
     FSurfaces[I].SetHitTestValue(false);
   end;
 
-  FPlacingElement := AElement;
+  FPlacingTemplate := ATemplate;
 
   // Vorschau-Instanz erzeugen: eingefroren, damit sie exakt der Maus folgt
-  FPreview := FScene.Spawn(AElement);
+  FPreview := FScene.Spawn(ATemplate);
+  if not Assigned(FPreview) then
+  begin
+    FPlacingTemplate := nil;
+    Exit;
+  end;
   FPreview.Frozen := True;
   FPreview.SetSizeScale(FPlaceScale);            // zuletzt gewaehlte Groesse
   FPreview.SetBasePosition(Point3D(0, 4.5, 0));  // Startpunkt: Tankmitte
@@ -210,7 +219,7 @@ begin
     FScene.Remove(FPreview);
 
   FPreview := nil;
-  FPlacingElement := nil;
+  FPlacingTemplate := nil;
   if Assigned(FHintBar) then
     FHintBar.Visible := False;
 
@@ -329,8 +338,8 @@ begin
   if not CameraRay(APt, LOrigin, LDir) then
     Exit;
 
-  if Assigned(FPlacingElement)
-  and (FPlacingElement.Kind in [akPlant, akCoral]) then
+  if Assigned(FPlacingTemplate)
+  and (AquariumTemplateKind(FPlacingTemplate) in [akPlant, akCoral]) then
   begin
     // Pflanzen/Korallen: auf Geometrie (Rock) bzw. Boden mit Bodenkontakt
     Result := SurfacePlacement(APt, LOrigin, LDir);
@@ -392,10 +401,15 @@ begin
         FPreview.SetBasePosition(MouseToTankPoint(PointF(X, Y)));
         FPreview.Frozen := False;
 
-        FPreview := FScene.Spawn(FPlacingElement);
-        FPreview.Frozen := True;
-        FPreview.SetSizeScale(FPlaceScale);   // gewaehlte Groesse beibehalten
-        FPreview.SetBasePosition(MouseToTankPoint(PointF(X, Y)));
+        FPreview := FScene.Spawn(FPlacingTemplate);
+        if Assigned(FPreview) then
+        begin
+          FPreview.Frozen := True;
+          FPreview.SetSizeScale(FPlaceScale);   // gewaehlte Groesse beibehalten
+          FPreview.SetBasePosition(MouseToTankPoint(PointF(X, Y)));
+        end
+        else
+          Stop();
       end;
 
     TMouseButton.mbRight:

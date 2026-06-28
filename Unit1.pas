@@ -18,7 +18,8 @@ uses
   Gorilla.Material.Lambert, Gorilla.Hemisphere, FMX.Objects,
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.Layouts, FMX.Edit, FMX.ListBox,
   Gorilla.DefTypes, Aquarium.Elements, Aquarium.EditorFrame, Gorilla.Terrain,
-  Gorilla.Material.NormalMap, Gorilla.Bokeh, Gorilla.Physics;
+  Gorilla.Material.NormalMap, Gorilla.Bokeh, Gorilla.Physics,
+  Gorilla.Utils.Inventory, Aquarium.InventoryUI;
 
 type
   TForm1 = class(TForm)
@@ -51,15 +52,27 @@ type
     FeedButton: TRectangle;
     Label2: TLabel;
     GorillaPhysicsSystem1: TGorillaPhysicsSystem;
+    InventoryButton: TRectangle;
+    Label3: TLabel;
+    InventoryArea: TRectangle;
+    SaveButton: TRectangle;
+    Label4: TLabel;
+    LoadButton: TRectangle;
+    Label5: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure DrawButtonClick(Sender: TObject);
     procedure FeedButtonClick(Sender: TObject);
+    procedure InventoryButtonClick(Sender: TObject);
+    procedure SaveButtonClick(Sender: TObject);
+    procedure LoadButtonClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
   private
     { Private-Deklarationen }
     FScene        : TAquariumScene;     // animierte 3D-Szene
+    FLibrary      : TAquariumLibrary;   // geteiltes Inventar (Vorlagen/Instanzen)
     FEditor       : TEditorFrame;       // Zeicheneditor (eigener Frame)
+    FCatalog      : TAquariumTemplateFrame;  // Inventar-Katalog im Hauptfenster
     FAnimTimer    : TTimer;
     FClock        : TStopwatch;
 
@@ -73,6 +86,9 @@ type
 
     procedure AnimTimerTick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+
+    /// <summary>Vorlagen-Auswahl aus dem Inventar-Katalog -> Platzierungsmodus.</summary>
+    procedure CatalogPick(Sender: TObject; ATemplate: TGorillaInventoryItemTemplate);
   public
     { Public-Deklarationen }
   end;
@@ -101,14 +117,27 @@ begin
 
   FScene := TAquariumScene.Create(GorillaViewport1, GorillaPhysicsSystem1, Self);
 
+  // Geteiltes Inventar: haelt alle gezeichneten Vorlagen (Templates) sowie die
+  // platzierten Instanzen (Collectables). Wird von Editor und Katalog genutzt.
+  FLibrary := TAquariumLibrary.Create();
+  FLibrary.LoadFromDisk();
+
   // Zeicheneditor als Frame in die Popup-Flaeche einhaengen und mit der
-  // 3D-Szene verknuepfen. Das Layout wird zur Entwurfszeit im Frame gepflegt.
+  // 3D-Szene + dem Inventar verknuepfen. Das Layout wird zur Entwurfszeit
+  // im Frame gepflegt.
   FEditor := TEditorFrame.Create(Self);
   FEditor.Parent := PopupArea;
   FEditor.Align := TAlignLayout.Client;
-  FEditor.Init(FScene, GorillaViewport1, Rock, PopupArea);
+  FEditor.Init(FScene, FLibrary, GorillaViewport1, Rock, PopupArea);
   FEditor.Place3DObject(Ground);
   FEditor.Place3DObject(Rock.Meshes[0]);
+
+  // Inventar-Katalog (verfuegbare Vorlagen) in die eigene Popup-Flaeche.
+  FCatalog := TAquariumTemplateFrame.Create(Self);
+  FCatalog.Parent := InventoryArea;
+  FCatalog.Align := TAlignLayout.Client;
+  FCatalog.OnPickTemplate := CatalogPick;
+  FCatalog.ShowInventory(FLibrary.Inventory);
 
   // Animationsschleife (~60 fps): verformt platzierte Elemente und zeichnet neu
   FClock := TStopwatch.StartNew;
@@ -158,6 +187,9 @@ begin
   // Szene noch, falls der Editor sie beim Aufraeumen anspricht.
   FEditor.Free();
   FScene.Free();
+  // Inventar zuletzt freigeben: die Szene wirft beim Aufraeumen noch
+  // Collectables ab und braucht das Inventar dafuer.
+  FLibrary.Free();
 end;
 
 procedure TForm1.Timer1Timer(Sender: TObject);
@@ -253,12 +285,75 @@ end;
 procedure TForm1.DrawButtonClick(Sender: TObject);
 begin
   SetFeeding(false);
+  InventoryArea.Visible := False;
   PopUpArea.Visible := not PopUpArea.Visible;
 end;
 
 procedure TForm1.FeedButtonClick(Sender: TObject);
 begin
   SetFeeding(not FFeeding);
+end;
+
+procedure TForm1.InventoryButtonClick(Sender: TObject);
+begin
+  SetFeeding(false);
+  PopUpArea.Visible := False;
+  InventoryArea.Visible := not InventoryArea.Visible;
+  if InventoryArea.Visible then
+    FCatalog.RebuildCatalog();   // aktuellen Vorlagen-Bestand zeigen
+end;
+
+procedure TForm1.CatalogPick(Sender: TObject;
+  ATemplate: TGorillaInventoryItemTemplate);
+begin
+  InventoryArea.Visible := False;
+  FEditor.PlaceTemplate(ATemplate);
+end;
+
+procedure TForm1.SaveButtonClick(Sender: TObject);
+var LDlg : TSaveDialog;
+begin
+  SetFeeding(false);
+
+  LDlg := TSaveDialog.Create(Self);
+  try
+    LDlg.Filter := 'SketchQuarium-Setup (*.xml)|*.xml';
+    LDlg.DefaultExt := 'xml';
+    LDlg.Options := LDlg.Options + [TOpenOption.ofOverwritePrompt];
+    if not LDlg.Execute() then
+      Exit;
+
+    // Position/Groesse aller platzierten Instanzen in deren Collectables sichern,
+    // dann das komplette Aquarium (Vorlagen + Instanzen) schreiben.
+    FScene.SyncCollectables();
+    FLibrary.SaveSetupToFile(LDlg.FileName);
+  finally
+    LDlg.Free();
+  end;
+end;
+
+procedure TForm1.LoadButtonClick(Sender: TObject);
+var LDlg : TOpenDialog;
+begin
+  SetFeeding(false);
+  PopUpArea.Visible := False;
+  InventoryArea.Visible := False;
+
+  LDlg := TOpenDialog.Create(Self);
+  try
+    LDlg.Filter := 'SketchQuarium-Setup (*.xml)|*.xml';
+    LDlg.Options := LDlg.Options + [TOpenOption.ofFileMustExist];
+    if not LDlg.Execute() then
+      Exit;
+
+    FScene.ClearScene();                              // aktuelles Becken leeren
+    FLibrary.LoadSetupFromFile(LDlg.FileName);         // Vorlagen + Instanzen laden
+    FScene.RestoreFromInventory(FLibrary.Inventory);   // Szene neu aufbauen
+    FCatalog.RebuildCatalog();                         // Katalog aktualisieren
+    FEditor.RefreshLibrary();                          // Editor-Liste aktualisieren
+  finally
+    LDlg.Free();
+  end;
 end;
 
 end.
