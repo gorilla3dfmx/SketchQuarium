@@ -594,25 +594,6 @@ begin
   Result := Point3D(u + dx, v, zz + dz);
 end;
 
-// Schaltet die Beleuchtung fuer ein Mesh und alle Submeshes ab (rekursiv).
-// Noetig, weil TGorillaMaterial.CreateMaterial fuer mkBlinnPhong UseLighting
-// hart auf TRUE setzt und das ADef.UseLighting-Flag ignoriert -> ein beleuchtetes
-// Sprite wird beim Umdrehen (Rueckseite vom Licht abgewandt) schwarz. Ohne Licht
-// zeigt die Textur auf beiden Seiten ihre echten Farben.
-procedure DisableLighting(AMesh: TGorillaMesh);
-var i : Integer;
-begin
-  if not Assigned(AMesh) then
-    Exit;
-
-  if AMesh.MaterialSource is TGorillaDefaultMaterialSource then
-    TGorillaDefaultMaterialSource(AMesh.MaterialSource).UseLighting := False;
-
-  if Assigned(AMesh.Meshes) then
-    for i := 0 to AMesh.Meshes.Count - 1 do
-      DisableLighting(AMesh.Meshes[i]);
-end;
-
 { TAquariumScene }
 
 constructor TAquariumScene.Create(AViewport: TGorillaViewport; AOwner: TComponent);
@@ -794,10 +775,6 @@ begin
   LModel.SetHitTestValue(false);
   LModel.SetTwoSide(true);
   LModel.FrustumCullingCheck := False;
-
-  // Sprite-Look erzwingen: Beleuchtung abschalten (sonst Rueckseite schwarz,
-  // siehe DisableLighting). Erst nach dem Materialisieren moeglich.
-  DisableLighting(LModel);
 
   // !!! if the model is getting destroyed we do not destroy the multiple referenced definition
   LModel.IsDefOwner := false;
