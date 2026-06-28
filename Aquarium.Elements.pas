@@ -37,7 +37,8 @@ uses
   FMX.Types, FMX.Graphics, FMX.Types3D, FMX.Controls3D, FMX.Materials, FMX.Ani,
   Gorilla.Viewport, Gorilla.Mesh, Gorilla.Model, Gorilla.DefTypes,
   Gorilla.Loader, Gorilla.Animation, Gorilla.AssetsManager,
-  Gorilla.Material.Default, Gorilla.Sphere, Gorilla.Material.Lambert;
+  Gorilla.Material.Default, Gorilla.Sphere, Gorilla.Material.Lambert,
+  Gorilla.Physics, Gorilla.Physics.Types;
 
 type
   /// <summary>Art eines Aquariumselements - bestimmt Aussehen und Animation.</summary>
@@ -191,6 +192,7 @@ type
     FOwner     : TComponent;
     FModelDefs : TDictionary<String, TModelDef>;
     FItems     : TObjectList<TSpawnedElement>;
+    FPhysicsSystem : TGorillaPhysicsSystem;
     FFood      : TObjectList<TFoodPellet>;
     FFoodMat   : TGorillaLambertMaterialSource;  // gemeinsames Material aller Kapseln
     FLastTime  : Single;       // letzter Animate-Zeitstempel (fuer dt)
@@ -203,6 +205,7 @@ type
     /// </summary>
     function BuildModelDef(const AName: String; AKind: TAquariumKind;
       ABitmap: TBitmap): TModelDef;
+
     /// <summary>Stellt das gemeinsame Futter-Material her (einmalig).</summary>
     procedure EnsureFoodMaterial();
     /// <summary>Laesst alle Kapseln absinken und entfernt gefressene/alte.</summary>
@@ -214,8 +217,12 @@ type
     /// <summary>Sucht die naechste Futterkapsel in Reichweite.</summary>
     function  NearestFood(const APos: TPoint3D; AMaxDist: Single;
       out AFood: TFoodPellet): Boolean;
+
   public
-    constructor Create(AViewport: TGorillaViewport; AOwner: TComponent);
+    property PhysicsSystem : TGorillaPhysicsSystem read FPhysicsSystem;
+
+    constructor Create(AViewport: TGorillaViewport; APhysics: TGorillaPhysicsSystem;
+      AOwner: TComponent);
     destructor Destroy(); override;
 
     /// <summary>Platziert ein Element als animiertes Model in der Szene.</summary>
@@ -245,8 +252,7 @@ function StrToAquariumKind(const AValue: String): TAquariumKind;
 implementation
 
 uses
-  System.RTLConsts,
-  System.Generics.Defaults;
+  System.RTLConsts, System.Generics.Defaults, Gorilla.Control;
 
 const
   MANIFEST_SEP   = '|';
@@ -262,9 +268,9 @@ const
 
   // --- Tank-Grenzen fuer frei schwimmende Elemente (Welt-Koordinaten) ---
   // Wasseroberflaeche liegt bei Y~0, der Boden bei Y~7. Hoehere Y = tiefer.
-  TANK_MIN_X = -9.0;  TANK_MAX_X = 9.0;
+  TANK_MIN_X = -15.0;  TANK_MAX_X = 15.0;
   TANK_MIN_Y =  1.5;  TANK_MAX_Y = 6.3;
-  TANK_MIN_Z = -3.0;  TANK_MAX_Z = 8.0;
+  TANK_MIN_Z = -15.0;  TANK_MAX_Z = 15.0;
   TANK_MARGIN = 1.6;        // Abstand zur Wand, ab dem zurueckgelenkt wird
 
   // --- Boids / Schwarmverhalten (Fische) ---
@@ -282,7 +288,7 @@ const
 
   // --- Futterkapseln ---
   FOOD_SENSE     = 8.0;     // Sichtweite, ab der ein Fisch Futter ansteuert
-  FOOD_RADIUS    = 0.16;    // Welt-Radius der Kugel
+  FOOD_RADIUS    = 0.26;    // Welt-Radius der Kugel
   FOOD_SINK_ACC  = 1.4;     // Sink-Beschleunigung (+Y)
   FOOD_SINK_MAX  = 1.1;     // Sink-Endgeschwindigkeit
   FOOD_FLOOR_Y   = 6.5;     // Ruhelage am Boden
@@ -742,10 +748,12 @@ end;
 
 { TAquariumScene }
 
-constructor TAquariumScene.Create(AViewport: TGorillaViewport; AOwner: TComponent);
+constructor TAquariumScene.Create(AViewport: TGorillaViewport;
+  APhysics: TGorillaPhysicsSystem; AOwner: TComponent);
 begin
   inherited Create();
   FViewport := AViewport;
+  FPhysicsSystem := APhysics;
   FOwner    := AOwner;
   FModelDefs := TDictionary<String, TModelDef>.Create();
   FItems    := TObjectList<TSpawnedElement>.Create(True);
@@ -1012,6 +1020,9 @@ begin
   FFoodMat.Diffuse  := TAlphaColor($FFFF4500);   // Orangerot
   FFoodMat.Ambient  := TAlphaColor($FF402000);
   FFoodMat.Emissive := TAlphaColor($FF904010);
+
+  FFoodMat.UseLighting := true;
+  FFoodMat.UseTexture0 := false;
 end;
 
 procedure TAquariumScene.DropFood(const APos: TPoint3D);
@@ -1019,6 +1030,7 @@ var
   LFood : TFoodPellet;
   LSph  : TGorillaSphere;
   d     : Single;
+  LPrefab : TGorillaColliderSettings;
 begin
   if not Assigned(FViewport) then
     Exit;
@@ -1043,6 +1055,11 @@ begin
   LFood.FAge   := 0;
   LFood.FEaten := False;
   FFood.Add(LFood);
+
+  // Add to physics system for collision detection
+  LPrefab := TGorillaColliderSettings.Create(TGorillaPhysicsBodyType.eDynamicBody);
+  LPrefab.LinearDamping := 10; // simulate sinking down
+  PhysicsSystem.AddSphereCollider(LSph, LPrefab);
 end;
 
 function TAquariumScene.NearestFood(const APos: TPoint3D; AMaxDist: Single;
@@ -1072,7 +1089,6 @@ procedure TAquariumScene.UpdateFood(ADt: Single);
 var
   i   : Integer;
   LF  : TFoodPellet;
-  LP  : TPoint3D;
 begin
   for i := FFood.Count - 1 downto 0 do
   begin
@@ -1083,6 +1099,9 @@ begin
     begin
       if Assigned(LF.FModel) then
       begin
+        // Remove from physics again
+        PhysicsSystem.RemoveCollider(LF.FModel);
+
         LF.FModel.Parent := nil;
         LF.FModel.Free();
         LF.FModel := nil;
@@ -1090,20 +1109,6 @@ begin
       FFood.Delete(i);    // OwnsObjects -> gibt das Pellet-Objekt frei
       Continue;
     end;
-
-    // Absinken: Schwerkraft mit Endgeschwindigkeit (Wasserwiderstand), leichte
-    // horizontale Drift, die langsam ausklingt.
-    LF.FVel.Y := Min(FOOD_SINK_MAX, LF.FVel.Y + FOOD_SINK_ACC * ADt);
-    LF.FVel.X := LF.FVel.X * 0.98;
-    LF.FVel.Z := LF.FVel.Z * 0.98;
-
-    LP := LF.FModel.Position.Point + LF.FVel * ADt;
-    if LP.Y >= FOOD_FLOOR_Y then
-    begin
-      LP.Y := FOOD_FLOOR_Y;       // am Boden liegen bleiben
-      LF.FVel := TPoint3D.Zero;
-    end;
-    LF.FModel.Position.Point := LP;
   end;
 end;
 

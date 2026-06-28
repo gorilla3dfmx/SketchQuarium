@@ -44,7 +44,7 @@ type
     FOwner    : TComponent;             // Eigentuemer der erzeugten Controls
     FScene    : TAquariumScene;         // 3D-Szene (Eigentum des Formulars)
     FViewport : TGorillaViewport;       // 3D-Viewport (Eigentum des Formulars)
-    FControls3D : TList<TGorillaMesh>;  // registrierte Auflageflaechen
+    FSurfaces : TList<TGorillaMesh>;  // registrierte Auflageflaechen
 
     FHintBar         : TRectangle;
     FPlacingElement  : TAquariumElement;   // gerade aktives Element (oder nil)
@@ -99,7 +99,7 @@ begin
   FScene      := AScene;
   FViewport   := AViewport;
   FOwner      := AOwner;
-  FControls3D := TList<TGorillaMesh>.Create();
+  FSurfaces   := TList<TGorillaMesh>.Create();
   FPlaceScale := 1.0;
 
   CreateHintBar();
@@ -111,9 +111,9 @@ begin
   // Viewport-Maus-Events wieder loesen (Szene/Viewport leben noch).
   Stop();
 
-  for var I := 0 to FControls3D.Count - 1 do
-    (FControls3D[I].Def as TMeshDef).ReleaseBVH();
-  FControls3D.Free();
+  for var I := 0 to FSurfaces.Count - 1 do
+    (FSurfaces[I].Def as TMeshDef).ReleaseBVH();
+  FSurfaces.Free();
 
   // FHintBar gehoert FOwner und wird von diesem freigegeben.
   inherited;
@@ -121,7 +121,7 @@ end;
 
 procedure TAquariumPlacement.RegisterSurface(ACtrl: TGorillaMesh);
 begin
-  FControls3D.Add(ACtrl);
+  FSurfaces.Add(ACtrl);
 end;
 
 function TAquariumPlacement.Active(): Boolean;
@@ -165,11 +165,11 @@ begin
 
   // Sicherstellen, dass das Stein-Modell (inkl. geladener Submeshes) per
   // Raycast getroffen werden kann.
-  for var I := 0 to FControls3D.Count - 1 do
+  for var I := 0 to FSurfaces.Count - 1 do
   begin
-    if (FControls3D[I].Def as TMeshDef).BVH = nil then
-      (FControls3D[I].Def as TMeshDef).AcquireBVH();
-    FControls3D[I].SetHitTestValue(false);
+    if (FSurfaces[I].Def as TMeshDef).BVH = nil then
+      (FSurfaces[I].Def as TMeshDef).AcquireBVH();
+    FSurfaces[I].SetHitTestValue(false);
   end;
 
   FPlacingElement := AElement;
@@ -214,10 +214,10 @@ begin
   if Assigned(FHintBar) then
     FHintBar.Visible := False;
 
-  for var I := 0 to FControls3D.Count - 1 do
+  for var I := 0 to FSurfaces.Count - 1 do
   begin
-    FControls3D[I].SetHitTestValue(false);
-    //(FControls3D[I].Def as TMeshDef).ReleaseBVH();
+    FSurfaces[I].SetHitTestValue(false);
+    //(FSurfaces[I].Def as TMeshDef).ReleaseBVH();
   end;
 end;
 
@@ -294,9 +294,9 @@ begin
   LFound := False;
 
   // Auflageflaechen per Dreieck-Raycast abtasten (Terrain, Rock-Oberflaeche).
-  for var I := 0 to FControls3D.Count - 1 do
+  for var I := 0 to FSurfaces.Count - 1 do
   begin
-    if FControls3D[I].PickTriangle(LRayPos, LRayDir, LRes) then
+    if FSurfaces[I].PickTriangle(LRayPos, LRayDir, LRes) then
     begin
       if LLastDist > LRes.T then
       begin

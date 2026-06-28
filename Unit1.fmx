@@ -8,6 +8,7 @@ object Form1: TForm1
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop]
   OnCreate = FormCreate
+  OnShow = FormShow
   DesignerMasterStyle = 0
   object GorillaViewport1: TGorillaViewport
     RendererType = ForwardRenderer
@@ -10107,7 +10108,7 @@ object Form1: TForm1
           item
             Name = 'Texture0'
             TilingX = 1.000000000000000000
-            TilingY = 1.000000000000000000
+            TilingY = 0.500000000000000000
             IsDynamic = False
             IgnoreInArray = True
             ShaderKind = PixelShader
@@ -125634,7 +125635,9 @@ object Form1: TForm1
         UseTexture0 = True
         UseVertexColor = True
         UseColorClipping = False
+        DisplacementX = 0.050000000745058060
         DisplacementY = 1.000000000000000000
+        DisplacementZ = 0.050000000745058060
         DisplacementDir = 0.500000000000000000
         Tonemapping = tmNone
         TonemappingExposure = 1.000000000000000000
@@ -125661,6 +125664,129 @@ object Form1: TForm1
       ClippingPlaneDistance = -2.000000000000000000
       ClippingPlaneNormal.Y = 1.000000000000000000
       ClippingPlaneFade = 1.000000000000000000
+    end
+    object GorillaPhysicsSystem1: TGorillaPhysicsSystem
+      Width = 500.000000000000000000
+      Height = 500.000000000000000000
+      Depth = 500.000000000000000000
+      Opaque = True
+      Driver = JOLTPhysics
+      Active = False
+      Async = True
+      RenderColliders = False
+      Accuracy = 1
+      Colliders = <
+        item
+          DisplayName = 'RightWallCollider'
+          Control = RightWall
+          Kind = ckBox
+          BodyType = eStaticBody
+          LockRotAxisX = False
+          LockRotAxisY = False
+          LockRotAxisZ = False
+          LockMoveAxisX = False
+          LockMoveAxisY = False
+          LockMoveAxisZ = False
+          LinearDamping = 0.500000000000000000
+          AngularDamping = 0.200000002980232200
+          Layers = 1
+          AllowSleep = True
+          Active = True
+          Friction = 0.400000005960464500
+          Restitution = 0.200000002980232200
+          Density = 1.000000000000000000
+          Sensor = False
+          AllowSubColliders = False
+        end
+        item
+          DisplayName = 'LeftWallCollider'
+          Control = LeftWall
+          Kind = ckBox
+          BodyType = eStaticBody
+          LockRotAxisX = False
+          LockRotAxisY = False
+          LockRotAxisZ = False
+          LockMoveAxisX = False
+          LockMoveAxisY = False
+          LockMoveAxisZ = False
+          LinearDamping = 0.500000000000000000
+          AngularDamping = 0.200000002980232200
+          Layers = 1
+          AllowSleep = True
+          Active = True
+          Friction = 0.400000005960464500
+          Restitution = 0.200000002980232200
+          Density = 1.000000000000000000
+          Sensor = False
+          AllowSubColliders = False
+        end
+        item
+          DisplayName = 'BackWallCollider'
+          Control = BackWall
+          Kind = ckBox
+          BodyType = eStaticBody
+          LockRotAxisX = False
+          LockRotAxisY = False
+          LockRotAxisZ = False
+          LockMoveAxisX = False
+          LockMoveAxisY = False
+          LockMoveAxisZ = False
+          LinearDamping = 0.500000000000000000
+          AngularDamping = 0.200000002980232200
+          Layers = 1
+          AllowSleep = True
+          Active = True
+          Friction = 0.400000005960464500
+          Restitution = 0.200000002980232200
+          Density = 1.000000000000000000
+          Sensor = False
+          AllowSubColliders = False
+        end
+        item
+          DisplayName = 'GroundCollider'
+          Control = Ground
+          Kind = ckTerrain
+          BodyType = eStaticBody
+          LockRotAxisX = False
+          LockRotAxisY = False
+          LockRotAxisZ = False
+          LockMoveAxisX = False
+          LockMoveAxisY = False
+          LockMoveAxisZ = False
+          LinearDamping = 0.500000000000000000
+          AngularDamping = 0.200000002980232200
+          Layers = 1
+          AllowSleep = True
+          Active = True
+          Friction = 0.400000005960464500
+          Restitution = 0.200000002980232200
+          Density = 1.000000000000000000
+          Sensor = False
+          AllowSubColliders = False
+        end
+        item
+          DisplayName = 'RockCollider'
+          Control = Rock
+          Kind = ckMesh
+          BodyType = eStaticBody
+          LockRotAxisX = False
+          LockRotAxisY = False
+          LockRotAxisZ = False
+          LockMoveAxisX = False
+          LockMoveAxisY = False
+          LockMoveAxisZ = False
+          LinearDamping = 0.500000000000000000
+          AngularDamping = 0.200000002980232200
+          Layers = 1
+          AllowSleep = True
+          Active = True
+          Friction = 0.400000005960464500
+          Restitution = 0.200000002980232200
+          Density = 1.000000000000000000
+          Sensor = False
+          AllowSubColliders = True
+        end>
+      Joints = <>
     end
   end
   object GorillaRenderPassRefraction1: TGorillaRenderPassRefraction

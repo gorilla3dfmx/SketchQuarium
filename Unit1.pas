@@ -18,7 +18,7 @@ uses
   Gorilla.Material.Lambert, Gorilla.Hemisphere, FMX.Objects,
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.Layouts, FMX.Edit, FMX.ListBox,
   Gorilla.DefTypes, Aquarium.Elements, Aquarium.EditorFrame, Gorilla.Terrain,
-  Gorilla.Material.NormalMap, Gorilla.Bokeh;
+  Gorilla.Material.NormalMap, Gorilla.Bokeh, Gorilla.Physics;
 
 type
   TForm1 = class(TForm)
@@ -50,9 +50,11 @@ type
     Timer1: TTimer;
     FeedButton: TRectangle;
     Label2: TLabel;
+    GorillaPhysicsSystem1: TGorillaPhysicsSystem;
     procedure FormCreate(Sender: TObject);
     procedure DrawButtonClick(Sender: TObject);
     procedure FeedButtonClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
   private
     { Private-Deklarationen }
@@ -97,7 +99,7 @@ begin
 
   Self.OnDestroy := FormDestroy;
 
-  FScene := TAquariumScene.Create(GorillaViewport1, Self);
+  FScene := TAquariumScene.Create(GorillaViewport1, GorillaPhysicsSystem1, Self);
 
   // Zeicheneditor als Frame in die Popup-Flaeche einhaengen und mit der
   // 3D-Szene verknuepfen. Das Layout wird zur Entwurfszeit im Frame gepflegt.
@@ -142,13 +144,25 @@ begin
   *)
 end;
 
+procedure TForm1.FormShow(Sender: TObject);
+begin
+  GorillaPhysicsSystem1.Active := true;
+end;
+
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
+  GorillaPhysicsSystem1.Active := false;
+
   // Erst den Editor (gibt Bibliothek frei, beendet einen evtl. laufenden
   // Platzierungsmodus), danach die Szene - in dieser Reihenfolge lebt die
   // Szene noch, falls der Editor sie beim Aufraeumen anspricht.
   FEditor.Free();
   FScene.Free();
+end;
+
+procedure TForm1.Timer1Timer(Sender: TObject);
+begin
+  Self.Caption := Format('Gorilla3D - SketchQuarium (%n FPS', [GorillaViewport1.FPS]);
 end;
 
 procedure TForm1.SetFeeding(AValue: Boolean);
@@ -245,11 +259,6 @@ end;
 procedure TForm1.FeedButtonClick(Sender: TObject);
 begin
   SetFeeding(not FFeeding);
-end;
-
-procedure TForm1.Timer1Timer(Sender: TObject);
-begin
-  Self.Caption := Format('Gorilla3D - SketchQuarium (%n FPS', [GorillaViewport1.FPS]);
 end;
 
 end.
