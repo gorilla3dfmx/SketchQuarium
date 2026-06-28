@@ -37,7 +37,7 @@ uses
   FMX.Types, FMX.Graphics, FMX.Types3D, FMX.Controls3D, FMX.Materials, FMX.Ani,
   Gorilla.Viewport, Gorilla.Mesh, Gorilla.Model, Gorilla.DefTypes,
   Gorilla.Loader, Gorilla.Animation, Gorilla.AssetsManager,
-  Gorilla.Material.Default;
+  Gorilla.Material.Default, Gorilla.Sphere, Gorilla.Material.Lambert;
 
 type
   /// <summary>Art eines Aquariumselements - bestimmt Aussehen und Animation.</summary>
@@ -109,28 +109,35 @@ type
 
   /// <summary>
   ///  Eine in der Szene platzierte Instanz eines Elements. Haelt das
-  ///  TGorillaModel (mit laufender Eigen-Animation) und die Parameter fuer die
-  ///  pro-Frame berechnete Raumbewegung.
+  ///  TGorillaModel (mit laufender Eigen-Animation) und den Zustand der
+  ///  pro-Frame integrierten Raumbewegung (Geschwindigkeit/Schwarm).
   /// </summary>
   TSpawnedElement = class
   private
     FModel     : TGorillaModel;
     FKind      : TAquariumKind;
+    FSpeciesId : String;        // Identitaet fuer Schwarmbildung (gleiche Zeichnung)
     FBasePos   : TPoint3D;
     FBaseW     : Single;        // Grundbreite der Art (lokale Quad-Groesse)
     FBaseH     : Single;        // Grundhoehe der Art
     FScale     : Single;        // per Mausrad eingestellte Groesse
     FFrozen    : Boolean;
-    FFastSwim  : Boolean;            // schaltet zwischen 'self'- und 'fast'-Wabbeln
-    FMoveAnim  : TPoint3DAnimation;  // entkoppelte Raumbewegung (Eigentum des Models)
-    FMoveDur   : Single;             // Dauer eines Bewegungs-Hin/Her (variiert je Instanz)
-    FLastX     : Single;             // letzte X-Position (fuer die Blickrichtung)
+    FFastSwim  : Boolean;       // schaltet zwischen 'self'- und 'fast'-Wabbeln
+    // --- Raumbewegung (Velocity-Integration / Boids) ---
+    FVelocity  : TPoint3D;      // aktuelle Schwimmgeschwindigkeit (Welt/s)
+    FWanderDir : TPoint3D;      // langsam rotierende Wunschrichtung (Streifen)
+    FMaxSpeed  : Single;        // Hoechstgeschwindigkeit (variiert je Instanz)
+    FPhase     : Single;        // Zeitversatz (z.B. Quallen-Bob)
     procedure ApplyScale();
     procedure SetFrozen(const AValue: Boolean);
     procedure SetFastSwim(const AValue: Boolean);
-    /// <summary>Konfiguriert die Raumbewegung um FBasePos und startet sie.</summary>
-    procedure StartMovement();
+    /// <summary>Initialisiert Geschwindigkeit/Richtung beim Loslassen (Frozen:=False).</summary>
+    procedure StartMotion();
+    /// <summary>Integriert eine Beschleunigung und richtet die Blickrichtung aus.</summary>
+    procedure ApplyMotion(const AAccel: TPoint3D; ADt: Single);
   public
+    constructor Create();
+
     /// <summary>Richtet nur die Blickrichtung an der Bewegungsrichtung aus.</summary>
     procedure Animate(ATime: Single);
 
@@ -149,7 +156,7 @@ type
     ///  Im eingefrorenen Zustand bleibt das Element exakt an seiner Position
     ///  (es wabbelt nur), bewegt sich aber nicht frei. Wird fuer die
     ///  Maus-Vorschau verwendet. Das Umschalten stoppt bzw. startet die
-    ///  entkoppelte Raumbewegung (TPoint3DAnimation).
+    ///  per-Frame integrierte Raumbewegung.
     /// </summary>
     property Frozen : Boolean read FFrozen write SetFrozen;
     /// <summary>
@@ -158,6 +165,20 @@ type
     ///  um. Nur Fische besitzen die 'fast'-Animation; bei anderen Arten wirkungslos.
     /// </summary>
     property FastSwim : Boolean read FFastSwim write SetFastSwim;
+  end;
+
+  /// <summary>
+  ///  Eine ins Wasser geworfene Futterkapsel. Sinkt langsam zum Boden und wird
+  ///  von Fischen gefressen (oder loest sich nach einer Weile auf).
+  /// </summary>
+  TFoodPellet = class
+  private
+    FModel : TGorillaSphere;   // sichtbare Kugel (Eigentum: vom Scene-Owner verwaltet)
+    FVel   : TPoint3D;         // Sinkgeschwindigkeit (+ leichte Drift)
+    FAge   : Single;           // Lebensalter in Sekunden
+    FEaten : Boolean;          // markiert -> wird im naechsten Tick entfernt
+  public
+    function Position(): TPoint3D;
   end;
 
   /// <summary>
@@ -170,6 +191,9 @@ type
     FOwner     : TComponent;
     FModelDefs : TDictionary<String, TModelDef>;
     FItems     : TObjectList<TSpawnedElement>;
+    FFood      : TObjectList<TFoodPellet>;
+    FFoodMat   : TGorillaLambertMaterialSource;  // gemeinsames Material aller Kapseln
+    FLastTime  : Single;       // letzter Animate-Zeitstempel (fuer dt)
     /// <summary>
     ///  Baut ein frisches ModelDef (Quad-Mesh, texturiertes Material und
     ///  Eigen-Animation). Die gezeichnete Textur wird direkt ins Material-Def
@@ -179,6 +203,17 @@ type
     /// </summary>
     function BuildModelDef(const AName: String; AKind: TAquariumKind;
       ABitmap: TBitmap): TModelDef;
+    /// <summary>Stellt das gemeinsame Futter-Material her (einmalig).</summary>
+    procedure EnsureFoodMaterial();
+    /// <summary>Laesst alle Kapseln absinken und entfernt gefressene/alte.</summary>
+    procedure UpdateFood(ADt: Single);
+    /// <summary>Boids-Schwarmverhalten + Futtersuche fuer einen Fisch.</summary>
+    function  SteerFish(AFish: TSpawnedElement): TPoint3D;
+    /// <summary>Sanftes 3D-Treiben (Bob + Wander) fuer Quallen.</summary>
+    function  SteerJelly(AJelly: TSpawnedElement; ADt: Single): TPoint3D;
+    /// <summary>Sucht die naechste Futterkapsel in Reichweite.</summary>
+    function  NearestFood(const APos: TPoint3D; AMaxDist: Single;
+      out AFood: TFoodPellet): Boolean;
   public
     constructor Create(AViewport: TGorillaViewport; AOwner: TComponent);
     destructor Destroy(); override;
@@ -188,6 +223,12 @@ type
 
     /// <summary>Entfernt ein platziertes Element wieder aus der Szene.</summary>
     procedure Remove(ASpawn: TSpawnedElement);
+
+    /// <summary>
+    ///  Wirft eine Futterkapsel an der angegebenen Stelle ins Wasser. Die Kapsel
+    ///  sinkt von dort langsam ab; Fische in der Naehe schwimmen hin und fressen.
+    /// </summary>
+    procedure DropFood(const APos: TPoint3D);
 
     /// <summary>Aktualisiert die Animation aller platzierten Elemente.</summary>
     procedure Animate(ATime: Single);
@@ -218,6 +259,68 @@ const
 
   // Loop-Dauer der Eigen-Animation je Art (Sekunden).
   AQUARIUM_LOOP_S : array[TAquariumKind] of Single = (1.6, 2.6, 3.0, 3.4);
+
+  // --- Tank-Grenzen fuer frei schwimmende Elemente (Welt-Koordinaten) ---
+  // Wasseroberflaeche liegt bei Y~0, der Boden bei Y~7. Hoehere Y = tiefer.
+  TANK_MIN_X = -9.0;  TANK_MAX_X = 9.0;
+  TANK_MIN_Y =  1.5;  TANK_MAX_Y = 6.3;
+  TANK_MIN_Z = -3.0;  TANK_MAX_Z = 8.0;
+  TANK_MARGIN = 1.6;        // Abstand zur Wand, ab dem zurueckgelenkt wird
+
+  // --- Boids / Schwarmverhalten (Fische) ---
+  FISH_MAX_SPEED = 3.4;     // Hoechstgeschwindigkeit (Welt/s), je Instanz variiert
+  FISH_MIN_SPEED = 0.7;     // Mindesttempo, damit Fische nie ganz stehen bleiben
+  FISH_MAX_FORCE = 7.0;     // Begrenzung der Steuer-Beschleunigung
+  NEIGH_RADIUS   = 4.0;     // Wahrnehmung fuer Ausrichtung/Zusammenhalt (gleiche Art)
+  SEP_RADIUS     = 1.7;     // Mindestabstand -> Kollisionsvermeidung (alle Fische)
+  W_SEPARATION   = 2.4;
+  W_ALIGNMENT    = 0.8;
+  W_COHESION     = 0.6;
+  W_WANDER       = 1.1;
+  W_BOUNDS       = 6.0;
+  W_FOOD         = 6.0;
+
+  // --- Futterkapseln ---
+  FOOD_SENSE     = 8.0;     // Sichtweite, ab der ein Fisch Futter ansteuert
+  FOOD_RADIUS    = 0.16;    // Welt-Radius der Kugel
+  FOOD_SINK_ACC  = 1.4;     // Sink-Beschleunigung (+Y)
+  FOOD_SINK_MAX  = 1.1;     // Sink-Endgeschwindigkeit
+  FOOD_FLOOR_Y   = 6.5;     // Ruhelage am Boden
+  FOOD_LIFETIME  = 45.0;    // Sekunden, dann loest sich uneaten Futter auf
+
+// --- kleine 3D-Vektorhelfer ---------------------------------------------------
+
+// Begrenzt die Laenge eines Vektors auf AMax.
+function LimitLen(const V: TPoint3D; AMax: Single): TPoint3D;
+var L : Single;
+begin
+  L := V.Length;
+  if (L > AMax) and (L > 0.0001) then
+    Result := V * (AMax / L)
+  else
+    Result := V;
+end;
+
+// Normalisiert sicher (Nullvektor -> Nullvektor).
+function NormSafe(const V: TPoint3D): TPoint3D;
+var L : Single;
+begin
+  L := V.Length;
+  if L > 0.0001 then
+    Result := V * (1.0 / L)
+  else
+    Result := TPoint3D.Zero;
+end;
+
+// Zufaelliger Einheitsvektor (gleichmaessig auf der Kugel).
+function RandomUnit3D(): TPoint3D;
+var z, t, r : Single;
+begin
+  z := 2.0 * Random - 1.0;
+  t := 2.0 * PI * Random;
+  r := Sqrt(Max(0.0, 1.0 - z * z));
+  Result := Point3D(r * Cos(t), r * Sin(t), z);
+end;
 
 function AquariumKindToStr(AKind: TAquariumKind): String;
 begin
@@ -425,6 +528,17 @@ end;
 
 { TSpawnedElement }
 
+constructor TSpawnedElement.Create();
+begin
+  inherited Create();
+  FScale     := 1.0;
+  FMaxSpeed  := FISH_MAX_SPEED;
+  FFrozen    := False;
+  FVelocity  := TPoint3D.Zero;
+  FWanderDir := RandomUnit3D();
+  FPhase     := Random * 2 * PI;
+end;
+
 procedure TSpawnedElement.ApplyScale();
 begin
   // Grundgroesse je Art (X/Y) mal Mausrad-Skalierung. Z nur die Skalierung,
@@ -435,51 +549,79 @@ begin
 end;
 
 procedure TSpawnedElement.Animate(ATime: Single);
-var dx : Single;
 begin
-  // Die Raumbewegung selbst treibt die TPoint3DAnimation (entkoppelt). Hier
-  // wird nur noch die Blickrichtung des Fisches an seine Bewegungsrichtung
-  // angepasst. Im eingefrorenen Zustand (Vorschau) bleibt alles stehen.
-  if FFrozen or not Assigned(FModel) then
-    Exit;
+  // Die eigentliche Raumbewegung treibt jetzt die Szene per ApplyMotion
+  // (Velocity-Integration). Diese Methode bleibt nur als Kompatibilitaets-
+  // einstieg erhalten und tut nichts mehr.
+end;
 
-  if FKind = akFish then
+procedure TSpawnedElement.StartMotion();
+begin
+  // Beim Loslassen (Frozen:=False) eine Anfangsbewegung erzeugen, damit das
+  // Element nicht aus dem Stand "anschwimmen" muss.
+  if FKind in [akFish, akJellyfish] then
   begin
-    dx := FModel.Position.X - FLastX;
-    FLastX := FModel.Position.X;
-    if dx > 0.0001 then
-      FModel.RotationAngle.Y := 0          // schwimmt nach rechts -> Vorderseite
-    else if dx < -0.0001 then
-      FModel.RotationAngle.Y := 180;       // schwimmt nach links  -> Rueckseite
+    // Fische/Quallen frei im Z verteilen - so liegt nicht alles auf einer Ebene.
+    if Assigned(FModel) then
+    begin
+      FModel.Position.Z := TANK_MIN_Z + Random * (TANK_MAX_Z - TANK_MIN_Z);
+      FBasePos := FModel.Position.Point;
+    end;
+    FWanderDir := RandomUnit3D();
+    if FKind = akFish then
+      FVelocity := FWanderDir * (FMaxSpeed * 0.5)
+    else
+      FVelocity := FWanderDir * 0.3;   // Quallen treiben gemaechlich
   end;
 end;
 
-procedure TSpawnedElement.StartMovement();
+procedure TSpawnedElement.ApplyMotion(const AAccel: TPoint3D; ADt: Single);
+var
+  LPos, LAcc : TPoint3D;
+  LSpeed : Single;
 begin
-  if not Assigned(FMoveAnim) then
+  if FFrozen or not Assigned(FModel) or (ADt <= 0) then
     Exit;
 
-  // Die Bewegung pendelt (AutoReverse + Loop) um FBasePos. Start-/Stopp-Punkt
-  // je nach Art; spaeter kann diese Animation einfach durch eine gezielte
-  // Steuerung ersetzt werden.
-  case FKind of
-    akFish:
-      begin
-        FMoveAnim.StartValue.Point := Point3D(FBasePos.X - 3.0, FBasePos.Y - 0.3, FBasePos.Z);
-        FMoveAnim.StopValue.Point  := Point3D(FBasePos.X + 3.0, FBasePos.Y + 0.3, FBasePos.Z);
-      end;
-    akJellyfish:
-      begin
-        FMoveAnim.StartValue.Point := Point3D(FBasePos.X - 0.5, FBasePos.Y - 0.8, FBasePos.Z);
-        FMoveAnim.StopValue.Point  := Point3D(FBasePos.X + 0.5, FBasePos.Y + 0.8, FBasePos.Z);
-      end;
-  else
-    Exit;  // Pflanze/Koralle bewegen sich nicht im Raum
+  // Beschleunigung begrenzen, integrieren, Geschwindigkeit deckeln.
+  LAcc := LimitLen(AAccel, FISH_MAX_FORCE);
+  FVelocity := FVelocity + LAcc * ADt;
+  FVelocity := LimitLen(FVelocity, FMaxSpeed);
+
+  // Fische sollen nie ganz stehen bleiben (lebendiger Eindruck).
+  if FKind = akFish then
+  begin
+    LSpeed := FVelocity.Length;
+    if LSpeed < FISH_MIN_SPEED then
+    begin
+      if LSpeed > 0.0001 then
+        FVelocity := FVelocity * (FISH_MIN_SPEED / LSpeed)
+      else
+        FVelocity := FWanderDir * FISH_MIN_SPEED;
+    end;
   end;
 
-  FLastX := FBasePos.X;
-  FMoveAnim.Duration := FMoveDur;
-  FMoveAnim.Start();
+  // Position fortschreiben und hart in den Tank klemmen (an der Wand abprallen).
+  LPos := FModel.Position.Point + FVelocity * ADt;
+
+  if LPos.X < TANK_MIN_X then begin LPos.X := TANK_MIN_X; FVelocity.X := Abs(FVelocity.X); end
+  else if LPos.X > TANK_MAX_X then begin LPos.X := TANK_MAX_X; FVelocity.X := -Abs(FVelocity.X); end;
+  if LPos.Y < TANK_MIN_Y then begin LPos.Y := TANK_MIN_Y; FVelocity.Y := Abs(FVelocity.Y); end
+  else if LPos.Y > TANK_MAX_Y then begin LPos.Y := TANK_MAX_Y; FVelocity.Y := -Abs(FVelocity.Y); end;
+  if LPos.Z < TANK_MIN_Z then begin LPos.Z := TANK_MIN_Z; FVelocity.Z := Abs(FVelocity.Z); end
+  else if LPos.Z > TANK_MAX_Z then begin LPos.Z := TANK_MAX_Z; FVelocity.Z := -Abs(FVelocity.Z); end;
+
+  FModel.Position.Point := LPos;
+
+  // Blickrichtung: flache Sprites bleiben kamerazugewandt, klappen aber je nach
+  // X-Richtung um (0 = nach rechts, 180 = nach links). Nur fuer Fische sinnvoll.
+  if FKind = akFish then
+  begin
+    if FVelocity.X > 0.02 then
+      FModel.RotationAngle.Y := 0
+    else if FVelocity.X < -0.02 then
+      FModel.RotationAngle.Y := 180;
+  end;
 end;
 
 procedure TSpawnedElement.SetFrozen(const AValue: Boolean);
@@ -488,13 +630,8 @@ begin
     Exit;
   FFrozen := AValue;
 
-  if Assigned(FMoveAnim) then
-  begin
-    if FFrozen then
-      FMoveAnim.Stop()        // Vorschau: exakt stehen bleiben (nur wabbeln)
-    else
-      StartMovement();        // platziert: Raumbewegung um FBasePos aufnehmen
-  end;
+  if not FFrozen then
+    StartMotion();   // platziert: Raumbewegung aufnehmen (Vorschau -> lebendig)
 end;
 
 procedure TSpawnedElement.SetFastSwim(const AValue: Boolean);
@@ -520,7 +657,6 @@ end;
 procedure TSpawnedElement.SetBasePosition(const APos: TPoint3D);
 begin
   FBasePos := APos;
-  FLastX   := APos.X;
   if Assigned(FModel) then
     FModel.Position.Point := APos;
 end;
@@ -594,6 +730,16 @@ begin
   Result := Point3D(u + dx, v, zz + dz);
 end;
 
+{ TFoodPellet }
+
+function TFoodPellet.Position(): TPoint3D;
+begin
+  if Assigned(FModel) then
+    Result := FModel.Position.Point
+  else
+    Result := TPoint3D.Zero;
+end;
+
 { TAquariumScene }
 
 constructor TAquariumScene.Create(AViewport: TGorillaViewport; AOwner: TComponent);
@@ -603,14 +749,30 @@ begin
   FOwner    := AOwner;
   FModelDefs := TDictionary<String, TModelDef>.Create();
   FItems    := TObjectList<TSpawnedElement>.Create(True);
+  FFood     := TObjectList<TFoodPellet>.Create(True);
+  FLastTime := -1;
+  Randomize();
 end;
 
 destructor TAquariumScene.Destroy();
+var i : Integer;
 begin
   // Die ModelDefs gehoeren nach dem Materialisieren den jeweiligen Models und
   // werden von diesen freigegeben - hier nichts zu tun.
+
+  // Futterkugeln zuerst aus der Szene loesen (Models gehoeren dem Owner).
+  for i := 0 to FFood.Count - 1 do
+    if Assigned(FFood[i].FModel) then
+    begin
+      FFood[i].FModel.Parent := nil;
+      FFood[i].FModel.Free();
+      FFood[i].FModel := nil;
+    end;
+  FFood.Free();
+
   FItems.Free();
   FModelDefs.Free();
+  // FFoodMat gehoert FOwner und wird von diesem freigegeben.
 
   inherited;
 end;
@@ -783,35 +945,24 @@ begin
   LH := AQUARIUM_BASE_H[AElement.Kind];
 
   LSpawn := TSpawnedElement.Create();
-  LSpawn.FModel    := LModel;
-  LSpawn.FKind     := AElement.Kind;
-  LSpawn.FBaseW    := LW;
-  LSpawn.FBaseH    := LH;
-  LSpawn.FScale    := 1.0;
+  LSpawn.FModel     := LModel;
+  LSpawn.FKind      := AElement.Kind;
+  LSpawn.FSpeciesId := AElement.Name;   // Schwarm bilden nur Fische gleicher Zeichnung
+  LSpawn.FBaseW     := LW;
+  LSpawn.FBaseH     := LH;
+  LSpawn.FScale     := 1.0;
+  // Hoechstgeschwindigkeit leicht variieren -> Schwarm wirkt natuerlicher.
+  LSpawn.FMaxSpeed  := FISH_MAX_SPEED * (0.8 + Random * 0.4);
   LSpawn.ApplyScale();
 
-  // Entkoppelte Raumbewegung: eine TPoint3DAnimation auf der Model-Position.
-  // Nur Fisch/Qualle bewegen sich; Pflanze/Koralle bleiben verwurzelt. Die
-  // Animation gehoert dem Model (Owner+Parent) und wird mit ihm freigegeben.
-  // Gestartet wird sie erst beim Platzieren (Frozen := False -> StartMovement).
-  Randomize();
-  if AElement.Kind in [akFish, akJellyfish] then
-  begin
-    LSpawn.FMoveDur := 5.0 + Random * 4.0;   // variiert -> Instanzen laufen nicht im Gleichschritt
-    LSpawn.FMoveAnim := TPoint3DAnimation.Create(LModel);
-    LSpawn.FMoveAnim.Parent       := LModel;
-    LSpawn.FMoveAnim.PropertyName := 'Position.Point';
-    LSpawn.FMoveAnim.Interpolation := TInterpolationType.Sinusoidal;
-    LSpawn.FMoveAnim.AnimationType := TAnimationType.InOut;
-    LSpawn.FMoveAnim.AutoReverse  := True;
-    LSpawn.FMoveAnim.Loop         := True;
-  end;
-
-  // Startposition (Tank: X/Z ca. [-8..8], Boden bei Y~7.2, Oberflaeche Y~2.5)
+  // Startposition (Tank: X/Z ca. [-8..8], Boden bei Y~7, Oberflaeche Y~0).
+  // Fische/Quallen schwimmen frei im Raum (X/Y/Z); Pflanzen/Korallen wurzeln.
   case AElement.Kind of
     akFish, akJellyfish:
       LSpawn.SetBasePosition(Point3D(
-        -5 + Random * 10, 3.5 + Random * 2.0, -5 + Random * 10));
+        TANK_MIN_X + Random * (TANK_MAX_X - TANK_MIN_X),
+        TANK_MIN_Y + Random * (TANK_MAX_Y - TANK_MIN_Y),
+        TANK_MIN_Z + Random * (TANK_MAX_Z - TANK_MIN_Z)));
     akPlant, akCoral:
       // Wurzel am Boden: Mittelpunkt um halbe Hoehe nach oben (= kleineres Y)
       LSpawn.SetBasePosition(Point3D(
@@ -851,11 +1002,257 @@ begin
   FItems.Remove(ASpawn);   // OwnsObjects -> gibt nur das Wrapper-Objekt frei
 end;
 
-procedure TAquariumScene.Animate(ATime: Single);
-var i : Integer;
+procedure TAquariumScene.EnsureFoodMaterial();
 begin
+  if Assigned(FFoodMat) then
+    Exit;
+  // Gemeinsames Material aller Futterkapseln (warmes Orange). Emissive sorgt
+  // dafuer, dass die Kugeln auch ohne direkte Beleuchtung gut sichtbar sind.
+  FFoodMat := TGorillaLambertMaterialSource.Create(FOwner);
+  FFoodMat.Diffuse  := TAlphaColor($FFFF4500);   // Orangerot
+  FFoodMat.Ambient  := TAlphaColor($FF402000);
+  FFoodMat.Emissive := TAlphaColor($FF904010);
+end;
+
+procedure TAquariumScene.DropFood(const APos: TPoint3D);
+var
+  LFood : TFoodPellet;
+  LSph  : TGorillaSphere;
+  d     : Single;
+begin
+  if not Assigned(FViewport) then
+    Exit;
+
+  EnsureFoodMaterial();
+
+  LSph := TGorillaSphere.Create(FOwner);
+  LSph.Parent := FViewport;
+  LSph.SubdivisionsAxes := 10;
+  LSph.SubdivisionsHeight := 8;
+  d := FOOD_RADIUS * 2;
+  LSph.Width  := d;
+  LSph.Height := d;
+  LSph.Depth  := d;
+  LSph.SetHitTestValue(false);
+  LSph.MaterialSource := FFoodMat;
+  LSph.Position.Point := APos;
+
+  LFood := TFoodPellet.Create();
+  LFood.FModel := LSph;
+  LFood.FVel   := Point3D((Random - 0.5) * 0.3, 0.2, (Random - 0.5) * 0.3);
+  LFood.FAge   := 0;
+  LFood.FEaten := False;
+  FFood.Add(LFood);
+end;
+
+function TAquariumScene.NearestFood(const APos: TPoint3D; AMaxDist: Single;
+  out AFood: TFoodPellet): Boolean;
+var
+  i : Integer;
+  d, LBest : Single;
+begin
+  Result := False;
+  AFood  := nil;
+  LBest  := AMaxDist;
+  for i := 0 to FFood.Count - 1 do
+  begin
+    if FFood[i].FEaten or not Assigned(FFood[i].FModel) then
+      Continue;
+    d := (FFood[i].Position - APos).Length;
+    if d < LBest then
+    begin
+      LBest  := d;
+      AFood  := FFood[i];
+      Result := True;
+    end;
+  end;
+end;
+
+procedure TAquariumScene.UpdateFood(ADt: Single);
+var
+  i   : Integer;
+  LF  : TFoodPellet;
+  LP  : TPoint3D;
+begin
+  for i := FFood.Count - 1 downto 0 do
+  begin
+    LF := FFood[i];
+    LF.FAge := LF.FAge + ADt;
+
+    if LF.FEaten or (LF.FAge > FOOD_LIFETIME) or not Assigned(LF.FModel) then
+    begin
+      if Assigned(LF.FModel) then
+      begin
+        LF.FModel.Parent := nil;
+        LF.FModel.Free();
+        LF.FModel := nil;
+      end;
+      FFood.Delete(i);    // OwnsObjects -> gibt das Pellet-Objekt frei
+      Continue;
+    end;
+
+    // Absinken: Schwerkraft mit Endgeschwindigkeit (Wasserwiderstand), leichte
+    // horizontale Drift, die langsam ausklingt.
+    LF.FVel.Y := Min(FOOD_SINK_MAX, LF.FVel.Y + FOOD_SINK_ACC * ADt);
+    LF.FVel.X := LF.FVel.X * 0.98;
+    LF.FVel.Z := LF.FVel.Z * 0.98;
+
+    LP := LF.FModel.Position.Point + LF.FVel * ADt;
+    if LP.Y >= FOOD_FLOOR_Y then
+    begin
+      LP.Y := FOOD_FLOOR_Y;       // am Boden liegen bleiben
+      LF.FVel := TPoint3D.Zero;
+    end;
+    LF.FModel.Position.Point := LP;
+  end;
+end;
+
+function TAquariumScene.SteerJelly(AJelly: TSpawnedElement; ADt: Single): TPoint3D;
+var
+  LPos, LAcc, LDesired : TPoint3D;
+begin
+  LPos := AJelly.FModel.Position.Point;
+  LAcc := TPoint3D.Zero;
+
+  // Sanftes Wandern: Wunschrichtung langsam verdrehen.
+  AJelly.FWanderDir := NormSafe(AJelly.FWanderDir + RandomUnit3D() * (1.4 * ADt));
+  LDesired := AJelly.FWanderDir * 0.5;       // gemaechliches Tempo
+  LAcc := LAcc + (LDesired - AJelly.FVelocity) * 0.6;
+
+  // Vertikales Schweben (Auf/Ab-Pulsieren), zeitversetzt je Instanz.
+  AJelly.FPhase := AJelly.FPhase + ADt;
+  LAcc.Y := LAcc.Y + 0.6 * Sin(AJelly.FPhase * 1.2);
+
+  // In den Grenzen halten.
+  if LPos.X < TANK_MIN_X + TANK_MARGIN then LAcc.X := LAcc.X + W_BOUNDS
+  else if LPos.X > TANK_MAX_X - TANK_MARGIN then LAcc.X := LAcc.X - W_BOUNDS;
+  if LPos.Y < TANK_MIN_Y + TANK_MARGIN then LAcc.Y := LAcc.Y + W_BOUNDS
+  else if LPos.Y > TANK_MAX_Y - TANK_MARGIN then LAcc.Y := LAcc.Y - W_BOUNDS;
+  if LPos.Z < TANK_MIN_Z + TANK_MARGIN then LAcc.Z := LAcc.Z + W_BOUNDS
+  else if LPos.Z > TANK_MAX_Z - TANK_MARGIN then LAcc.Z := LAcc.Z - W_BOUNDS;
+
+  Result := LAcc;
+end;
+
+function TAquariumScene.SteerFish(AFish: TSpawnedElement): TPoint3D;
+var
+  i : Integer;
+  LOther : TSpawnedElement;
+  LPos, LDiff, LAcc : TPoint3D;
+  LSep, LAli, LCoh  : TPoint3D;
+  LCount, LDist     : Single;
+  LFood : TFoodPellet;
+begin
+  LPos := AFish.FModel.Position.Point;
+  LAcc := TPoint3D.Zero;
+  LSep := TPoint3D.Zero;
+  LAli := TPoint3D.Zero;
+  LCoh := TPoint3D.Zero;
+  LCount := 0;
+
   for i := 0 to FItems.Count - 1 do
-    FItems[i].Animate(ATime);
+  begin
+    LOther := FItems[i];
+    if (LOther = AFish) or (LOther.FKind <> akFish) or not Assigned(LOther.FModel) then
+      Continue;
+
+    LDiff := LPos - LOther.FModel.Position.Point;
+    LDist := LDiff.Length;
+    if LDist < 0.0001 then
+      Continue;
+
+    // Separation: Abstand zu ALLEN Fischen halten (Kollisionsvermeidung).
+    if LDist < SEP_RADIUS then
+      LSep := LSep + LDiff * (1.0 / (LDist * LDist));
+
+    // Ausrichtung + Zusammenhalt: nur Fische gleicher Zeichnung (Schwarm).
+    if (LDist < NEIGH_RADIUS) and (LOther.FSpeciesId = AFish.FSpeciesId) then
+    begin
+      LAli := LAli + LOther.FVelocity;
+      LCoh := LCoh + LOther.FModel.Position.Point;
+      LCount := LCount + 1;
+    end;
+  end;
+
+  LAcc := LAcc + NormSafe(LSep) * W_SEPARATION;
+
+  if LCount > 0 then
+  begin
+    // Ausrichtung: in die mittlere Schwimmrichtung der Artgenossen einschwenken.
+    LAcc := LAcc + (NormSafe(LAli) * AFish.FMaxSpeed - AFish.FVelocity) * (W_ALIGNMENT / AFish.FMaxSpeed);
+    // Zusammenhalt: zum Schwerpunkt der Artgenossen ziehen.
+    LCoh := LCoh * (1.0 / LCount);
+    LAcc := LAcc + NormSafe(LCoh - LPos) * W_COHESION;
+  end;
+
+  // Futtersuche: naechste Kapsel ansteuern. Beim Jagen wird NICHT mehr gewandert,
+  // sonst umkreist der Fisch die Kapsel, statt sie zu treffen. Solange er jagt,
+  // schwimmt er im schnellen Modus (Schwanz betont).
+  if NearestFood(LPos, FOOD_SENSE, LFood) then
+  begin
+    LDiff := LFood.Position - LPos;
+    LDist := LDiff.Length;
+    LAcc := LAcc + NormSafe(LDiff) * W_FOOD;
+    AFish.FastSwim := True;
+
+    // Fressen: Fische sind grosse Sprites - die "Schnauze" reicht etwa eine
+    // halbe Koerperbreite weit. Daher Fressdistanz an die Fischgroesse koppeln
+    // (Modell-Breite = FBaseW * FScale), mit sinnvollem Minimum.
+    if LDist < Max(0.9, 0.5 * AFish.FBaseW * AFish.FScale) + FOOD_RADIUS then
+      LFood.FEaten := True;
+  end
+  else
+  begin
+    AFish.FastSwim := False;
+    // Wandern nur ohne Futterziel: Wunschrichtung leicht verdrehen -> Streifzuege.
+    AFish.FWanderDir := NormSafe(AFish.FWanderDir + RandomUnit3D() * 0.35);
+    LAcc := LAcc + AFish.FWanderDir * W_WANDER;
+  end;
+
+  // In den Grenzen halten (sanft nach innen lenken, bevor hart geklemmt wird).
+  if LPos.X < TANK_MIN_X + TANK_MARGIN then LAcc.X := LAcc.X + W_BOUNDS
+  else if LPos.X > TANK_MAX_X - TANK_MARGIN then LAcc.X := LAcc.X - W_BOUNDS;
+  if LPos.Y < TANK_MIN_Y + TANK_MARGIN then LAcc.Y := LAcc.Y + W_BOUNDS
+  else if LPos.Y > TANK_MAX_Y - TANK_MARGIN then LAcc.Y := LAcc.Y - W_BOUNDS;
+  if LPos.Z < TANK_MIN_Z + TANK_MARGIN then LAcc.Z := LAcc.Z + W_BOUNDS
+  else if LPos.Z > TANK_MAX_Z - TANK_MARGIN then LAcc.Z := LAcc.Z - W_BOUNDS;
+
+  Result := LAcc;
+end;
+
+procedure TAquariumScene.Animate(ATime: Single);
+var
+  i  : Integer;
+  dt : Single;
+  LEl : TSpawnedElement;
+begin
+  // Zeitschritt aus aufeinanderfolgenden Aufrufen ableiten und begrenzen,
+  // damit ein Ruckler (grosses dt) die Bewegung nicht explodieren laesst.
+  if FLastTime < 0 then
+    dt := 0
+  else
+    dt := ATime - FLastTime;
+  FLastTime := ATime;
+  if dt <= 0 then
+    Exit;
+  if dt > 0.1 then
+    dt := 0.1;
+
+  // Futter zuerst aktualisieren (sinken/aufloesen) -> Fische sehen aktuellen Stand.
+  UpdateFood(dt);
+
+  for i := 0 to FItems.Count - 1 do
+  begin
+    LEl := FItems[i];
+    if LEl.FFrozen or not Assigned(LEl.FModel) then
+      Continue;
+
+    case LEl.FKind of
+      akFish      : LEl.ApplyMotion(SteerFish(LEl), dt);
+      akJellyfish : LEl.ApplyMotion(SteerJelly(LEl, dt), dt);
+      // Pflanze/Koralle: keine Raumbewegung (nur gebackenes Schwingen).
+    end;
+  end;
 end;
 
 end.

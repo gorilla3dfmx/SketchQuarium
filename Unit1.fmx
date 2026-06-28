@@ -34270,7 +34270,7 @@ object Form1: TForm1
       Stroke.Thickness = 10.000000000000000000
       XRadius = 8.000000000000000000
       YRadius = 8.000000000000000000
-      object Rectangle1: TRectangle
+      object DrawButton: TRectangle
         Align = MostTop
         Cursor = crHandPoint
         Fill.Color = claCornflowerblue
@@ -34287,7 +34287,7 @@ object Form1: TForm1
         Stroke.Thickness = 4.000000000000000000
         XRadius = 4.000000000000000000
         YRadius = 4.000000000000000000
-        OnClick = Rectangle1Click
+        OnClick = DrawButtonClick
         object Label1: TLabel
           Align = Client
           StyledSettings = [Family]
@@ -34299,6 +34299,38 @@ object Form1: TForm1
           TextSettings.FontColor = claWhite
           TextSettings.HorzAlign = Center
           Text = #9998
+          TabOrder = 0
+        end
+      end
+      object FeedButton: TRectangle
+        Align = MostTop
+        Cursor = crHandPoint
+        Fill.Color = claCornflowerblue
+        Margins.Left = 8.000000000000000000
+        Margins.Top = 8.000000000000000000
+        Margins.Right = 8.000000000000000000
+        Margins.Bottom = 8.000000000000000000
+        Position.X = 8.000000000000000000
+        Position.Y = 74.000000000000000000
+        Size.Width = 48.000000000000000000
+        Size.Height = 50.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = x33555555
+        Stroke.Thickness = 4.000000000000000000
+        XRadius = 4.000000000000000000
+        YRadius = 4.000000000000000000
+        OnClick = FeedButtonClick
+        object Label2: TLabel
+          Align = Client
+          StyledSettings = [Family]
+          Size.Width = 48.000000000000000000
+          Size.Height = 50.000000000000000000
+          Size.PlatformDefault = False
+          TextSettings.Font.Size = 32.000000000000000000
+          TextSettings.Font.StyleExt = {00070000000000000004000000}
+          TextSettings.FontColor = claWhite
+          TextSettings.HorzAlign = Center
+          Text = #55356#57135
           TabOrder = 0
         end
       end
@@ -38666,6 +38698,8 @@ object Form1: TForm1
       VerticeColor = claYellow
       StaticBuffering = True
       AutoDecimate = False
+      FillBase = True
+      BaseColor = claDarkslategray
       object GorillaPBRMaterialSource1: TGorillaPBRMaterialSource
         ShadingModel = smPBR
         ShadingIntensity = 1.000000000000000000
@@ -125598,11 +125632,9 @@ object Form1: TForm1
         UseSpecular = True
         UseTexturing = True
         UseTexture0 = True
-        UseVertexColor = False
+        UseVertexColor = True
         UseColorClipping = False
-        DisplacementX = 0.050000000745058060
         DisplacementY = 1.000000000000000000
-        DisplacementZ = 0.050000000745058060
         DisplacementDir = 0.500000000000000000
         Tonemapping = tmNone
         TonemappingExposure = 1.000000000000000000
