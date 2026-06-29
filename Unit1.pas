@@ -20,7 +20,8 @@ uses
   Gorilla.DefTypes, Aquarium.Elements, Aquarium.EditorFrame, Gorilla.Terrain,
   Gorilla.Material.NormalMap, Gorilla.Bokeh, Gorilla.Physics,
   Gorilla.Utils.Inventory, Aquarium.InventoryUI, Gorilla.Audio.Manager,
-  Gorilla.Audio.FMOD, Gorilla.Audio.Playlist;
+  Gorilla.Audio.FMOD, Gorilla.Audio.Playlist, Gorilla.Particle.Influencer,
+  Gorilla.Particle.Emitter, Gorilla.Material.Particle;
 
 type
   TForm1 = class(TForm)
@@ -62,6 +63,8 @@ type
     Label5: TLabel;
     GorillaFMODAudioManager1: TGorillaFMODAudioManager;
     GorillaAudioPlaylist1: TGorillaAudioPlaylist;
+    BubbleEmitter: TGorillaParticleEmitter;
+    GorillaParticleMaterialSource1: TGorillaParticleMaterialSource;
     procedure FormCreate(Sender: TObject);
     procedure DrawButtonClick(Sender: TObject);
     procedure FeedButtonClick(Sender: TObject);
@@ -158,8 +161,15 @@ end;
 
 procedure TForm1.FormShow(Sender: TObject);
 begin
+  // Enable physics collision detection
   GorillaPhysicsSystem1.Active := true;
+
+  // Start playing music
   GorillaAudioPlaylist1.Play();
+
+  // Run the bubble emitting
+  BubbleEmitter.Camera := GorillaViewport1.GetDesignCamera();
+  BubbleEmitter.Start();
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
