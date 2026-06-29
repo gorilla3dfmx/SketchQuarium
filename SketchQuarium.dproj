@@ -4,10 +4,10 @@
         <ProjectVersion>20.4</ProjectVersion>
         <FrameworkType>FMX</FrameworkType>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Config Condition="'$(Config)'==''">Release</Config>
         <Platform Condition="'$(Platform)'==''">Win64</Platform>
         <ProjectName Condition="'$(ProjectName)'==''">SketchQuarium</ProjectName>
-        <TargetedPlatforms>693395</TargetedPlatforms>
+        <TargetedPlatforms>693267</TargetedPlatforms>
         <AppType>Application</AppType>
         <MainSource>SketchQuarium.dpr</MainSource>
     </PropertyGroup>
@@ -309,8 +309,6 @@
             <FormType>fmx</FormType>
         </DCCReference>
         <DCCReference Include="Aquarium.Elements.pas"/>
-        <DCCReference Include="Aquarium.Placement.pas"/>
-        <DCCReference Include="Aquarium.InventoryUI.pas"/>
         <DCCReference Include="Aquarium.EditorFrame.pas">
             <Form>EditorFrame</Form>
             <FormType>fmx</FormType>
@@ -1022,9 +1020,6 @@
                     <Platform Name="Win64x">
                         <Operation>1</Operation>
                     </Platform>
-                    <Platform Name="WinARM64EC">
-                        <Operation>1</Operation>
-                    </Platform>
                 </DeployClass>
                 <DeployClass Name="ProjectiOSDeviceDebug">
                     <Platform Name="iOSDevice32">
@@ -1095,10 +1090,6 @@
                         <RemoteDir>Assets</RemoteDir>
                         <Operation>1</Operation>
                     </Platform>
-                    <Platform Name="WinARM64EC">
-                        <RemoteDir>Assets</RemoteDir>
-                        <Operation>1</Operation>
-                    </Platform>
                 </DeployClass>
                 <DeployClass Name="UWP_DelphiLogo44">
                     <Platform Name="Win32">
@@ -1106,10 +1097,6 @@
                         <Operation>1</Operation>
                     </Platform>
                     <Platform Name="Win64">
-                        <RemoteDir>Assets</RemoteDir>
-                        <Operation>1</Operation>
-                    </Platform>
-                    <Platform Name="WinARM64EC">
                         <RemoteDir>Assets</RemoteDir>
                         <Operation>1</Operation>
                     </Platform>
@@ -1333,7 +1320,6 @@
                 <Platform value="Android64">True</Platform>
                 <Platform value="iOSDevice64">True</Platform>
                 <Platform value="iOSSimARM64">True</Platform>
-                <Platform value="Linux64">True</Platform>
                 <Platform value="OSX64">True</Platform>
                 <Platform value="OSXARM64">True</Platform>
                 <Platform value="Win32">True</Platform>

@@ -125914,14 +125914,14 @@ object Form1: TForm1
       EmitTime = 16
       Reuse = True
       AutoEmit = True
-      EmitParticles = 10
-      MaxParticles = 1000
+      EmitParticles = 5
+      MaxParticles = 250
       MaxAutoEmitTime = 0
       AutoRotation = 360.000000000000000000
       ParticleFade = 2.500000000000000000
       ShowBounds = False
       ParticlePosition.RangeX.Min = 0
-      ParticlePosition.RangeX.Max = 400
+      ParticlePosition.RangeX.Max = 200
       ParticlePosition.RangeX.Divisor = 10
       ParticlePosition.RangeX.Negative = True
       ParticlePosition.RangeY.Min = 6
@@ -125929,7 +125929,7 @@ object Form1: TForm1
       ParticlePosition.RangeY.Divisor = 1
       ParticlePosition.RangeY.Negative = False
       ParticlePosition.RangeZ.Min = 0
-      ParticlePosition.RangeZ.Max = 400
+      ParticlePosition.RangeZ.Max = 200
       ParticlePosition.RangeZ.Divisor = 10
       ParticlePosition.RangeZ.Negative = True
       ParticlePosition.Axis = [axX, axY, axZ]
@@ -125945,7 +125945,6 @@ object Form1: TForm1
       ParticleVelocity.RangeZ.Max = 50
       ParticleVelocity.RangeZ.Divisor = 1000
       ParticleVelocity.RangeZ.Negative = True
-      ParticleVelocity.Direction.Y = -8.000000000000000000
       ParticleVelocity.Axis = [axX, axY, axZ]
       ParticleSize.Min = 5
       ParticleSize.Max = 10
