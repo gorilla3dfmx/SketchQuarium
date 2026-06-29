@@ -125988,8 +125988,85 @@ object Form1: TForm1
   end
   object Timer1: TTimer
     OnTimer = Timer1Timer
-    Left = 624
-    Top = 344
+    Left = 1176
+    Top = 24
+  end
+  object GorillaFMODAudioManager1: TGorillaFMODAudioManager
+    AutoUpdate = True
+    AutoUpdateInterval = 33
+    Sounds = <
+      item
+        FileName = '.\assets\music\freesound_community-water-drip-45622.mp3'
+        Mode = Mode2D
+        ChannelGroup = 'Effects'
+        Loop = False
+        LoopCount = 0
+        AutoStart = False
+        Volume = 1.000000000000000000
+        AntiFatigue = False
+        AntiFatigueLevel = 5
+        PositionInMilliseconds = 0
+        VolumeRamp = False
+        Mute = False
+        Priority = 128
+        DelayDSPClockStart = 0
+        DelayDSPClockEnd = 0
+        DelayStopChannels = False
+        FadeInMaxVol = 1.000000000000000000
+        FadeOutMaxVol = 1.000000000000000000
+        Effects = <>
+      end
+      item
+        FileName = '.\assets\music\freesound_community-water-splash-46402.mp3'
+        Mode = Mode2D
+        Loop = False
+        LoopCount = 0
+        AutoStart = False
+        Volume = 1.000000000000000000
+        AntiFatigue = False
+        AntiFatigueLevel = 5
+        PositionInMilliseconds = 0
+        VolumeRamp = False
+        Mute = False
+        Priority = 128
+        DelayDSPClockStart = 0
+        DelayDSPClockEnd = 0
+        DelayStopChannels = False
+        FadeInMaxVol = 1.000000000000000000
+        FadeOutMaxVol = 1.000000000000000000
+        Effects = <>
+      end
+      item
+        FileName = '.\assets\music\u_xjrmmgxfru-hit-plant-01-266293.mp3'
+        Mode = Mode2D
+        Loop = False
+        LoopCount = 0
+        AutoStart = False
+        Volume = 1.000000000000000000
+        AntiFatigue = False
+        AntiFatigueLevel = 5
+        PositionInMilliseconds = 0
+        VolumeRamp = False
+        Mute = False
+        Priority = 128
+        DelayDSPClockStart = 0
+        DelayDSPClockEnd = 0
+        DelayStopChannels = False
+        FadeInMaxVol = 1.000000000000000000
+        FadeOutMaxVol = 1.000000000000000000
+        Effects = <>
+      end>
+    ChannelGroups = <
+      item
+        DisplayName = 'Music'
+      end
+      item
+        DisplayName = 'Effects'
+      end>
+    ListenerUpdateInterval = 100
+    AutoUpdateListenerForward = False
+    Left = 1176
+    Top = 56
   end
   object GorillaAssetsManager1: TGorillaAssetsManager
     LOD = LowQuality
@@ -126038,10 +126115,34 @@ object Form1: TForm1
             AssetClassName = 'TGorillaSkillsAsset'
           end>
         Filename = 
-          'C:\delphi\projects\wax\lib\gorilla\github\SketchQuarium\package.' +
+          'E:\delphi\projects\wax\lib\gorilla\github\SketchQuarium\package.' +
           'zip'
       end>
     Left = 144
     Top = 80
+  end
+  object GorillaAudioPlaylist1: TGorillaAudioPlaylist
+    Items = <
+      item
+        Name = 'magiksolo-aquarium-fish-132518.mp3'
+        FilePath = '.\assets\music\magiksolo-aquarium-fish-132518.mp3'
+      end
+      item
+        Name = 'welc0mei0-231104-electronica-ambient-idm-water-176106.mp3'
+        FilePath = 
+          '.\assets\music\welc0mei0-231104-electronica-ambient-idm-water-17' +
+          '6106.mp3'
+      end
+      item
+        Name = 'geoffharvey-dolphin-world-370309.mp3'
+        FilePath = '.\assets\music\geoffharvey-dolphin-world-370309.mp3'
+      end>
+    FMODManager = GorillaFMODAudioManager1
+    Driver = FMOD
+    ShuffleMode = True
+    LoopMode = True
+    Volume = 1.000000000000000000
+    Left = 1176
+    Top = 88
   end
 end

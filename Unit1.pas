@@ -19,7 +19,8 @@ uses
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.Layouts, FMX.Edit, FMX.ListBox,
   Gorilla.DefTypes, Aquarium.Elements, Aquarium.EditorFrame, Gorilla.Terrain,
   Gorilla.Material.NormalMap, Gorilla.Bokeh, Gorilla.Physics,
-  Gorilla.Utils.Inventory, Aquarium.InventoryUI;
+  Gorilla.Utils.Inventory, Aquarium.InventoryUI, Gorilla.Audio.Manager,
+  Gorilla.Audio.FMOD, Gorilla.Audio.Playlist;
 
 type
   TForm1 = class(TForm)
@@ -59,6 +60,8 @@ type
     Label4: TLabel;
     LoadButton: TRectangle;
     Label5: TLabel;
+    GorillaFMODAudioManager1: TGorillaFMODAudioManager;
+    GorillaAudioPlaylist1: TGorillaAudioPlaylist;
     procedure FormCreate(Sender: TObject);
     procedure DrawButtonClick(Sender: TObject);
     procedure FeedButtonClick(Sender: TObject);
@@ -86,6 +89,9 @@ type
 
     procedure AnimTimerTick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure DoOnSpawnedElementEvent(ASender : TObject; ATemplate : TGorillaInventoryItemTemplate;
+      AElement : TSpawnedElement);
+    procedure DoOnSpawnedFoodPelletEvent(ASender : TObject; APellet : TFoodPellet);
 
     /// <summary>Vorlagen-Auswahl aus dem Inventar-Katalog -> Platzierungsmodus.</summary>
     procedure CatalogPick(Sender: TObject; ATemplate: TGorillaInventoryItemTemplate);
@@ -106,6 +112,7 @@ uses
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   GorillaViewport1.GetDesignCameraController().SetPositionAndAngle(Point3D(0, 5.5, -5), TPoint3D.Zero);
+  GorillaViewport1.GetDesignCameraController().Interval := 10;
 
   Rock.IsStatic := true;
 
@@ -116,6 +123,8 @@ begin
   Self.OnDestroy := FormDestroy;
 
   FScene := TAquariumScene.Create(GorillaViewport1, GorillaPhysicsSystem1, Self);
+  FScene.OnSpawnedElement := DoOnSpawnedElementEvent;
+  FScene.OnSpawnedFoodPellet := DoOnSpawnedFoodPelletEvent;
 
   // Geteiltes Inventar: haelt alle gezeichneten Vorlagen (Templates) sowie die
   // platzierten Instanzen (Collectables). Wird von Editor und Katalog genutzt.
@@ -145,37 +154,12 @@ begin
   FAnimTimer.Interval := 16;
   FAnimTimer.OnTimer := AnimTimerTick;
   FAnimTimer.Enabled := True;
-
-  // NOTICE: Activate Shadow Mapping (Runtime)
-  (*
-  // Light-Sources able to cast shadows
-  GorillaLight1.LightType := TLightType.Point;
-  GorillaLight1.CastShadow := true;
-  GorillaLight1.ShadowStrength := 0.75;
-
-  // Elements that should receive shadows:
-  Rock.Shadows := true;
-  Octopus.Shadows := true;
-  Ground.Shadows := true;
-
-  // Elements that should not cast any shadows:
-  Ground.CastShadows := False;
-  WaterSurface.CastShadows := False;
-  GorillaHemisphere1.CastShadows := False;
-
-  // General CSM shadow activation:
-  GorillaViewport1.Shadows.Enabled := true;
-  GorillaViewport1.Shadows.Filter := TGorillaShadowFilter.PCF5;
-  GorillaViewport1.Shadows.MaxDirLights := 0;
-  GorillaViewport1.Shadows.MaxSpotLights := 0;
-  GorillaViewport1.Shadows.MaxPointLights := 1;
-  GorillaViewport1.Shadows.AutoFitCascades := true; // default==true
-  *)
 end;
 
 procedure TForm1.FormShow(Sender: TObject);
 begin
   GorillaPhysicsSystem1.Active := true;
+  GorillaAudioPlaylist1.Play();
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
@@ -195,6 +179,26 @@ end;
 procedure TForm1.Timer1Timer(Sender: TObject);
 begin
   Self.Caption := Format('Gorilla3D - SketchQuarium (%n FPS', [GorillaViewport1.FPS]);
+end;
+
+procedure TForm1.DoOnSpawnedElementEvent(ASender : TObject; ATemplate : TGorillaInventoryItemTemplate;
+  AElement : TSpawnedElement);
+begin
+  // Play sound effect depending on the type of element
+  case AElement.Kind of
+    TAquariumKind.akFish,
+    TAquariumKind.akJellyfish :
+      GorillaFMODAudioManager1.PlaySound(1, GorillaFMODAudioManager1.ChannelGroupRefs['Effects']);
+
+    else
+      GorillaFMODAudioManager1.PlaySound(2, GorillaFMODAudioManager1.ChannelGroupRefs['Effects']);
+  end;
+end;
+
+procedure TForm1.DoOnSpawnedFoodPelletEvent(ASender : TObject; APellet : TFoodPellet);
+begin
+  // Play sound effect
+  GorillaFMODAudioManager1.PlaySound(0, GorillaFMODAudioManager1.ChannelGroupRefs['Effects']);
 end;
 
 procedure TForm1.SetFeeding(AValue: Boolean);
@@ -265,7 +269,9 @@ begin
     TMouseButton.mbLeft :
       begin
         if SurfacePoint(PointF(X, Y), LPos) then
+        begin
           FScene.DropFood(LPos);
+        end;
       end;
 
     TMouseButton.mbRight :

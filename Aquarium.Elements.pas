@@ -192,6 +192,10 @@ type
     function Position(): TPoint3D;
   end;
 
+  TOnSpawnedElementEvent = procedure(ASender : TObject; ATemplate : TGorillaInventoryItemTemplate;
+    AElement : TSpawnedElement) of object;
+  TOnSpawnedFoodPelletEvent = procedure(ASender : TObject; APellet : TFoodPellet) of object;
+
   /// <summary>
   ///  Verwaltet alle in der Szene platzierten Elemente und treibt deren
   ///  Animation. Animate() muss regelmaessig (z.B. per Timer) aufgerufen werden.
@@ -206,6 +210,10 @@ type
     FFood      : TObjectList<TFoodPellet>;
     FFoodMat   : TGorillaLambertMaterialSource;  // gemeinsames Material aller Kapseln
     FLastTime  : Single;       // letzter Animate-Zeitstempel (fuer dt)
+
+    FOnSpawnedElement : TOnSpawnedElementEvent;
+    FOnSpawnedFoodPellet : TOnSpawnedFoodPelletEvent;
+
     /// <summary>
     ///  Baut ein frisches ModelDef (Quad-Mesh, texturiertes Material und
     ///  Eigen-Animation). Die gezeichnete Textur wird direkt ins Material-Def
@@ -244,6 +252,8 @@ type
 
   public
     property PhysicsSystem : TGorillaPhysicsSystem read FPhysicsSystem;
+    property OnSpawnedElement : TOnSpawnedElementEvent read FOnSpawnedElement write FOnSpawnedElement;
+    property OnSpawnedFoodPellet : TOnSpawnedFoodPelletEvent read FOnSpawnedFoodPellet write FOnSpawnedFoodPellet;
 
     constructor Create(AViewport: TGorillaViewport; APhysics: TGorillaPhysicsSystem;
       AOwner: TComponent);
@@ -1217,6 +1227,9 @@ begin
 
   FItems.Add(LSpawn);
   Result := LSpawn;
+
+  if Assigned(FOnSpawnedElement) then
+    FOnSpawnedElement(Self, ATemplate, LSpawn);
 end;
 
 function TAquariumScene.SpawnFromCollectable(
@@ -1260,6 +1273,9 @@ begin
 
   FItems.Add(LSpawn);
   Result := LSpawn;
+
+  if Assigned(FOnSpawnedElement) then
+    FOnSpawnedElement(Self, ACollectable.Template, LSpawn);
 end;
 
 procedure TAquariumScene.Remove(ASpawn: TSpawnedElement);
@@ -1386,6 +1402,9 @@ begin
   LPrefab := TGorillaColliderSettings.Create(TGorillaPhysicsBodyType.eDynamicBody);
   LPrefab.LinearDamping := 10; // simulate sinking down
   PhysicsSystem.AddSphereCollider(LSph, LPrefab);
+
+  if Assigned(FOnSpawnedFoodPellet) then
+    FOnSpawnedFoodPellet(Self, LFood);
 end;
 
 function TAquariumScene.NearestFood(const APos: TPoint3D; AMaxDist: Single;
