@@ -128,6 +128,11 @@ type
     FDrawing      : Boolean;
     FLastPt       : TPointF;
 
+    // Halbtransparenter Vorschaukreis, der dem Cursor folgt und die aktuelle
+    // (effektive) Pinselgroesse anzeigt. Liegt ueber der Zeichenflaeche, faengt
+    // aber keine Maus-Ereignisse ab.
+    FBrushCursor  : TCircle;
+
     // aktuell umrahmte (selektierte) Felder fuer Farbe bzw. Pinsel
     FSelColorSwatch : TRectangle;
     FSelBrushSwatch : TRectangle;
@@ -151,6 +156,10 @@ type
 
     procedure RefreshElementsList();
     procedure ClearCanvas();
+
+    // Vorschaukreis fuer die Pinselgroesse (APtLocal = CanvasImage-lokal)
+    procedure UpdateBrushCursor(const APtLocal: TPointF);
+    procedure CanvasMouseLeave(Sender: TObject);
 
     // Pinselvorschauen aufbauen und Auswahlrahmen verwalten
     procedure BuildBrushPreviews();
@@ -239,6 +248,10 @@ const
 
   STENCIL_GUIDE_INK = TAlphaColor($AA404848);   // Kontur des Guide-Overlays
 
+  // Halbtransparente Linie des Pinsel-Vorschaukreises
+  BRUSH_CURSOR_INK   = TAlphaColor($80303030);   // ~50% deckendes Dunkelgrau
+  BRUSH_CURSOR_THICK = 1.5;
+
 { ----------------------------------------------------------------------------
   Initialisierung / Aufraeumen
   ---------------------------------------------------------------------------- }
@@ -269,6 +282,19 @@ begin
   // Maus fangen, damit das MouseUp auch dann ankommt, wenn man beim Zeichnen
   // ueber den Rand der Zeichenflaeche hinauszieht und dort loslaesst.
   CanvasImage.AutoCapture := True;
+  CanvasImage.OnMouseLeave := CanvasMouseLeave;
+
+  // Vorschaukreis fuer die Pinselgroesse anlegen (liegt ueber der Zeichen-
+  // flaeche, ohne Maus-Ereignisse abzufangen). Position/Groesse werden bei
+  // jeder Mausbewegung in UpdateBrushCursor gesetzt.
+  FBrushCursor := TCircle.Create(Self);
+  FBrushCursor.Parent := CanvasBg;
+  FBrushCursor.HitTest := False;
+  FBrushCursor.Visible := False;
+  FBrushCursor.Fill.Kind := TBrushKind.None;        // nur Umriss, keine Fuellung
+  FBrushCursor.Stroke.Kind := TBrushKind.Solid;
+  FBrushCursor.Stroke.Color := BRUSH_CURSOR_INK;
+  FBrushCursor.Stroke.Thickness := BRUSH_CURSOR_THICK;
 
   // Pinselvorschauen rendern und Startauswahl (Schwarz / runder Pinsel) rahmen
   BuildBrushPreviews();
@@ -1063,11 +1089,57 @@ begin
   CanvasImage.Repaint();
 end;
 
+// Setzt Groesse und Position des halbtransparenten Vorschaukreises. APtLocal
+// sind CanvasImage-lokale Koordinaten; der Kreis lebt in CanvasBg, daher wird
+// die Position von CanvasImage aufaddiert. Der Radius entspricht dem effektiv
+// wirksamen Pinselradius (weiche Pinsel sind groesser, der Radierer +1).
+procedure TEditorFrame.UpdateBrushCursor(const APtLocal: TPointF);
+var
+  rPx, scale, rDisp : Single;
+begin
+  if not Assigned(FBrushCursor) then
+    Exit;
+  if (CanvasImage.Width <= 0) or (CanvasImage.Bitmap.Width <= 0) then
+    Exit;
+
+  // Effektiver Radius in Bitmap-Pixeln je nach Werkzeug.
+  if FEraser then
+    rPx := BrushSize.Value / 2 + 1
+  else
+    case FBrushType of
+      1: rPx := BrushSize.Value / 2 * SOFT_SCALE;
+      3: rPx := BrushSize.Value / 2 * XSOFT_SCALE;
+    else
+      rPx := BrushSize.Value / 2;
+    end;
+
+  // Bitmap-Pixel -> Anzeigepixel (Bitmap wird auf CanvasImage gestreckt).
+  scale := CanvasImage.Width / CanvasImage.Bitmap.Width;
+  rDisp := rPx * scale;
+  if rDisp < 1 then
+    rDisp := 1;
+
+  FBrushCursor.Width  := rDisp * 2;
+  FBrushCursor.Height := rDisp * 2;
+  FBrushCursor.Position.Point := PointF(
+    CanvasImage.Position.X + APtLocal.X - rDisp,
+    CanvasImage.Position.Y + APtLocal.Y - rDisp);
+  FBrushCursor.Visible := True;
+  FBrushCursor.BringToFront();
+end;
+
+procedure TEditorFrame.CanvasMouseLeave(Sender: TObject);
+begin
+  if Assigned(FBrushCursor) then
+    FBrushCursor.Visible := False;
+end;
+
 procedure TEditorFrame.CanvasMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Single);
 begin
   FDrawing := True;
   FLastPt := ImageToBitmap(PointF(X, Y));
+  UpdateBrushCursor(PointF(X, Y));
   if FEraser then
     EraseAt(FLastPt)
   else
@@ -1077,6 +1149,10 @@ end;
 procedure TEditorFrame.CanvasMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Single);
 var P : TPointF;
 begin
+  // Vorschaukreis stets dem Cursor nachfuehren, auch wenn gerade nicht
+  // gezeichnet wird.
+  UpdateBrushCursor(PointF(X, Y));
+
   if not FDrawing then
     Exit;
 
