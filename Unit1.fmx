@@ -126767,7 +126767,7 @@ object Form1: TForm1
     end
     object GorillaMaterialCausticsBehaviour1: TGorillaMaterialCausticsBehaviour
       Viewport = GorillaViewport1
-      CausticsColor = claBlack
+      CausticsColor = claWhite
       Caustics = 5
       CausticsSpeed = 2.000000000000000000
       CausticsSeed = 225.000000000000000000

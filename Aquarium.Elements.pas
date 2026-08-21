@@ -298,7 +298,7 @@ type
 const
   /// <summary>Anzeigenamen der Arten (Reihenfolge wie TAquariumKind).</summary>
   AQUARIUM_KIND_NAMES : array[TAquariumKind] of String =
-    ('Fisch', 'Qualle', 'Pflanze', 'Koralle');
+    ('Fish', 'Jellyfish', 'Plant', 'Coral');
 
 function AquariumKindToStr(AKind: TAquariumKind): String;
 function StrToAquariumKind(const AValue: String): TAquariumKind;
@@ -1165,7 +1165,7 @@ begin
 
   // Take the definition object and create a visual representation
   LModel := TGorillaModel.LoadNewModelFromDef(FOwner, LDef,
-    []{GORILLA_ANIMATION_CACHING_DEFAULT});
+    GORILLA_ANIMATION_CACHING_DEFAULT);
   LModel.Parent := FViewport;
   LModel.SetHitTestValue(false);
   LModel.SetTwoSide(true);

@@ -114,6 +114,9 @@ uses
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+  Self.ClientWidth := 1920;
+  Self.ClientHeight := 1080;
+
   GorillaViewport1.GetDesignCameraController().SetPositionAndAngle(Point3D(0, 5.5, -5), TPoint3D.Zero);
   GorillaViewport1.GetDesignCameraController().Interval := 10;
 
