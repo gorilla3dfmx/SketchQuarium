@@ -112,6 +112,8 @@ type
     property Inventory : TGorillaInventory read FInventory;
   end;
 
+  TFoodPellet = class;
+
   /// <summary>
   ///  Eine in der Szene platzierte Instanz eines Elements. Haelt das
   ///  TGorillaModel (mit laufender Eigen-Animation) und den Zustand der
@@ -134,6 +136,14 @@ type
     FWanderDir : TPoint3D;      // langsam rotierende Wunschrichtung (Streifen)
     FMaxSpeed  : Single;        // Hoechstgeschwindigkeit (variiert je Instanz)
     FPhase     : Single;        // Zeitversatz (z.B. Quallen-Bob)
+    // --- Lebenspunkte (nur fuetterbare Tiere = Fische) ---
+    FHealth    : Single;        // 0..FISH_HEALTH_MAX, sinkt mit der Zeit (Hunger)
+    FSatedTime : Single;        // Restzeit "satt": Health bleibt solange auf Max
+    FDead      : Boolean;       // verhungert -> treibt nach oben, wird entfernt
+    FDeadTime  : Single;        // Sekunden seit dem Tod
+    FTinted    : Boolean;       // Material ist gerade eingefaerbt (Hunger/Tod)
+    FBaseAmb, FBaseDif, FBaseSpec : TAlphaColorF; // Original-Materialfarben
+    FFoodTarget : TFoodPellet;  // zugeteilte Futterkapsel (nil = keine)
     procedure ApplyScale();
     procedure SetFrozen(const AValue: Boolean);
     procedure SetFastSwim(const AValue: Boolean);
@@ -176,6 +186,13 @@ type
     ///  um. Nur Fische besitzen die 'fast'-Animation; bei anderen Arten wirkungslos.
     /// </summary>
     property FastSwim : Boolean read FFastSwim write SetFastSwim;
+    /// <summary>
+    ///  Lebenspunkte (0..100). Nur Fische koennen gefuettert werden und haben
+    ///  daher einen Lebenswert; bei anderen Arten bleibt er konstant auf 100.
+    /// </summary>
+    property Health : Single read FHealth;
+    /// <summary>Verhungert - das Tier treibt nach oben und verschwindet dann.</summary>
+    property IsDead : Boolean read FDead;
   end;
 
   /// <summary>
@@ -246,9 +263,26 @@ type
     function  SteerFish(AFish: TSpawnedElement): TPoint3D;
     /// <summary>Sanftes 3D-Treiben (Bob + Wander) fuer Quallen.</summary>
     function  SteerJelly(AJelly: TSpawnedElement; ADt: Single): TPoint3D;
-    /// <summary>Sucht die naechste Futterkapsel in Reichweite.</summary>
-    function  NearestFood(const APos: TPoint3D; AMaxDist: Single;
-      out AFood: TFoodPellet): Boolean;
+    /// <summary>
+    ///  Teilt jedem hungrigen Fisch hoechstens eine Kapsel zu (und jede Kapsel
+    ///  hoechstens einem Fisch). Hungrigere Fische in der Naehe haben Vorrang.
+    /// </summary>
+    procedure AssignFood();
+
+    /// <summary>
+    ///  Hunger: senkt die Lebenspunkte eines Fisches, laesst ihn bei 0 sterben
+    ///  und blendet unterhalb der Warnschwelle die Hunger-Markierung ein.
+    /// </summary>
+    procedure UpdateHealth(AFish: TSpawnedElement; ADt, ATime: Single);
+    /// <summary>Verhungerter Fisch: bauchoben zur Oberflaeche treiben lassen.</summary>
+    procedure UpdateDead(AFish: TSpawnedElement; ADt: Single);
+    /// <summary>
+    ///  Faerbt einen Fisch ein: AAmount 0 = Originalfarben, 1 = voll AColor.
+    ///  Jedes Model besitzt eine eigene MaterialSource, daher betrifft das nur
+    ///  diese Instanz.
+    /// </summary>
+    procedure SetTint(AFish: TSpawnedElement; const AColor: TAlphaColorF;
+      AAmount: Single);
 
   public
     property PhysicsSystem : TGorillaPhysicsSystem read FPhysicsSystem;
@@ -313,7 +347,7 @@ function AquariumTemplateBitmap(ATemplate: TGorillaInventoryItemTemplate): TBitm
 implementation
 
 uses
-  System.RTLConsts, System.Generics.Defaults, Gorilla.Control;
+  System.RTLConsts, System.Generics.Defaults, FMX.MaterialSources, Gorilla.Control;
 
 const
   SUBDIVISIONS   = 24;     // Aufloesung des Quad-Meshes (pro Achse)
@@ -354,6 +388,26 @@ const
   FOOD_FLOOR_Y   = 6.5;     // Ruhelage am Boden
   FOOD_LIFETIME  = 45.0;    // Sekunden, dann loest sich uneaten Futter auf
 
+  // --- Lebenspunkte / Hunger (Fische) ---
+  FISH_HEALTH_MAX  = 100.0;
+  FISH_HUNGER_RATE = 0.5;   // Lebenspunkte pro Sekunde -> ~3:20 min von voll bis tot
+  FISH_FOOD_VALUE  = 30.0;  // Lebenspunkte je gefressener Kapsel
+  FISH_SATED_TIME  = 15.0;  // so lange bleibt ein voller Fisch satt (frisst nicht)
+  FISH_HEALTH_WARN = 40.0;  // darunter hungrig: sanftes Pulsieren (~80 s vor dem Tod)
+  FISH_HEALTH_CRIT = 15.0;  // darunter kritisch: schnelles, kraeftiges Blinken (~30 s)
+  // Vorrang beim Futter: pro fehlendem Lebenspunkt gilt ein Fisch als um diese
+  // Strecke naeher an der Kapsel (ein fast toter Fisch "gewinnt" so gegen einen
+  // satten, der bis zu ~6 Einheiten naeher ist).
+  FOOD_PRIORITY_DIST = 0.06;
+  // Einfaerbung (Faktoren auf die gezeichnete Textur): hungrig pulsiert der
+  // Fisch zu einem blassen Gruen, kritisch blinkt er dunkel, tot wird er grau.
+  TINT_SICK : TAlphaColorF = (R: 0.55; G: 0.85; B: 0.40; A: 1);
+  TINT_CRIT : TAlphaColorF = (R: 0.20; G: 0.30; B: 0.15; A: 1);
+  TINT_DEAD : TAlphaColorF = (R: 0.40; G: 0.40; B: 0.40; A: 1);
+  DEAD_FLOAT_Y     = 0.8;   // Hoehe knapp unter der Oberflaeche, zu der Tote treiben
+  DEAD_FLOAT_SPEED = 0.6;   // Auftriebsgeschwindigkeit toter Fische (Welt/s)
+  DEAD_REMOVE_TIME = 12.0;  // Sekunden nach dem Tod, dann verschwindet der Fisch
+
 // --- kleine 3D-Vektorhelfer ---------------------------------------------------
 
 // Begrenzt die Laenge eines Vektors auf AMax.
@@ -393,6 +447,7 @@ const
   // als String kodiert, damit der Wert unabhaengig von der Parameter-
   // Serialisierung des Inventory (typbewusst oder Legacy-String) round-trippt.
   PARAM_XFORM = 'aqx';
+  PARAM_HEALTH = 'aqh';      // Lebenspunkte einer Instanz (nur Fische)
   XFORM_SEP   = ';';
 
 // Liest Position + Groesse einer gespeicherten Instanz aus dem Transform-
@@ -757,6 +812,8 @@ begin
   FVelocity  := TPoint3D.Zero;
   FWanderDir := RandomUnit3D();
   FPhase     := Random * 2 * PI;
+  FHealth    := FISH_HEALTH_MAX;
+  FSatedTime := FISH_SATED_TIME;   // frisch eingesetzt = satt
 end;
 
 procedure TSpawnedElement.ApplyScale();
@@ -907,9 +964,9 @@ end;
 function DeformedVertex(AKind: TAquariumKind; u, v, theta: Single;
   AAmp: Single = 1.0; ASpeed: Single = 1.0; ATailPow: Single = 2.0;
   ARamp: Single = 0.0): TPoint3D;
-var w, r, zz, dx, dz, pulse, p, tenv : Single;
+var w, r, zz, dx, dy, dz, pulse, p, tenv, wave : Single;
 begin
-  dx := 0; dz := 0; zz := 0;
+  dx := 0; dy := 0; dz := 0; zz := 0;
   case AKind of
     akFish:
       begin
@@ -921,7 +978,13 @@ begin
         p    := theta / (2 * PI);
         tenv := 1.0 + ARamp * (0.5 - 0.5 * Cos(2 * PI * Power(p, 3.0)));
         // Wanderwelle entlang X; Amplitude waechst per ATailPow zur Flosse hin.
-        zz := 0.30 * AAmp * tenv * Power(w, ATailPow) * Sin(6.0 * u - ASpeed * theta);
+        wave := AAmp * tenv * Power(w, ATailPow) * Sin(6.0 * u - ASpeed * theta);
+        // Seitlicher Flossenschlag (Z). Da der Fisch ein kamerazugewandtes
+        // Sprite ist, laeuft Z groesstenteils in Blickrichtung - daher zusaetzlich
+        // ein kleinerer Anteil in der Sprite-Ebene (Y), damit das Schwimmen auch
+        // frontal deutlich sichtbar ist.
+        zz := 0.50 * wave;
+        dy := 0.05 * wave;
       end;
 
     akJellyfish:
@@ -947,7 +1010,7 @@ begin
         dz := 0.05 * (w * w * w) * Cos(theta);
       end;
   end;
-  Result := Point3D(u + dx, v, zz + dz);
+  Result := Point3D(u + dx, v + dy, zz + dz);
 end;
 
 { TFoodPellet }
@@ -1127,13 +1190,14 @@ begin
   //    Der Fisch bekommt zwei Loops auf demselben Mesh:
   //      'self' - ruhiges, kraeftiges Wabbeln (Grundzustand)
   //      'fast' - schnelles Schwimmen: schnellere Welle (2 Zyklen/Loop, kuerzere
-  //               Dauer) und staerker zur Schwanzflosse hin betont (ATailPow 3).
+  //               Dauer), groessere Amplitude und staerker zur Schwanzflosse
+  //               hin betont (ATailPow 2.5).
   //    Umgeschaltet wird zur Laufzeit ueber TSpawnedElement.FastSwim.
   if AKind = akFish then
   begin
     //                Id      Dauer                  Amp  Speed TailPow Ramp
-    AddWobble('self', AQUARIUM_LOOP_S[akFish],       1.0, 1.0,  2.5,    0.0);
-    AddWobble('fast', 0.85,                          1.4, 2.0,  3.0,    0.9);
+    AddWobble('self', AQUARIUM_LOOP_S[akFish],       1.0, 1.0,  2.0,    0.0);
+    AddWobble('fast', 0.85,                          1.4, 2.0,  2.5,    0.6);
   end
   else
     AddWobble('self', AQUARIUM_LOOP_S[AKind],        1.0, 1.0,  2.5,    0.0);
@@ -1238,6 +1302,7 @@ var
   LSpawn : TSpawnedElement;
   LPos   : TPoint3D;
   LScale : Single;
+  LVal   : TValue;
 begin
   Result := nil;
   if not Assigned(ACollectable) or not Assigned(ACollectable.Template) then
@@ -1258,6 +1323,16 @@ begin
 
   LSpawn.SetSizeScale(LScale);
   LSpawn.SetBasePosition(LPos);
+
+  // Lebenspunkte wiederherstellen (aeltere Setups ohne Wert: voll).
+  if (LSpawn.FKind = akFish)
+  and ACollectable.Parameters.TryGetValue(PARAM_HEALTH, LVal) then
+  begin
+    LSpawn.FHealth := EnsureRange(StrToFloatDef(LVal.ToString(), FISH_HEALTH_MAX,
+      TFormatSettings.Invariant), 1.0, FISH_HEALTH_MAX);
+    if LSpawn.FHealth < FISH_HEALTH_MAX then
+      LSpawn.FSatedTime := 0;
+  end;
 
   // Bewegung aufnehmen, ohne die wiederhergestellte Position zu veraendern
   // (anders als der Frozen-Setter, der Fisch/Qualle neu auf Z verteilt).
@@ -1331,6 +1406,9 @@ begin
             XFORM_SEP + FloatToStr(LPos.Z, LFmt) + XFORM_SEP +
             FloatToStr(LEl.FScale, LFmt);
     LEl.FCollectable.Parameters.AddOrSetValue(PARAM_XFORM, TValue.From<String>(LStr));
+    if LEl.FKind = akFish then
+      LEl.FCollectable.Parameters.AddOrSetValue(PARAM_HEALTH,
+        TValue.From<String>(FloatToStr(LEl.FHealth, LFmt)));
   end;
 end;
 
@@ -1407,26 +1485,72 @@ begin
     FOnSpawnedFoodPellet(Self, LFood);
 end;
 
-function TAquariumScene.NearestFood(const APos: TPoint3D; AMaxDist: Single;
-  out AFood: TFoodPellet): Boolean;
+procedure TAquariumScene.AssignFood();
+type
+  TCandidate = record
+    Score : Single;
+    Fish  : TSpawnedElement;
+    Food  : TFoodPellet;
+  end;
 var
-  i : Integer;
-  d, LBest : Single;
+  i, k : Integer;
+  LFish : TSpawnedElement;
+  LFood : TFoodPellet;
+  d : Single;
+  LCands : TList<TCandidate>;
+  LCand  : TCandidate;
+  LTaken : TList<TFoodPellet>;
 begin
-  Result := False;
-  AFood  := nil;
-  LBest  := AMaxDist;
-  for i := 0 to FFood.Count - 1 do
-  begin
-    if FFood[i].FEaten or not Assigned(FFood[i].FModel) then
-      Continue;
-    d := (FFood[i].Position - APos).Length;
-    if d < LBest then
+  for i := 0 to FItems.Count - 1 do
+    FItems[i].FFoodTarget := nil;
+  if FFood.Count = 0 then
+    Exit;
+
+  // Alle Paare (hungriger Fisch, Kapsel in Sichtweite) mit Bewertung sammeln:
+  // Abstand minus Hunger-Bonus. Kleinere Bewertung = hoeherer Vorrang.
+  LCands := TList<TCandidate>.Create();
+  LTaken := TList<TFoodPellet>.Create();
+  try
+    for i := 0 to FItems.Count - 1 do
     begin
-      LBest  := d;
-      AFood  := FFood[i];
-      Result := True;
+      LFish := FItems[i];
+      // Satte Fische (100 Lebenspunkte) lassen das Futter links liegen.
+      if (LFish.FKind <> akFish) or LFish.FDead or LFish.FFrozen
+      or not Assigned(LFish.FModel) or (LFish.FHealth >= FISH_HEALTH_MAX) then
+        Continue;
+
+      for k := 0 to FFood.Count - 1 do
+      begin
+        LFood := FFood[k];
+        if LFood.FEaten or not Assigned(LFood.FModel) then
+          Continue;
+        d := (LFood.Position - LFish.FModel.Position.Point).Length;
+        if d >= FOOD_SENSE then
+          Continue;
+        LCand.Score := d - FOOD_PRIORITY_DIST * (FISH_HEALTH_MAX - LFish.FHealth);
+        LCand.Fish  := LFish;
+        LCand.Food  := LFood;
+        LCands.Add(LCand);
+      end;
     end;
+
+    LCands.Sort(TComparer<TCandidate>.Construct(
+      function(const A, B: TCandidate): Integer
+      begin
+        Result := CompareValue(A.Score, B.Score);
+      end));
+
+    // Gierig zuteilen: bestes Paar zuerst, Fisch und Kapsel je nur einmal.
+    for LCand in LCands do
+      if not Assigned(LCand.Fish.FFoodTarget)
+      and not LTaken.Contains(LCand.Food) then
+      begin
+        LCand.Fish.FFoodTarget := LCand.Food;
+        LTaken.Add(LCand.Food);
+      end;
+  finally
+    LTaken.Free();
+    LCands.Free();
   end;
 end;
 
@@ -1503,7 +1627,8 @@ begin
   for i := 0 to FItems.Count - 1 do
   begin
     LOther := FItems[i];
-    if (LOther = AFish) or (LOther.FKind <> akFish) or not Assigned(LOther.FModel) then
+    if (LOther = AFish) or (LOther.FKind <> akFish) or LOther.FDead
+    or not Assigned(LOther.FModel) then
       Continue;
 
     LDiff := LPos - LOther.FModel.Position.Point;
@@ -1538,7 +1663,10 @@ begin
   // Futtersuche: naechste Kapsel ansteuern. Beim Jagen wird NICHT mehr gewandert,
   // sonst umkreist der Fisch die Kapsel, statt sie zu treffen. Solange er jagt,
   // schwimmt er im schnellen Modus (Schwanz betont).
-  if NearestFood(LPos, FOOD_SENSE, LFood) then
+  // Welche Kapsel ein Fisch ansteuert, legt AssignFood fest (hungrige zuerst,
+  // satte gar nicht) - so frisst ein Fisch auch nur "seine" Kapsel.
+  LFood := AFish.FFoodTarget;
+  if Assigned(LFood) and not LFood.FEaten then
   begin
     LDiff := LFood.Position - LPos;
     LDist := LDiff.Length;
@@ -1549,7 +1677,13 @@ begin
     // halbe Koerperbreite weit. Daher Fressdistanz an die Fischgroesse koppeln
     // (Modell-Breite = FBaseW * FScale), mit sinnvollem Minimum.
     if LDist < Max(0.9, 0.5 * AFish.FBaseW * AFish.FScale) + FOOD_RADIUS then
+    begin
       LFood.FEaten := True;
+      AFish.FHealth := Min(FISH_HEALTH_MAX, AFish.FHealth + FISH_FOOD_VALUE);
+      // Voll gefressen -> eine Weile satt bleiben (frisst dann nicht mehr).
+      if AFish.FHealth >= FISH_HEALTH_MAX then
+        AFish.FSatedTime := FISH_SATED_TIME;
+    end;
   end
   else
   begin
@@ -1570,11 +1704,123 @@ begin
   Result := LAcc;
 end;
 
+procedure TAquariumScene.SetTint(AFish: TSpawnedElement;
+  const AColor: TAlphaColorF; AAmount: Single);
+var
+  i : Integer;
+  LMat : TGorillaDefaultMaterialSource;
+  LSum : TAlphaColorF;
+begin
+  if not Assigned(AFish.FModel) or not Assigned(AFish.FModel.Meshes) then
+    Exit;
+  if (AAmount <= 0) and not AFish.FTinted then
+    Exit;
+
+  for i := 0 to AFish.FModel.Meshes.Count - 1 do
+  begin
+    if not (AFish.FModel.Meshes[i].MaterialSource is TGorillaDefaultMaterialSource) then
+      Continue;
+    LMat := TGorillaDefaultMaterialSource(AFish.FModel.Meshes[i].MaterialSource);
+
+    // Ohne Beleuchtung ergibt sich die Farbe aus Textur * (Ambient + Diffuse +
+    // Specular + Emissive). Die Summe liegt ueber 1, nur Diffuse zu senken
+    // wuerde daher kaum auffallen. Beim Einfaerben wird deshalb die gesamte
+    // Summe in Diffuse gelegt und von dort zur Zielfarbe ueberblendet.
+    if not AFish.FTinted then
+    begin
+      AFish.FBaseAmb  := LMat.AmbientF;
+      AFish.FBaseDif  := LMat.DiffuseF;
+      AFish.FBaseSpec := LMat.SpecularF;
+    end;
+
+    if AAmount <= 0 then
+    begin
+      LMat.AmbientF  := AFish.FBaseAmb;
+      LMat.DiffuseF  := AFish.FBaseDif;
+      LMat.SpecularF := AFish.FBaseSpec;
+    end
+    else
+    begin
+      LSum.R := Min(1, AFish.FBaseAmb.R + AFish.FBaseDif.R + AFish.FBaseSpec.R);
+      LSum.G := Min(1, AFish.FBaseAmb.G + AFish.FBaseDif.G + AFish.FBaseSpec.G);
+      LSum.B := Min(1, AFish.FBaseAmb.B + AFish.FBaseDif.B + AFish.FBaseSpec.B);
+      LMat.AmbientF  := TAlphaColorF.Create(0, 0, 0, AFish.FBaseAmb.A);
+      LMat.SpecularF := TAlphaColorF.Create(0, 0, 0, AFish.FBaseSpec.A);
+      LMat.DiffuseF  := TAlphaColorF.Create(
+        LSum.R + (AColor.R - LSum.R) * AAmount,
+        LSum.G + (AColor.G - LSum.G) * AAmount,
+        LSum.B + (AColor.B - LSum.B) * AAmount,
+        AFish.FBaseDif.A);
+    end;
+  end;
+  AFish.FTinted := AAmount > 0;
+end;
+
+procedure TAquariumScene.UpdateHealth(AFish: TSpawnedElement; ADt, ATime: Single);
+var
+  LHunger, LWave : Single;
+begin
+  // Satt: Lebenspunkte bleiben eine Weile auf dem Maximum, danach Hunger.
+  if AFish.FSatedTime > 0 then
+    AFish.FSatedTime := AFish.FSatedTime - ADt
+  else
+    AFish.FHealth := AFish.FHealth - FISH_HUNGER_RATE * ADt;
+
+  if AFish.FHealth <= 0 then
+  begin
+    // Verhungert: grau faerben, Wabbeln anhalten, bauchoben drehen.
+    AFish.FHealth := 0;
+    AFish.FDead := True;
+    AFish.FDeadTime := 0;
+    AFish.FastSwim := False;
+    AFish.FFoodTarget := nil;
+    SetTint(AFish, TINT_DEAD, 1);
+    if Assigned(AFish.FModel.AnimationManager)
+    and Assigned(AFish.FModel.AnimationManager.Current) then
+      AFish.FModel.AnimationManager.Current.StopAtCurrent();
+    AFish.FModel.RotationAngle.X := 180;
+    Exit;
+  end;
+
+  // Rechtzeitige Warnung in zwei Stufen:
+  //  - hungrig (< FISH_HEALTH_WARN): langsames Pulsieren ins blasse Gruen, das
+  //    mit sinkenden Lebenspunkten kraeftiger wird.
+  //  - kritisch (< FISH_HEALTH_CRIT): schnelles Blinken ins Dunkle - der Fisch
+  //    stirbt bald, wenn er nicht frisst.
+  if AFish.FHealth < FISH_HEALTH_CRIT then
+  begin
+    LWave := 0.5 + 0.5 * Sin(ATime * 12.0 + AFish.FPhase);
+    SetTint(AFish, TINT_CRIT, 0.25 + 0.75 * LWave);
+  end
+  else if AFish.FHealth < FISH_HEALTH_WARN then
+  begin
+    LHunger := (FISH_HEALTH_WARN - AFish.FHealth) / (FISH_HEALTH_WARN - FISH_HEALTH_CRIT);
+    LWave := 0.5 + 0.5 * Sin(ATime * 3.5 + AFish.FPhase);
+    SetTint(AFish, TINT_SICK, LWave * (0.45 + 0.55 * LHunger));
+  end
+  else
+    SetTint(AFish, TINT_SICK, 0);   // wieder satt -> Originalfarben
+end;
+
+procedure TAquariumScene.UpdateDead(AFish: TSpawnedElement; ADt: Single);
+var LPos : TPoint3D;
+begin
+  AFish.FDeadTime := AFish.FDeadTime + ADt;
+
+  // Langsam zur Oberflaeche treiben (kleineres Y = weiter oben).
+  LPos := AFish.FModel.Position.Point;
+  if LPos.Y > DEAD_FLOAT_Y then
+    LPos.Y := Max(DEAD_FLOAT_Y, LPos.Y - DEAD_FLOAT_SPEED * ADt);
+  AFish.FModel.Position.Point := LPos;
+  AFish.FVelocity := TPoint3D.Zero;
+end;
+
 procedure TAquariumScene.Animate(ATime: Single);
 var
   i  : Integer;
   dt : Single;
   LEl : TSpawnedElement;
+  LGone : TList<TSpawnedElement>;
 begin
   // Zeitschritt aus aufeinanderfolgenden Aufrufen ableiten und begrenzen,
   // damit ein Ruckler (grosses dt) die Bewegung nicht explodieren laesst.
@@ -1590,6 +1836,8 @@ begin
 
   // Futter zuerst aktualisieren (sinken/aufloesen) -> Fische sehen aktuellen Stand.
   UpdateFood(dt);
+  // Danach Kapseln zuteilen (verweist nur auf noch lebende Kapseln).
+  AssignFood();
 
   for i := 0 to FItems.Count - 1 do
   begin
@@ -1597,11 +1845,39 @@ begin
     if LEl.FFrozen or not Assigned(LEl.FModel) then
       Continue;
 
+    if LEl.FDead then
+    begin
+      UpdateDead(LEl, dt);
+      Continue;
+    end;
+
     case LEl.FKind of
-      akFish      : LEl.ApplyMotion(SteerFish(LEl), dt);
+      akFish      :
+        begin
+          LEl.ApplyMotion(SteerFish(LEl), dt);
+          UpdateHealth(LEl, dt, ATime);
+        end;
       akJellyfish : LEl.ApplyMotion(SteerJelly(LEl, dt), dt);
       // Pflanze/Koralle: keine Raumbewegung (nur gebackenes Schwingen).
     end;
+  end;
+
+  // Tote Fische nach einer Weile entfernen - erst nach der Schleife, da
+  // Remove() die Liste veraendert. Remove() wirft auch das Collectable ab.
+  LGone := nil;
+  try
+    for i := 0 to FItems.Count - 1 do
+      if FItems[i].FDead and (FItems[i].FDeadTime > DEAD_REMOVE_TIME) then
+      begin
+        if not Assigned(LGone) then
+          LGone := TList<TSpawnedElement>.Create();
+        LGone.Add(FItems[i]);
+      end;
+    if Assigned(LGone) then
+      for LEl in LGone do
+        Remove(LEl);
+  finally
+    LGone.Free();
   end;
 end;
 
