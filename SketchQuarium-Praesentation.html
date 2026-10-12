@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>SketchQuarium – Entwicklung mit Delphi + Gorilla3D</title>
+<style>
+  :root{
+    --bg0:#04141f; --bg1:#0a2a3d; --bg2:#08202e;
+    --ink:#eaf4f8; --muted:#9fc0cd; --faint:#6f92a0;
+    --teal:#35d6c8; --teal2:#22b8cf; --coral:#ff7a59; --amber:#ffc14d;
+    --panel:rgba(255,255,255,0.045);
+    --panel2:rgba(255,255,255,0.07);
+    --line:rgba(120,200,230,0.18);
+    --code-bg:#061722;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{background:#02090f;}
+  body{
+    font-family:"Segoe UI",-apple-system,system-ui,sans-serif;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  @page{ size:1280px 720px; margin:0; }
+
+  .slide{
+    position:relative;
+    width:1280px; height:720px;
+    overflow:hidden;
+    page-break-after:always;
+    background:
+      radial-gradient(1200px 700px at 78% -10%, rgba(53,214,200,0.13), transparent 60%),
+      radial-gradient(900px 600px at 10% 115%, rgba(255,122,89,0.10), transparent 55%),
+      linear-gradient(160deg, var(--bg1) 0%, var(--bg2) 55%, var(--bg0) 100%);
+    padding:54px 70px 60px;
+    display:flex; flex-direction:column;
+  }
+  .slide::after{ /* subtle caustic dots */
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background-image:radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1.6px);
+    background-size:46px 46px; opacity:.35; mix-blend-mode:overlay;
+  }
+
+  /* ---------- header ---------- */
+  .head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:26px; z-index:2;}
+  .kicker{font-size:15px; letter-spacing:.32em; text-transform:uppercase; color:var(--teal); font-weight:700;}
+  .h-title{font-size:40px; font-weight:800; line-height:1.08; margin-top:8px; letter-spacing:-.5px;}
+  .h-title .accent{color:var(--amber);}
+  .brand{font-size:14px; color:var(--faint); letter-spacing:.18em; text-transform:uppercase; white-space:nowrap;}
+  .pageno{position:absolute; right:70px; bottom:26px; font-size:13px; color:var(--faint); letter-spacing:.15em; z-index:2;}
+  .accentbar{width:64px; height:5px; border-radius:3px; background:linear-gradient(90deg,var(--teal),var(--teal2)); margin-top:14px;}
+
+  .body{flex:1; display:flex; flex-direction:column; z-index:2; min-height:0;}
+  p.lead{font-size:20px; color:var(--muted); line-height:1.5; max-width:1000px;}
+
+  /* ---------- cards / grid ---------- */
+  .grid{display:grid; gap:18px;}
+  .g2{grid-template-columns:1fr 1fr;}
+  .g3{grid-template-columns:repeat(3,1fr);}
+  .g4{grid-template-columns:repeat(4,1fr);}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    padding:20px 22px; position:relative;
+  }
+  .card h3{font-size:19px; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:10px;}
+  .card p{font-size:15.5px; color:var(--muted); line-height:1.46;}
+  .card .ic{font-size:24px; line-height:1;}
+  .tag{display:inline-block; font-size:12.5px; font-weight:700; letter-spacing:.06em; padding:4px 11px; border-radius:20px; text-transform:uppercase;}
+  .tag.design{background:rgba(53,214,200,0.16); color:var(--teal); border:1px solid rgba(53,214,200,0.35);}
+  .tag.code{background:rgba(255,122,89,0.15); color:var(--coral); border:1px solid rgba(255,122,89,0.38);}
+
+  ul.clean{list-style:none;}
+  ul.clean li{font-size:17px; color:var(--muted); line-height:1.5; padding-left:26px; position:relative; margin-bottom:11px;}
+  ul.clean li::before{content:"▸"; position:absolute; left:0; color:var(--teal); font-size:16px;}
+  ul.clean li b{color:var(--ink); font-weight:700;}
+
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:34px; flex:1; min-height:0;}
+  .colhead{font-size:16px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; margin-bottom:14px; display:flex; align-items:center; gap:10px;}
+
+  /* ---------- code ---------- */
+  pre{
+    background:var(--code-bg); border:1px solid var(--line); border-radius:14px;
+    padding:18px 20px; font-family:"Cascadia Code","Consolas",monospace;
+    font-size:14px; line-height:1.55; color:#cfe3ec; overflow:hidden;
+  }
+  .kw{color:#ff9d7a;} .ty{color:#7fd6ff;} .st{color:#b9e88f;} .cm{color:#5f818f; font-style:italic;} .fn{color:#ffd479;} .nu{color:#c39bff;}
+
+  /* ---------- flow diagram ---------- */
+  .flow{display:flex; align-items:stretch; gap:0; margin-top:6px;}
+  .step{flex:1; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 14px; text-align:center;}
+  .step .n{font-size:13px; color:var(--teal); font-weight:800; letter-spacing:.1em;}
+  .step .t{font-size:16px; font-weight:700; margin:6px 0 4px;}
+  .step .d{font-size:13px; color:var(--faint); line-height:1.35;}
+  .arrow{display:flex; align-items:center; color:var(--teal2); font-size:26px; padding:0 8px;}
+
+  /* layered stack */
+  .stack{display:flex; flex-direction:column; gap:12px;}
+  .layer{border-radius:14px; padding:16px 22px; border:1px solid var(--line); display:flex; align-items:center; gap:18px;}
+  .layer .lt{font-size:18px; font-weight:800; min-width:210px;}
+  .layer .ld{font-size:15px; color:var(--muted); line-height:1.4;}
+  .L1{background:linear-gradient(90deg, rgba(255,193,77,0.14), rgba(255,193,77,0.04));}
+  .L2{background:linear-gradient(90deg, rgba(255,122,89,0.13), rgba(255,122,89,0.03));}
+  .L3{background:linear-gradient(90deg, rgba(53,214,200,0.13), rgba(53,214,200,0.03));}
+  .L4{background:linear-gradient(90deg, rgba(120,160,200,0.13), rgba(120,160,200,0.03));}
+
+  /* title slide */
+  .title-slide{justify-content:center; align-items:flex-start; text-align:left;}
+  .title-slide .big{font-size:88px; font-weight:900; letter-spacing:-2px; line-height:1; z-index:2;}
+  .title-slide .big .a{color:var(--amber);}
+  .title-slide .sub{font-size:26px; color:var(--muted); margin-top:22px; max-width:820px; line-height:1.4; z-index:2;}
+  .fishrow{font-size:60px; margin-bottom:20px; z-index:2; letter-spacing:14px;}
+  .meta{margin-top:40px; font-size:16px; color:var(--faint); letter-spacing:.05em; z-index:2; display:flex; gap:14px; align-items:center;}
+  .chip{border:1px solid var(--line); border-radius:20px; padding:7px 16px; color:var(--ink); background:var(--panel);}
+
+  .table{width:100%; border-collapse:collapse; font-size:15.5px;}
+  .table th{text-align:left; color:var(--teal); font-size:13px; text-transform:uppercase; letter-spacing:.08em; padding:0 14px 12px; border-bottom:1px solid var(--line);}
+  .table td{padding:13px 14px; color:var(--muted); border-bottom:1px solid rgba(120,200,230,0.08); vertical-align:top;}
+  .table td b{color:var(--ink);}
+  .table td code{color:var(--amber); font-family:"Consolas",monospace; font-size:14px;}
+
+  .callout{background:rgba(255,193,77,0.10); border:1px solid rgba(255,193,77,0.34); border-left:5px solid var(--amber); border-radius:12px; padding:16px 20px; font-size:15.5px; color:#f4e6c8; line-height:1.5;}
+  .callout b{color:var(--amber);}
+  .note{font-size:14px; color:var(--faint); line-height:1.45;}
+
+  .split-legend{display:flex; gap:26px; margin-top:16px; font-size:15px; color:var(--muted);}
+  .split-legend span{display:flex; align-items:center; gap:8px;}
+  .dot{width:13px; height:13px; border-radius:50%;}
+  .dot.d{background:var(--teal);} .dot.c{background:var(--coral);}
+</style>
+</head>
+<body>
+
+<!-- ============ SLIDE 1 — TITLE ============ -->
+<section class="slide title-slide">
+  <div class="fishrow">🐟&nbsp; 🪼 &nbsp;🌿&nbsp; 🪸</div>
+  <div class="big">Sketch<span class="a">Quarium</span></div>
+  <div class="sub">Ein selbst gezeichnetes, lebendiges 3D-Aquarium – entwickelt mit
+    <b style="color:#eaf4f8">Delphi&nbsp;/&nbsp;FireMonkey</b> und der
+    <b style="color:#eaf4f8">Gorilla3D</b>-Engine.</div>
+  <div class="meta">
+    <span class="chip">Seminar-Vortrag</span>
+    <span>Vom großen Ganzen bis ins Detail — Entwurfszeit &amp; Code</span>
+  </div>
+  <div class="pageno">gorilla3d.de</div>
+</section>
+
+<!-- ============ SLIDE 2 — WHAT IS IT ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Die Idee</div>
+      <div class="h-title">Was ist <span class="accent">SketchQuarium</span>?</div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">01 · Überblick</div>
+  </div>
+  <div class="body">
+    <p class="lead" style="margin-bottom:26px;">Man <b style="color:#eaf4f8">zeichnet</b> ein Aquariumstier,
+      <b style="color:#eaf4f8">platziert</b> es per Maus in einer echten 3D-Unterwasserwelt – und es
+      <b style="color:#eaf4f8">lebt</b>: schwimmt, wabbelt, bildet Schwärme und lässt sich füttern.</p>
+    <div class="flow">
+      <div class="step"><div class="n">SCHRITT 1</div><div class="t">🎨 Zeichnen</div><div class="d">Fisch, Qualle, Pflanze oder Koralle im 2D-Editor malen</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">SCHRITT 2</div><div class="t">🧊 Materialisieren</div><div class="d">Zeichnung wird zu einem texturierten 3D-Mesh</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">SCHRITT 3</div><div class="t">🖱️ Platzieren</div><div class="d">Vorschau folgt der Maus, Klick setzt die Instanz</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">SCHRITT 4</div><div class="t">🌊 Leben</div><div class="d">Eigen­animation, Schwarm­verhalten &amp; Fütterung</div></div>
+    </div>
+    <div class="grid g3" style="margin-top:30px;">
+      <div class="card"><h3><span class="ic">🧩</span>Fertige Bausteine</h3><p>Wasser, Kaustik, Physik, Blasen, Sound – vieles kommt aus Gorilla3D-Komponenten, ganz ohne Code.</p></div>
+      <div class="card"><h3><span class="ic">✍️</span>Eigener Inhalt</h3><p>Der kreative Kern – Zeichnung → Mesh → Animation → Verhalten – ist programmiert.</p></div>
+      <div class="card"><h3><span class="ic">💾</span>Persistenz</h3><p>Vorlagen &amp; ganze Aquarien werden als XML + PNG gespeichert und wieder geladen.</p></div>
+    </div>
+  </div>
+  <div class="pageno">02</div>
+</section>
+
+<!-- ============ SLIDE 3 — ARCHITECTURE BIG PICTURE ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Das große Ganze</div>
+      <div class="h-title">Architektur in <span class="accent">vier Schichten</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">02 · Architektur</div>
+  </div>
+  <div class="body">
+    <div class="stack" style="margin-top:6px;">
+      <div class="layer L1"><div class="lt">🪟 FMX-Formular</div><div class="ld"><b>Unit1</b> — hält die 3D-Szene, die 2D-Bedienleiste und verdrahtet alle Teile. Der „Klebstoff“ der Anwendung.</div></div>
+      <div class="layer L2"><div class="lt">🧠 Anwendungslogik</div><div class="ld"><b>Aquarium.*-Units</b> — Elemente &amp; Szene, Zeichen-Editor, Platzierungsmodus, Inventar-Katalog. Der programmierte Eigenanteil.</div></div>
+      <div class="layer L3"><div class="lt">🦍 Gorilla3D-Engine</div><div class="ld">Viewport, Modelle, Materialien, Render-Pässe, Physik, Partikel, Audio, Inventory-Framework — als Komponenten &amp; Klassen.</div></div>
+      <div class="layer L4"><div class="lt">⚙️ FireMonkey / RTL</div><div class="ld">Plattform-Grundlage: Fenster, 2D-Grafik (TBitmap/Skia), Timer, Dateisystem, Mathematik (Vektoren).</div></div>
+    </div>
+    <div class="callout" style="margin-top:26px;">
+      <b>Roter Faden des Vortrags:</b> Zuerst schauen wir, wie viel man in der IDE <b>zur Entwurfszeit ohne Code</b>
+      zusammenklickt (Schicht 3&nbsp;+&nbsp;1). Danach steigen wir in den <b>programmierten Kern</b> (Schicht 2) hinab –
+      Detail für Detail.
+    </div>
+  </div>
+  <div class="pageno">03</div>
+</section>
+
+<!-- ============ SLIDE 4 — TWO WORLDS ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Leitprinzip</div>
+      <div class="h-title">Zwei Welten: <span class="accent">Entwurfszeit</span> &amp; Laufzeit</div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">03 · Prinzip</div>
+  </div>
+  <div class="body">
+    <div class="two">
+      <div>
+        <div class="colhead" style="color:var(--teal)"><span class="tag design">Entwurfszeit</span></div>
+        <ul class="clean">
+          <li>Komponenten aus der <b>Tool-Palette</b> auf Formular/Viewport ziehen</li>
+          <li>Eigenschaften im <b>Objektinspektor</b> setzen (Position, Farbe, Textur, Pässe)</li>
+          <li>Sofortige <b>visuelle Vorschau</b> der 3D-Szene in der IDE</li>
+          <li>Ergebnis liegt in der <b>.fmx</b>-Datei (Formularbeschreibung)</li>
+          <li>Ideal für die <b>statische Bühne</b>: Wände, Wasser, Licht, Effekte</li>
+        </ul>
+      </div>
+      <div>
+        <div class="colhead" style="color:var(--coral)"><span class="tag code">Laufzeit / Code</span></div>
+        <ul class="clean">
+          <li>Alles <b>Dynamische &amp; Datenabhängige</b>: aus einer Zeichnung ein Mesh bauen</li>
+          <li>Objekte zur Laufzeit <b>erzeugen, animieren, entfernen</b></li>
+          <li><b>Verhalten</b>: Schwimmen, Schwarm, Fütterung, Persistenz</li>
+          <li>Reaktion auf <b>Maus- &amp; Timer-Ereignisse</b></li>
+          <li>Liegt in den <b>.pas</b>-Units</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:8px;">
+      <b>Faustregel:</b> Was zur Entwurfszeit <i>feststeht</i>, wird geklickt. Was erst <i>durch Benutzer­eingabe
+      oder pro Frame entsteht</i>, wird programmiert.
+    </div>
+  </div>
+  <div class="pageno">04</div>
+</section>
+
+<!-- ============ SLIDE 5 — DESIGN-TIME: THE STAGE ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Entwurfszeit · Teil 1 &nbsp;<span class="tag design" style="vertical-align:middle">ohne Code</span></div>
+      <div class="h-title">Die Bühne <span class="accent">zusammenklicken</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">05 · Szene</div>
+  </div>
+  <div class="body">
+    <p class="lead" style="margin-bottom:20px;">Das komplette Grundbecken entsteht im Formular-Designer – jede Zeile hier ist eine Komponente aus der <b style="color:#eaf4f8">.fmx</b>.</p>
+    <div class="grid g3">
+      <div class="card"><h3><span class="ic">🎥</span>TGorillaViewport</h3><p>Das 3D-Fenster mit Design-Kamera. Wurzel aller 3D-Objekte.</p></div>
+      <div class="card"><h3><span class="ic">💡</span>TGorillaLight</h3><p>Lichtquelle der Szene – erzeugt auch die Schatten.</p></div>
+      <div class="card"><h3><span class="ic">🧊</span>TGorillaGroup + TGorillaCube</h3><p>Die vier Glaswände als gruppierte Würfel (<code style="color:var(--amber)">AquariumWalls</code>).</p></div>
+      <div class="card"><h3><span class="ic">💧</span>TGorillaPlane</h3><p><code style="color:var(--amber)">WaterSurface</code> – die Wasseroberfläche.</p></div>
+      <div class="card"><h3><span class="ic">🏔️</span>TGorillaTerrain</h3><p><code style="color:var(--amber)">Ground</code> – der Beckenboden mit Höhenrelief.</p></div>
+      <div class="card"><h3><span class="ic">🌅</span>TGorillaHemisphere</h3><p>Himmels-/Umgebungskuppel als Hintergrund.</p></div>
+      <div class="card"><h3><span class="ic">🪨</span>TGorillaModel · Rock</h3><p>Geladenes 3D-Stein­modell, statisch platziert.</p></div>
+      <div class="card"><h3><span class="ic">🐙</span>TGorillaModel · Octopus</h3><p>Fertig animiertes Modell – Animation per Klick gestartet.</p></div>
+      <div class="card"><h3><span class="ic">📦</span>TGorillaAssetsManager</h3><p>Lädt die eingebetteten Modell-Ressourcen (<code style="color:var(--amber)">package.zip</code>).</p></div>
+    </div>
+    <p class="note" style="margin-top:18px;">→ Position, Größe, Material und Texturen all dieser Objekte werden rein im <b>Objektinspektor</b> gesetzt – kein einziger <code style="color:var(--amber)">Create</code>-Aufruf.</p>
+  </div>
+  <div class="pageno">05</div>
+</section>
+
+<!-- ============ SLIDE 6 — DESIGN-TIME: EFFECTS ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Entwurfszeit · Teil 2 &nbsp;<span class="tag design" style="vertical-align:middle">ohne Code</span></div>
+      <div class="h-title">Effekte &amp; Pässe – <span class="accent">Wasser wird echt</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">06 · Effekte</div>
+  </div>
+  <div class="body">
+    <p class="lead" style="margin-bottom:20px;">Das Beeindruckendste ist reine Komposition: man legt Render-Pässe und Verhaltens-Komponenten daneben und verknüpft sie per Eigenschaft.</p>
+    <div class="grid g4" style="gap:16px;">
+      <div class="card"><h3><span class="ic">🌊</span>WaterMaterial</h3><p><code style="color:var(--amber)">TGorillaWaterMaterialSource</code> auf der Oberfläche.</p></div>
+      <div class="card"><h3><span class="ic">🪞</span>Reflection</h3><p><code style="color:var(--amber)">RenderPassReflection</code> – Spiegelung.</p></div>
+      <div class="card"><h3><span class="ic">🔬</span>Refraction</h3><p><code style="color:var(--amber)">RenderPassRefraction</code> – Lichtbrechung.</p></div>
+      <div class="card"><h3><span class="ic">🌫️</span>Underwater</h3><p><code style="color:var(--amber)">RenderPassUnderwater</code> – Tiefen-Trübung.</p></div>
+      <div class="card"><h3><span class="ic">✨</span>Caustics</h3><p><code style="color:var(--amber)">MaterialCausticsBehaviour</code> – tanzendes Licht am Boden.</p></div>
+      <div class="card"><h3><span class="ic">🫧</span>ParticleEmitter</h3><p><code style="color:var(--amber)">BubbleEmitter</code> – aufsteigende Luftblasen.</p></div>
+      <div class="card"><h3><span class="ic">🧲</span>PhysicsSystem</h3><p><code style="color:var(--amber)">TGorillaPhysicsSystem</code> (Jolt) – Kollision.</p></div>
+      <div class="card"><h3><span class="ic">🔊</span>Audio</h3><p><code style="color:var(--amber)">FMODAudioManager</code> + <code style="color:var(--amber)">AudioPlaylist</code> – Musik &amp; Effekte.</p></div>
+    </div>
+    <div class="callout" style="margin-top:22px;">
+      <b>Kernbotschaft:</b> Diese ganze Optik – gebrochenes, gespiegeltes Wasser mit Kaustik, Blasen und
+      Physik – entsteht ohne eine Zeile Grafikcode. Man <b>komponiert</b> Gorilla-Komponenten.
+    </div>
+  </div>
+  <div class="pageno">06</div>
+</section>
+
+<!-- ============ SLIDE 7 — DESIGN-TIME: 2D UI ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Entwurfszeit · Teil 3 &nbsp;<span class="tag design" style="vertical-align:middle">ohne Code</span></div>
+      <div class="h-title">Die 2D-<span class="accent">Bedienoberfläche</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">07 · UI</div>
+  </div>
+  <div class="body">
+    <div class="two">
+      <div>
+        <div class="colhead">Layout im Designer</div>
+        <ul class="clean">
+          <li><b>ToolsArea</b> – die linke Werkzeugleiste (TRectangle als Container)</li>
+          <li>Fünf Knöpfe: <b>✎ Zeichnen · ● Füttern · ☰ Inventar · 💾 Speichern · 📂 Laden</b></li>
+          <li><b>PopupArea</b> – Fläche, in die der Zeichen-Editor eingehängt wird</li>
+          <li><b>InventoryArea</b> – Fläche für den Vorlagen-Katalog</li>
+          <li>2D-UI liegt <b>über</b> dem Viewport – FMX mischt 2D &amp; 3D nahtlos</li>
+        </ul>
+      </div>
+      <div>
+        <div class="colhead">Sichtbares Ergebnis</div>
+        <div style="background:var(--code-bg); border:1px solid var(--line); border-radius:16px; padding:20px; height:100%; display:flex; gap:18px;">
+          <div style="display:flex; flex-direction:column; gap:12px; align-items:center;">
+            <div style="width:58px;height:58px;border-radius:12px;background:rgba(53,214,200,0.18);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:26px;">✎</div>
+            <div style="width:58px;height:58px;border-radius:12px;background:rgba(255,193,77,0.18);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:26px;">●</div>
+            <div style="width:58px;height:58px;border-radius:12px;background:rgba(120,160,200,0.16);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:26px;">☰</div>
+            <div style="width:58px;height:58px;border-radius:12px;background:rgba(120,160,200,0.16);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:24px;">💾</div>
+            <div style="width:58px;height:58px;border-radius:12px;background:rgba(120,160,200,0.16);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:24px;">📂</div>
+          </div>
+          <div style="flex:1; border-radius:12px; background:linear-gradient(160deg, rgba(53,214,200,0.10), rgba(4,20,31,0.4)); border:1px dashed var(--line); display:flex; align-items:center; justify-content:center; color:var(--faint); font-size:15px; text-align:center; line-height:1.5;">
+            3D-Viewport<br>(Aquarium)<br><span style="font-size:34px;">🐟 🪼</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px;">→ Das <i>Aussehen</i> der Buttons ist geklickt; ihre <code style="color:var(--amber)">OnClick</code>-<i>Reaktion</i> ist Code (nächste Kapitel).</p>
+  </div>
+  <div class="pageno">07</div>
+</section>
+
+<!-- ============ SLIDE 8 — TRANSITION TO CODE ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Übergang</div>
+      <div class="h-title">Wo <span class="accent">Code</span> unverzichtbar wird</div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">08 · Code-Grenze</div>
+  </div>
+  <div class="body">
+    <p class="lead" style="margin-bottom:24px;">Alles bisher war statisch. Der eigentliche Reiz von SketchQuarium ist <b style="color:#eaf4f8">nutzergeneriert</b> – und das kann kein Designer vorwegnehmen.</p>
+    <div class="grid g2">
+      <div class="card"><h3><span class="ic">🎨→🧊</span>Zeichnung → 3D-Objekt</h3><p>Das Mesh existiert erst, wenn der Benutzer gemalt hat. Es muss <b>zur Laufzeit</b> aus einem Bitmap gebaut werden.</p></div>
+      <div class="card"><h3><span class="ic">♾️</span>Beliebig viele Instanzen</h3><p>Man weiß nicht, wie viele Fische es geben wird – Objekte werden <b>dynamisch erzeugt &amp; freigegeben</b>.</p></div>
+      <div class="card"><h3><span class="ic">🌊</span>Lebendiges Verhalten</h3><p>Schwimmen, Wabbeln, Schwarm, Füttern – berechnet <b>Frame für Frame</b>.</p></div>
+      <div class="card"><h3><span class="ic">💾</span>Speichern &amp; Laden</h3><p>Zustand des Aquariums muss <b>serialisiert</b> und wiederhergestellt werden.</p></div>
+    </div>
+    <div class="callout" style="margin-top:24px;">
+      Ab hier verlassen wir den Objektinspektor und schauen in die <b>.pas</b>-Units – vom Aufbau der Units bis hinunter zu Mesh, Animation und Schwarmlogik.
+    </div>
+  </div>
+  <div class="pageno">08</div>
+</section>
+
+<!-- ============ SLIDE 9 — CODE ARCHITECTURE / UNITS ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Code · Überblick &nbsp;<span class="tag code" style="vertical-align:middle">programmiert</span></div>
+      <div class="h-title">Die Units &amp; ihre <span class="accent">Verantwortung</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">09 · Units</div>
+  </div>
+  <div class="body">
+    <table class="table">
+      <thead><tr><th style="width:230px;">Unit</th><th>Verantwortung</th></tr></thead>
+      <tbody>
+        <tr><td><b>Unit1</b><br><code>.pas / .fmx</code></td><td>Hauptformular. Erzeugt &amp; verdrahtet alle Teile, hält den <b>Animations-Timer</b>, behandelt die Button-Klicks und den Fütter-Modus.</td></tr>
+        <tr><td><b>Aquarium.Elements</b></td><td>Herzstück. <code>TAquariumScene</code> (baut Meshes, treibt Animation &amp; Schwarm), <code>TSpawnedElement</code> (eine Instanz), <code>TAquariumLibrary</code> (Vorlagen &amp; Persistenz).</td></tr>
+        <tr><td><b>Aquarium.EditorFrame</b></td><td>Der Zeichen-Editor als Frame: Zeichenfläche, SVG-Schablonen, Farb-/Pinselwahl, Speichern der Vorlage.</td></tr>
+        <tr><td><b>Aquarium.Placement</b></td><td>Der Platzierungsmodus: Vorschau folgt der Maus, Raycast auf Auflageflächen, Klick platziert, Mausrad skaliert.</td></tr>
+        <tr><td><b>Aquarium.InventoryUI</b></td><td>Der Vorlagen-Katalog: rendert alle Zeichnungen als Kacheln (Erweiterung des Gorilla-Inventory-Frames).</td></tr>
+      </tbody>
+    </table>
+    <p class="note" style="margin-top:18px;">→ Klare Trennung: <b>Was</b> (Elements) · <b>Zeichnen</b> (Editor) · <b>Platzieren</b> (Placement) · <b>Auswählen</b> (InventoryUI) · <b>Verdrahten</b> (Unit1).</p>
+  </div>
+  <div class="pageno">09</div>
+</section>
+
+<!-- ============ SLIDE 10 — DETAIL: DRAWING TO MESH ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Detail 1 &nbsp;<span class="tag code" style="vertical-align:middle">programmiert</span></div>
+      <div class="h-title">Vom Strich zum <span class="accent">Mesh</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">10 · Pipeline</div>
+  </div>
+  <div class="body">
+    <div class="flow" style="margin-bottom:22px;">
+      <div class="step"><div class="n">EDITOR</div><div class="t">TBitmap</div><div class="d">Zeichnung mit Alpha-Kanal</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">BuildModelDef</div><div class="t">TModelDef</div><div class="d">Mesh + Material + Animation</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">LoadNewModelFromDef</div><div class="t">TGorillaModel</div><div class="d">materialisierte Instanz</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">SCENE</div><div class="t">TSpawnedElement</div><div class="d">lebt &amp; schwimmt</div></div>
+    </div>
+    <p class="lead" style="margin-bottom:14px;">Der <b style="color:#eaf4f8">CustomMesh-Ansatz</b> von Gorilla3D: Geometrie, Material und Animation werden als <b style="color:#eaf4f8">Definition</b> (<code style="color:var(--amber)">TModelDef</code>) beschrieben und daraus eine Instanz erzeugt.</p>
+    <pre><span class="cm">// Aquarium.Elements — BuildModelDef: ein unterteiltes Quad als Geometrie</span>
+LData := <span class="ty">TMeshData</span>.<span class="fn">Create</span>();
+LData.VertexBuffer.Length := (N+<span class="nu">1</span>)*(N+<span class="nu">1</span>);           <span class="cm">// N = 24 Unterteilungen</span>
+<span class="kw">for</span> Y := <span class="nu">0</span> <span class="kw">to</span> N <span class="kw">do</span> <span class="kw">for</span> X := <span class="nu">0</span> <span class="kw">to</span> N <span class="kw">do</span>
+<span class="kw">begin</span>
+  LData.VertexBuffer.Vertices[idx]  := <span class="fn">Point3D</span>(-<span class="nu">0.5</span>+X/N, -<span class="nu">0.5</span>+Y/N, <span class="nu">0</span>);  <span class="cm">// flaches Gitter</span>
+  LData.VertexBuffer.TexCoord0[idx] := <span class="fn">PointF</span>(X/N, Y/N);          <span class="cm">// UVs für die Textur</span>
+<span class="kw">end</span>;
+LMesh.<span class="fn">ApplyFromMeshData</span>(LData);</pre>
+  </div>
+  <div class="pageno">10</div>
+</section>
+
+<!-- ============ SLIDE 11 — DETAIL: SPRITE MATERIAL ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Detail 2 &nbsp;<span class="tag code" style="vertical-align:middle">programmiert</span></div>
+      <div class="h-title">Das <span class="accent">Sprite-Material</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">11 · Material</div>
+  </div>
+  <div class="body">
+    <div class="two">
+      <div>
+        <div class="colhead">Ziel: Zeichnung als „Sticker“</div>
+        <ul class="clean">
+          <li><b>Unbeleuchtet</b> – die gemalten Farben bleiben original</li>
+          <li><b>Beidseitig</b> sichtbar (Fisch dreht um)</li>
+          <li><b>Alpha-Cutout</b>: transparente Malbereiche bleiben durchsichtig</li>
+          <li>Textur kommt aus dem <b>gezeichneten Bitmap</b> zur Laufzeit</li>
+        </ul>
+        <div class="callout" style="margin-top:20px;">
+          <b>Stolperfalle „schwarzer Fisch“:</b> Gorilla erzwingt intern Beleuchtung – beim Umdrehen wurde der Fisch schwarz.
+          Lösung: nach dem Materialisieren das Licht am Material <b>rekursiv abschalten</b> (<code style="color:var(--amber)">DisableLighting</code>).
+        </div>
+      </div>
+      <div>
+        <pre><span class="cm">// Material wie ein Sprite konfigurieren</span>
+LMat := <span class="ty">TMaterialDef</span>.<span class="fn">Create</span>(Result, <span class="st">'mat'</span>);
+LMat.Kind          := mkBlinnPhong;
+LMat.UseTexturing  := <span class="kw">True</span>;
+LMat.UseLighting   := <span class="kw">False</span>;   <span class="cm">// echte Farben</span>
+LMat.UseSpecular   := <span class="kw">False</span>;
+LMat.DoubleSided   := <span class="kw">True</span>;    <span class="cm">// beidseitig</span>
+LMat.UseAlphaCutoff := <span class="kw">True</span>;
+LMat.AlphaCutoff    := <span class="nu">0.1</span>;     <span class="cm">// harte Silhouette</span>
+
+<span class="cm">// gezeichnetes Bitmap als Textur (wird geklont)</span>
+LAsset := <span class="ty">TGorillaTextureAsset</span>.<span class="fn">Create</span>(<span class="kw">nil</span>);
+LAsset.<span class="fn">ImportFromCachedBitmap</span>(<span class="st">'drawing.png'</span>, ABitmap);
+LMat.<span class="fn">AddTexture</span>(<span class="ty">TColorChannelDef</span>.Diffuse, LAsset, <span class="kw">True</span>);
+LMesh.<span class="fn">SetMaterialReference</span>(LMat);</pre>
+      </div>
+    </div>
+  </div>
+  <div class="pageno">11</div>
+</section>
+
+<!-- ============ SLIDE 12 — DETAIL: TWO ANIMATION LAYERS ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Detail 3 &nbsp;<span class="tag code" style="vertical-align:middle">programmiert</span></div>
+      <div class="h-title">Animation auf <span class="accent">zwei Ebenen</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">12 · Animation</div>
+  </div>
+  <div class="body">
+    <div class="two">
+      <div>
+        <div class="colhead" style="color:var(--teal)">① Eigen-Animation (Wabbeln)</div>
+        <ul class="clean">
+          <li><b>Gebackene Vertex-Animation</b> im ModelDef</li>
+          <li>Über eine Loop-Periode werden Keyframes <b>vorberechnet</b> (<code style="color:var(--amber)">DeformedVertex</code>)</li>
+          <li>Fisch: Wanderwelle mit betonter <b>Schwanzflosse</b></li>
+          <li>Zwei Loops: <b>self</b> (ruhig) &amp; <b>fast</b> (Jagd)</li>
+          <li>Die <b>Engine</b> spielt sie ab – GPU-nah</li>
+        </ul>
+      </div>
+      <div>
+        <div class="colhead" style="color:var(--coral)">② Raum-Bewegung (Schwimmen)</div>
+        <ul class="clean">
+          <li><b>Im Code pro Frame</b> integriert (Geschwindigkeit)</li>
+          <li>Entkoppelt vom Wabbeln → gezielt <b>steuerbar</b></li>
+          <li>Richtet die <b>Blickrichtung</b> nach der Bewegung aus</li>
+          <li>Grundlage für Schwarm &amp; Futter-Jagd</li>
+        </ul>
+        <div class="callout" style="margin-top:14px;">
+          <b>Lektion:</b> Das treibende <code style="color:var(--amber)">Skeleton.Loop := True</code> nicht vergessen – sonst läuft der Wabbel-Loop nur <i>einmal</i>.
+        </div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:6px;">→ Trennung von <b>Form-Deformation</b> und <b>Ortsbewegung</b> hält die Logik sauber und flexibel.</p>
+  </div>
+  <div class="pageno">12</div>
+</section>
+
+<!-- ============ SLIDE 13 — DETAIL: BOIDS ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Detail 4 &nbsp;<span class="tag code" style="vertical-align:middle">programmiert</span></div>
+      <div class="h-title">Leben in der Szene: <span class="accent">Schwarm &amp; Futter</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">13 · Verhalten</div>
+  </div>
+  <div class="body">
+    <p class="lead" style="margin-bottom:18px;">In <code style="color:var(--amber)">TAquariumScene.SteerFish</code> steckt ein klassisches <b style="color:#eaf4f8">Boids</b>-Modell – drei einfache Regeln erzeugen glaubwürdiges Schwarmverhalten.</p>
+    <div class="grid g3" style="margin-bottom:20px;">
+      <div class="card"><h3><span class="ic">↔️</span>Separation</h3><p>Abstand halten – Kraft ∝ 1/d² zu <b>allen</b> Fischen.</p></div>
+      <div class="card"><h3><span class="ic">🧭</span>Alignment</h3><p>Richtung angleichen – nur an <b>gleiche Art</b> (Species-ID).</p></div>
+      <div class="card"><h3><span class="ic">🎯</span>Cohesion</h3><p>Zum Schwarm-Mittel ziehen – ebenfalls artgleich.</p></div>
+    </div>
+    <div class="grid g2">
+      <div class="card"><h3><span class="ic">🍤</span>Futter-Jagd</h3><p><code style="color:var(--amber)">DropFood</code> wirft eine sinkende Kugel; Fische steuern das nächste Pellet an (<code style="color:var(--amber)">NearestFood</code>), schalten auf <b>fast</b> und fressen es.</p></div>
+      <div class="card"><h3><span class="ic">🪼</span>Quallen &amp; Grenzen</h3><p><code style="color:var(--amber)">SteerJelly</code>: sanftes 3D-Wandern + vertikales Bob. Alle bleiben in den <b>Tank-Grenzen</b> (Abprall).</p></div>
+    </div>
+  </div>
+  <div class="pageno">13</div>
+</section>
+
+<!-- ============ SLIDE 14 — DETAIL: INVENTORY & PERSISTENCE ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Detail 5 &nbsp;<span class="tag code" style="vertical-align:middle">programmiert</span></div>
+      <div class="h-title">Inventar &amp; <span class="accent">Persistenz</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">14 · Daten</div>
+  </div>
+  <div class="body">
+    <div class="two">
+      <div>
+        <div class="colhead">Das Gorilla-Inventory-Modell</div>
+        <ul class="clean">
+          <li><b>Vorlage</b> = <code style="color:var(--amber)">InventoryItemTemplate</code> (die Zeichnung), gruppiert je Art</li>
+          <li><b>Instanz</b> = <code style="color:var(--amber)">InventoryCollectable</code> (ein platzierter Fisch)</li>
+          <li>Textur hängt als <b>TBitmap</b> am Template + als PNG auf Platte</li>
+          <li><code style="color:var(--amber)">TAquariumLibrary</code> ist eine dünne Fassade darüber</li>
+        </ul>
+      </div>
+      <div>
+        <div class="colhead">Speichern &amp; Laden</div>
+        <ul class="clean">
+          <li>Transform jeder Instanz wird in <b>Collectable-Parameter</b> geschrieben</li>
+          <li><code style="color:var(--amber)">SaveToFile</code> → <b>XML</b> (Vorlagen + Gruppen + Instanzen) + PNGs</li>
+          <li>Laden: Szene leeren → XML laden → <code style="color:var(--amber)">RestoreFromInventory</code> baut jedes Modell neu</li>
+        </ul>
+      </div>
+    </div>
+    <pre style="margin-top:6px;"><span class="cm">// Aquarium speichern (Unit1.SaveButtonClick)</span>
+FScene.<span class="fn">SyncCollectables</span>();              <span class="cm">// Position/Größe → Instanz sichern</span>
+FLibrary.<span class="fn">SaveSetupToFile</span>(LDlg.FileName); <span class="cm">// XML + PNG schreiben</span>
+
+<span class="cm">// … und wiederherstellen</span>
+FScene.<span class="fn">ClearScene</span>();
+FLibrary.<span class="fn">LoadSetupFromFile</span>(LDlg.FileName);
+FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
+  </div>
+  <div class="pageno">14</div>
+</section>
+
+<!-- ============ SLIDE 15 — THE LOOP ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Der Herzschlag &nbsp;<span class="tag code" style="vertical-align:middle">programmiert</span></div>
+      <div class="h-title">Der <span class="accent">Animations-Loop</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">15 · Loop</div>
+  </div>
+  <div class="body">
+    <p class="lead" style="margin-bottom:20px;">Ein <b style="color:#eaf4f8">TTimer</b> (~60&nbsp;fps) ist der Taktgeber, der die ganze Szene lebendig hält.</p>
+    <div class="flow" style="margin-bottom:24px;">
+      <div class="step"><div class="n">~16 ms</div><div class="t">⏱️ TTimer</div><div class="d">FAnimTimer.OnTimer</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">TICK</div><div class="t">Scene.Animate(t)</div><div class="d">Boids · Bewegung · Futter</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">GPU</div><div class="t">Viewport.Invalidate</div><div class="d">Neuzeichnen anfordern</div></div>
+      <div class="arrow">↺</div>
+      <div class="step"><div class="n">RENDER</div><div class="t">Gorilla3D</div><div class="d">Wabbeln, Wasser, Pässe</div></div>
+    </div>
+    <pre><span class="cm">// Unit1 — die zentrale Schleife</span>
+<span class="kw">procedure</span> <span class="ty">TForm1</span>.<span class="fn">AnimTimerTick</span>(Sender: <span class="ty">TObject</span>);
+<span class="kw">begin</span>
+  FScene.<span class="fn">Animate</span>(FClock.Elapsed.TotalSeconds);  <span class="cm">// Verhalten pro Frame</span>
+  GorillaViewport1.<span class="fn">Invalidate</span>();                 <span class="cm">// Bild anfordern</span>
+<span class="kw">end</span>;</pre>
+    <p class="note" style="margin-top:16px;">→ <code style="color:var(--amber)">Animate</code> leitet aus der Uhr das <b>dt</b> ab und integriert die Bewegung – zeitrichtig, unabhängig von der Framerate.</p>
+  </div>
+  <div class="pageno">15</div>
+</section>
+
+<!-- ============ SLIDE 16 — LESSONS LEARNED ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Aus der Praxis</div>
+      <div class="h-title">Lektionen &amp; <span class="accent">Best Practices</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">16 · Lessons</div>
+  </div>
+  <div class="body">
+    <div class="grid g2">
+      <div class="card"><h3><span class="ic">🧩</span>Entwurfszeit zuerst</h3><p>So viel wie möglich als Komponente komponieren. Code nur für das Dynamische – das spart enorm viel Aufwand.</p></div>
+      <div class="card"><h3><span class="ic">🔑</span>Def-Eigentum verstehen</h3><p>Das Modell <b>besitzt</b> sein <code style="color:var(--amber)">TModelDef</code> und gibt es frei. Nicht teilen/cachen &amp; selbst freigeben → sonst Access Violation.</p></div>
+      <div class="card"><h3><span class="ic">💡</span>UseLighting-Falle</h3><p>Gorilla erzwingt Beleuchtung intern – für den Sprite-Look das Licht <b>nach</b> dem Materialisieren abschalten.</p></div>
+      <div class="card"><h3><span class="ic">🔁</span>Skeleton.Loop</h3><p><code style="color:var(--amber)">Current.Start</code> allein loopt nicht – das treibende Skeleton braucht <code style="color:var(--amber)">Loop := True</code>.</p></div>
+      <div class="card"><h3><span class="ic">🧭</span>Verantwortungen trennen</h3><p>Zeichnen, Platzieren, Szene, Katalog jeweils in eigene Units – Unit1 bleibt schlanker „Klebstoff“.</p></div>
+      <div class="card"><h3><span class="ic">🧵</span>Ein Timer, ein dt</h3><p>Zeit­basiert integrieren statt pro Frame – gleiches Verhalten bei jeder Framerate.</p></div>
+    </div>
+  </div>
+  <div class="pageno">16</div>
+</section>
+
+<!-- ============ SLIDE 17 — SUMMARY ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Zusammenfassung</div>
+      <div class="h-title">Was <span class="accent">mitzunehmen</span> ist</div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">17 · Fazit</div>
+  </div>
+  <div class="body">
+    <ul class="clean" style="font-size:20px; margin-top:4px;">
+      <li><b>Delphi + Gorilla3D</b> verbindet visuelles Komponieren mit voller Code-Kontrolle – ideal für 3D-Apps mit Anspruch.</li>
+      <li>Die <b>statische Bühne</b> (Wasser, Kaustik, Physik, Blasen, Sound) entsteht fast vollständig <b style="color:var(--teal)">zur Entwurfszeit ohne Code</b>.</li>
+      <li>Der <b>kreative, dynamische Kern</b> – Zeichnung → Mesh → Animation → Schwarm → Persistenz – ist <b style="color:var(--coral)">sauber gekapselter Code</b>.</li>
+      <li>Der <b>CustomMesh/ModelDef-Ansatz</b> ist der Schlüssel, um Nutzerinhalte zur Laufzeit in echte 3D-Objekte zu verwandeln.</li>
+      <li>Zwei getrennte Animationsebenen + ein zeitbasierter Loop machen die Welt <b>lebendig und steuerbar</b>.</li>
+    </ul>
+    <div class="split-legend" style="margin-top:34px;">
+      <span><span class="dot d"></span> Entwurfszeit — komponiert</span>
+      <span><span class="dot c"></span> Laufzeit — programmiert</span>
+    </div>
+    <div style="margin-top:34px; font-size:30px; font-weight:800; letter-spacing:-.5px;">
+      🐟 &nbsp;Vielen Dank – Fragen? &nbsp;🪼
+    </div>
+    <p class="note" style="margin-top:14px;">SketchQuarium · Delphi / FireMonkey · Gorilla3D — gorilla3d.de</p>
+  </div>
+  <div class="pageno">17</div>
+</section>
+
+</body>
+</html>
