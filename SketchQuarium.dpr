@@ -12,6 +12,8 @@ uses
 {$R *.res}
 
 begin
+  TGorillaSystem.ForceToUseNVIDIAorAMDGPU();
+
 {$IF Defined(MSWINDOWS) AND Defined(CPUX64)}
   Gorilla.Context.Backend.GorillaGraphicsBackend := TGorillaGraphicsBackend.gbVulkan;
 {$ENDIF}
