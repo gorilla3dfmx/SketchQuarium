@@ -154,6 +154,20 @@
   .porthole .win .dots{position:absolute; inset:0; mix-blend-mode:screen; opacity:.5;
     background-image:radial-gradient(rgba(180,240,255,0.35) 1.2px, transparent 2px); background-size:38px 38px;}
   .bubble{position:absolute; border-radius:50%; border:1.5px solid rgba(160,230,245,0.45); background:radial-gradient(circle at 35% 30%, rgba(255,255,255,0.35), transparent 60%);}
+
+  /* Print/PDF: drop effects that Skia/PDF turns into thousands of soft masks,
+     transparency groups and blend-mode patterns (makes PDF viewers stutter). */
+  @media print{
+    .slide::after{display:none;}
+    .porthole .win .light, .porthole .win .dots{mix-blend-mode:normal;}
+  }
+
+  /* PDF export (?pdf): decorative backgrounds as one shared, pre-baked image
+     instead of page-sized soft masks (see assets/presentation/pdf_bg*.jpg). */
+  html.pdf .slide{background:#04141f url("assets/presentation/pdf_bg.jpg") 0 0/1280px 720px no-repeat;}
+  html.pdf .slide::after{display:none;}
+  html.pdf .slide.speaker-slide{background-image:url("assets/presentation/pdf_bg_speaker.jpg");}
+  html.pdf .speaker-slide .porthole{visibility:hidden;}
 </style>
 </head>
 <body>
@@ -173,7 +187,7 @@
 </section>
 
 <!-- ============ SLIDE 2 — SPEAKER ============ -->
-<section class="slide">
+<section class="slide speaker-slide">
   <div class="head">
     <div>
       <div class="kicker">Über mich</div>
@@ -225,7 +239,7 @@
   <div class="body">
     <p class="lead" style="margin-bottom:26px;">Man <b style="color:#eaf4f8">zeichnet</b> ein Aquariumstier,
       <b style="color:#eaf4f8">platziert</b> es per Maus in einer echten 3D-Unterwasserwelt – und es
-      <b style="color:#eaf4f8">lebt</b>: schwimmt, wabbelt, bildet Schwärme und lässt sich füttern.</p>
+      <b style="color:#eaf4f8">lebt</b>: schwimmt, wabbelt, bildet Schwärme, bekommt Hunger – und will gefüttert werden.</p>
     <div class="flow">
       <div class="step"><div class="n">SCHRITT 1</div><div class="t">🎨 Zeichnen</div><div class="d">Fisch, Qualle, Pflanze oder Koralle im 2D-Editor malen</div></div>
       <div class="arrow">→</div>
@@ -233,7 +247,7 @@
       <div class="arrow">→</div>
       <div class="step"><div class="n">SCHRITT 3</div><div class="t">🖱️ Platzieren</div><div class="d">Vorschau folgt der Maus, Klick setzt die Instanz</div></div>
       <div class="arrow">→</div>
-      <div class="step"><div class="n">SCHRITT 4</div><div class="t">🌊 Leben</div><div class="d">Eigen­animation, Schwarm­verhalten &amp; Fütterung</div></div>
+      <div class="step"><div class="n">SCHRITT 4</div><div class="t">🌊 Leben</div><div class="d">Eigen­animation, Schwarm, Fütterung &amp; Lebens­punkte</div></div>
     </div>
     <div class="grid g3" style="margin-top:30px;">
       <div class="card"><h3><span class="ic">🧩</span>Fertige Bausteine</h3><p>Wasser, Kaustik, Physik, Blasen, Sound – vieles kommt aus Gorilla3D-Komponenten, ganz ohne Code.</p></div>
@@ -602,22 +616,72 @@ LMesh.<span class="fn">SetMaterialReference</span>(LMat);</pre>
       <div class="card"><h3><span class="ic">🎯</span>Cohesion</h3><p>Zum Schwarm-Mittel ziehen – ebenfalls artgleich.</p></div>
     </div>
     <div class="grid g2">
-      <div class="card"><h3><span class="ic">🍤</span>Futter-Jagd</h3><p><code style="color:var(--amber)">DropFood</code> wirft eine sinkende Kugel; Fische steuern das nächste Pellet an (<code style="color:var(--amber)">NearestFood</code>), schalten auf <b>fast</b> und fressen es.</p></div>
+      <div class="card"><h3><span class="ic">🍤</span>Futter-Jagd</h3><p><code style="color:var(--amber)">DropFood</code> wirft eine sinkende Kugel; nur <b>hungrige</b> Fische bekommen eine Kugel zugeteilt (<code style="color:var(--amber)">AssignFood</code>), schalten auf <b>fast</b> und fressen sie.</p></div>
       <div class="card"><h3><span class="ic">🪼</span>Quallen &amp; Grenzen</h3><p><code style="color:var(--amber)">SteerJelly</code>: sanftes 3D-Wandern + vertikales Bob. Alle bleiben in den <b>Tank-Grenzen</b> (Abprall).</p></div>
     </div>
   </div>
   <div class="pageno">14</div>
 </section>
 
-<!-- ============ SLIDE 14 — DETAIL: INVENTORY & PERSISTENCE ============ -->
+<!-- ============ SLIDE 15 — DETAIL: HUNGER, HEALTH & DEATH ============ -->
 <section class="slide">
   <div class="head">
     <div>
       <div class="kicker">Detail 5 &nbsp;<span class="tag code" style="vertical-align:middle">programmiert</span></div>
+      <div class="h-title">Hunger, Leben &amp; <span class="accent">Sterben</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">14 · Leben</div>
+  </div>
+  <div class="body">
+    <div class="flow" style="margin-bottom:20px;">
+      <div class="step"><div class="n">100 LP</div><div class="t">🐟 Satt</div><div class="d">15 s satt – ignoriert Futter</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">&lt; 40 LP</div><div class="t">🟢 Hungrig</div><div class="d">langsames Pulsieren ins blasse Grün</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">&lt; 15 LP</div><div class="t">⚫ Kritisch</div><div class="d">schnelles, dunkles Blinken</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">0 LP</div><div class="t">💀 Tot</div><div class="d">grau, bauchoben, treibt zur Oberfläche, nach 12 s weg</div></div>
+    </div>
+    <div class="two" style="grid-template-columns:1fr 1.15fr; gap:28px;">
+      <div>
+        <ul class="clean">
+          <li>Lebenspunkte sinken um <b>0,5 LP/s</b> – ca. <b>3:20 min</b> von voll bis tot</li>
+          <li>Jede Kapsel bringt <b>+30 LP</b>; bei 100 LP ist der Fisch wieder satt</li>
+          <li><code style="color:var(--amber)">AssignFood</code>: eine Kapsel pro Fisch, ein Fisch pro Kapsel – der <b>Hungrigste gewinnt</b> (Abstand − 0,06 × fehlende LP)</li>
+          <li>Lebenspunkte werden mit jedem Fisch <b>gespeichert</b> (Collectable-Parameter)</li>
+        </ul>
+        <div class="callout" style="margin-top:6px;"><b>Der Fisch ist die Lebensanzeige:</b> keine Extra-UI – das Material jeder Instanz wird eingefärbt. Falle: unbeleuchtet gilt Farbe = Textur × (Ambient + Diffuse + Specular), daher wird die ganze Summe vor dem Überblenden in Diffuse gelegt.</div>
+      </div>
+      <div>
+        <pre><span class="cm">// Aquarium.Elements — UpdateHealth (je Fisch, jeden Frame)</span>
+<span class="kw">if</span> AFish.FSatedTime &gt; <span class="nu">0</span> <span class="kw">then</span>
+  AFish.FSatedTime := AFish.FSatedTime - ADt        <span class="cm">// noch satt</span>
+<span class="kw">else</span>
+  AFish.FHealth := AFish.FHealth - FISH_HUNGER_RATE * ADt;
+
+<span class="kw">if</span> AFish.FHealth &lt;= <span class="nu">0</span> <span class="kw">then</span>
+<span class="kw">begin</span>                                    <span class="cm">// verhungert</span>
+  AFish.FDead := <span class="kw">True</span>;
+  <span class="fn">SetTint</span>(AFish, TINT_DEAD, <span class="nu">1</span>);                  <span class="cm">// grau</span>
+  AFish.FModel.AnimationManager.Current.<span class="fn">StopAtCurrent</span>();
+  AFish.FModel.RotationAngle.X := <span class="nu">180</span>;           <span class="cm">// bauchoben</span>
+<span class="kw">end</span>;</pre>
+      </div>
+    </div>
+  </div>
+  <div class="pageno">15</div>
+</section>
+
+<!-- ============ SLIDE 14 — DETAIL: INVENTORY & PERSISTENCE ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Detail 6 &nbsp;<span class="tag code" style="vertical-align:middle">programmiert</span></div>
       <div class="h-title">Inventar &amp; <span class="accent">Persistenz</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">14 · Daten</div>
+    <div class="brand">15 · Daten</div>
   </div>
   <div class="body">
     <div class="two">
@@ -648,7 +712,7 @@ FScene.<span class="fn">ClearScene</span>();
 FLibrary.<span class="fn">LoadSetupFromFile</span>(LDlg.FileName);
 FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
   </div>
-  <div class="pageno">15</div>
+  <div class="pageno">16</div>
 </section>
 
 <!-- ============ SLIDE 15 — THE LOOP ============ -->
@@ -659,14 +723,14 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
       <div class="h-title">Der <span class="accent">Animations-Loop</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">15 · Loop</div>
+    <div class="brand">16 · Loop</div>
   </div>
   <div class="body">
     <p class="lead" style="margin-bottom:20px;">Ein <b style="color:#eaf4f8">TTimer</b> (~60&nbsp;fps) ist der Taktgeber, der die ganze Szene lebendig hält.</p>
     <div class="flow" style="margin-bottom:24px;">
       <div class="step"><div class="n">~16 ms</div><div class="t">⏱️ TTimer</div><div class="d">FAnimTimer.OnTimer</div></div>
       <div class="arrow">→</div>
-      <div class="step"><div class="n">TICK</div><div class="t">Scene.Animate(t)</div><div class="d">Boids · Bewegung · Futter</div></div>
+      <div class="step"><div class="n">TICK</div><div class="t">Scene.Animate(t)</div><div class="d">Boids · Bewegung · Futter · Leben</div></div>
       <div class="arrow">→</div>
       <div class="step"><div class="n">GPU</div><div class="t">Viewport.Invalidate</div><div class="d">Neuzeichnen anfordern</div></div>
       <div class="arrow">↺</div>
@@ -680,7 +744,7 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
 <span class="kw">end</span>;</pre>
     <p class="note" style="margin-top:16px;">→ <code style="color:var(--amber)">Animate</code> leitet aus der Uhr das <b>dt</b> ab und integriert die Bewegung – zeitrichtig, unabhängig von der Framerate.</p>
   </div>
-  <div class="pageno">16</div>
+  <div class="pageno">17</div>
 </section>
 
 <!-- ============ SLIDE 16 — LESSONS LEARNED ============ -->
@@ -691,7 +755,7 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
       <div class="h-title">Lektionen &amp; <span class="accent">Best Practices</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">16 · Lessons</div>
+    <div class="brand">17 · Lessons</div>
   </div>
   <div class="body">
     <div class="grid g2">
@@ -703,7 +767,7 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
       <div class="card"><h3><span class="ic">🧵</span>Ein Timer, ein dt</h3><p>Zeit­basiert integrieren statt pro Frame – gleiches Verhalten bei jeder Framerate.</p></div>
     </div>
   </div>
-  <div class="pageno">17</div>
+  <div class="pageno">18</div>
 </section>
 
 <!-- ============ SLIDE 17 — SUMMARY ============ -->
@@ -714,7 +778,7 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
       <div class="h-title">Was <span class="accent">mitzunehmen</span> ist</div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">17 · Fazit</div>
+    <div class="brand">18 · Fazit</div>
   </div>
   <div class="body">
     <ul class="clean" style="font-size:20px; margin-top:4px;">
@@ -733,8 +797,50 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
     </div>
     <p class="note" style="margin-top:14px;">SketchQuarium · Delphi / FireMonkey · Gorilla3D — gorilla3d.de</p>
   </div>
-  <div class="pageno">18</div>
+  <div class="pageno">19</div>
 </section>
 
+<script>
+/* PDF export helper (open the file with "?pdf" before printing):
+   Chrome/Skia writes color emoji as Type3 fonts built from page-sized tiling
+   patterns + soft masks - this makes browser PDF viewers stutter heavily.
+   With ?pdf every emoji is replaced by a crisp bitmap of itself. */
+(function(){
+  if (!/[?&]pdf\b/.test(location.search)) return;
+  document.documentElement.classList.add('pdf');
+  var RX = /(\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic}️?)*)/u;
+  var SCALE = 4, cache = {};
+  function toImg(ch, cs){
+    var size = parseFloat(cs.fontSize), key = ch + '|' + size + '|' + cs.fontFamily;
+    var c = cache[key];
+    if (!c){
+      var cv = document.createElement('canvas'), ctx = cv.getContext('2d');
+      var font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + (size*SCALE) + 'px ' + cs.fontFamily;
+      ctx.font = font;
+      var m = ctx.measureText(ch);
+      var asc = m.fontBoundingBoxAscent, dsc = m.fontBoundingBoxDescent;
+      cv.width = Math.ceil(m.width); cv.height = Math.ceil(asc + dsc);
+      ctx.font = font; ctx.textBaseline = 'alphabetic';
+      ctx.fillText(ch, 0, asc);
+      c = cache[key] = {src: cv.toDataURL('image/png'), w: cv.width/SCALE, h: cv.height/SCALE, d: dsc/SCALE};
+    }
+    var img = document.createElement('img');
+    img.src = c.src; img.alt = ch;
+    img.style.cssText = 'width:'+c.w+'px;height:'+c.h+'px;vertical-align:'+(-c.d)+'px;display:inline;';
+    var ls = parseFloat(cs.letterSpacing); if (ls) img.style.marginRight = ls + 'px';
+    return img;
+  }
+  var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), nodes = [], n;
+  while ((n = walker.nextNode())) if (RX.test(n.nodeValue)) nodes.push(n);
+  nodes.forEach(function(t){
+    var cs = getComputedStyle(t.parentNode), frag = document.createDocumentFragment();
+    t.nodeValue.split(RX).forEach(function(part, i){
+      if (!part) return;
+      frag.appendChild(i % 2 ? toImg(part, cs) : document.createTextNode(part));
+    });
+    t.parentNode.replaceChild(frag, t);
+  });
+})();
+</script>
 </body>
 </html>

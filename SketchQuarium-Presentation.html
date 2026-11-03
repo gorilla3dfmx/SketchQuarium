@@ -154,6 +154,20 @@
   .porthole .win .dots{position:absolute; inset:0; mix-blend-mode:screen; opacity:.5;
     background-image:radial-gradient(rgba(180,240,255,0.35) 1.2px, transparent 2px); background-size:38px 38px;}
   .bubble{position:absolute; border-radius:50%; border:1.5px solid rgba(160,230,245,0.45); background:radial-gradient(circle at 35% 30%, rgba(255,255,255,0.35), transparent 60%);}
+
+  /* Print/PDF: drop effects that Skia/PDF turns into thousands of soft masks,
+     transparency groups and blend-mode patterns (makes PDF viewers stutter). */
+  @media print{
+    .slide::after{display:none;}
+    .porthole .win .light, .porthole .win .dots{mix-blend-mode:normal;}
+  }
+
+  /* PDF export (?pdf): decorative backgrounds as one shared, pre-baked image
+     instead of page-sized soft masks (see assets/presentation/pdf_bg*.jpg). */
+  html.pdf .slide{background:#04141f url("assets/presentation/pdf_bg.jpg") 0 0/1280px 720px no-repeat;}
+  html.pdf .slide::after{display:none;}
+  html.pdf .slide.speaker-slide{background-image:url("assets/presentation/pdf_bg_speaker.jpg");}
+  html.pdf .speaker-slide .porthole{visibility:hidden;}
 </style>
 </head>
 <body>
@@ -173,7 +187,7 @@
 </section>
 
 <!-- ============ SLIDE 2 — SPEAKER ============ -->
-<section class="slide">
+<section class="slide speaker-slide">
   <div class="head">
     <div>
       <div class="kicker">About me</div>
@@ -225,7 +239,7 @@
   <div class="body">
     <p class="lead" style="margin-bottom:26px;">You <b style="color:#eaf4f8">draw</b> an aquarium creature,
       <b style="color:#eaf4f8">place</b> it with the mouse in a real 3D underwater world – and it
-      <b style="color:#eaf4f8">comes alive</b>: it swims, wobbles, forms schools and can be fed.</p>
+      <b style="color:#eaf4f8">comes alive</b>: it swims, wobbles, forms schools, gets hungry – and has to be fed.</p>
     <div class="flow">
       <div class="step"><div class="n">STEP 1</div><div class="t">🎨 Draw</div><div class="d">Paint a fish, jellyfish, plant or coral in the 2D editor</div></div>
       <div class="arrow">→</div>
@@ -233,7 +247,7 @@
       <div class="arrow">→</div>
       <div class="step"><div class="n">STEP 3</div><div class="t">🖱️ Place</div><div class="d">A preview follows the mouse, a click places the instance</div></div>
       <div class="arrow">→</div>
-      <div class="step"><div class="n">STEP 4</div><div class="t">🌊 Live</div><div class="d">Own animation, schooling behavior &amp; feeding</div></div>
+      <div class="step"><div class="n">STEP 4</div><div class="t">🌊 Live</div><div class="d">Own animation, schooling, feeding &amp; health</div></div>
     </div>
     <div class="grid g3" style="margin-top:30px;">
       <div class="card"><h3><span class="ic">🧩</span>Ready-made building blocks</h3><p>Water, caustics, physics, bubbles, sound – much of it comes from Gorilla3D components, without any code.</p></div>
@@ -602,22 +616,72 @@ LMesh.<span class="fn">SetMaterialReference</span>(LMat);</pre>
       <div class="card"><h3><span class="ic">🎯</span>Cohesion</h3><p>Steer toward the school's center – also same species only.</p></div>
     </div>
     <div class="grid g2">
-      <div class="card"><h3><span class="ic">🍤</span>Food hunting</h3><p><code style="color:var(--amber)">DropFood</code> drops a sinking pellet; fish head for the nearest one (<code style="color:var(--amber)">NearestFood</code>), switch to <b>fast</b> and eat it.</p></div>
+      <div class="card"><h3><span class="ic">🍤</span>Food hunting</h3><p><code style="color:var(--amber)">DropFood</code> drops a sinking pellet; only <b>hungry</b> fish get a pellet assigned (<code style="color:var(--amber)">AssignFood</code>), switch to <b>fast</b> and eat it.</p></div>
       <div class="card"><h3><span class="ic">🪼</span>Jellyfish &amp; boundaries</h3><p><code style="color:var(--amber)">SteerJelly</code>: gentle 3D wandering + vertical bobbing. Everyone stays within the <b>tank boundaries</b> (bounce).</p></div>
     </div>
   </div>
   <div class="pageno">14</div>
 </section>
 
-<!-- ============ SLIDE 15 — DETAIL: INVENTORY & PERSISTENCE ============ -->
+<!-- ============ SLIDE 15 — DETAIL: HUNGER, HEALTH & DEATH ============ -->
 <section class="slide">
   <div class="head">
     <div>
       <div class="kicker">Detail 5 &nbsp;<span class="tag code" style="vertical-align:middle">programmed</span></div>
+      <div class="h-title">Hunger, health &amp; <span class="accent">death</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">14 · Health</div>
+  </div>
+  <div class="body">
+    <div class="flow" style="margin-bottom:20px;">
+      <div class="step"><div class="n">100 HP</div><div class="t">🐟 Sated</div><div class="d">15 s full – ignores food</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">&lt; 40 HP</div><div class="t">🟢 Hungry</div><div class="d">slow pulse to pale green</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">&lt; 15 HP</div><div class="t">⚫ Critical</div><div class="d">fast, dark blinking</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">0 HP</div><div class="t">💀 Dead</div><div class="d">grey, belly-up, drifts to the surface, gone after 12 s</div></div>
+    </div>
+    <div class="two" style="grid-template-columns:1fr 1.15fr; gap:28px;">
+      <div>
+        <ul class="clean">
+          <li>Health drops by <b>0.5 HP/s</b> – about <b>3:20 min</b> from full to dead</li>
+          <li>Each pellet gives <b>+30 HP</b>; at 100 HP the fish is sated again</li>
+          <li><code style="color:var(--amber)">AssignFood</code>: one pellet per fish, one fish per pellet – the <b>hungriest wins</b> (distance − 0.06 × missing HP)</li>
+          <li>Health is <b>saved</b> with each fish (collectable parameter)</li>
+        </ul>
+        <div class="callout" style="margin-top:6px;"><b>The fish is the health bar:</b> no extra UI – the material of each instance is tinted. Pitfall: unlit color = texture × (ambient + diffuse + specular), so the whole sum is moved into diffuse before blending.</div>
+      </div>
+      <div>
+        <pre><span class="cm">// Aquarium.Elements — UpdateHealth (per fish, every frame)</span>
+<span class="kw">if</span> AFish.FSatedTime &gt; <span class="nu">0</span> <span class="kw">then</span>
+  AFish.FSatedTime := AFish.FSatedTime - ADt        <span class="cm">// still full</span>
+<span class="kw">else</span>
+  AFish.FHealth := AFish.FHealth - FISH_HUNGER_RATE * ADt;
+
+<span class="kw">if</span> AFish.FHealth &lt;= <span class="nu">0</span> <span class="kw">then</span>
+<span class="kw">begin</span>                                    <span class="cm">// starved</span>
+  AFish.FDead := <span class="kw">True</span>;
+  <span class="fn">SetTint</span>(AFish, TINT_DEAD, <span class="nu">1</span>);                  <span class="cm">// grey</span>
+  AFish.FModel.AnimationManager.Current.<span class="fn">StopAtCurrent</span>();
+  AFish.FModel.RotationAngle.X := <span class="nu">180</span>;           <span class="cm">// belly-up</span>
+<span class="kw">end</span>;</pre>
+      </div>
+    </div>
+  </div>
+  <div class="pageno">15</div>
+</section>
+
+<!-- ============ SLIDE 15 — DETAIL: INVENTORY & PERSISTENCE ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Detail 6 &nbsp;<span class="tag code" style="vertical-align:middle">programmed</span></div>
       <div class="h-title">Inventory &amp; <span class="accent">persistence</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">14 · Data</div>
+    <div class="brand">15 · Data</div>
   </div>
   <div class="body">
     <div class="two">
@@ -648,7 +712,7 @@ FScene.<span class="fn">ClearScene</span>();
 FLibrary.<span class="fn">LoadSetupFromFile</span>(LDlg.FileName);
 FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
   </div>
-  <div class="pageno">15</div>
+  <div class="pageno">16</div>
 </section>
 
 <!-- ============ SLIDE 16 — THE LOOP ============ -->
@@ -659,14 +723,14 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
       <div class="h-title">The <span class="accent">animation loop</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">15 · Loop</div>
+    <div class="brand">16 · Loop</div>
   </div>
   <div class="body">
     <p class="lead" style="margin-bottom:20px;">A <b style="color:#eaf4f8">TTimer</b> (~60&nbsp;fps) is the clock that keeps the whole scene alive.</p>
     <div class="flow" style="margin-bottom:24px;">
       <div class="step"><div class="n">~16 ms</div><div class="t">⏱️ TTimer</div><div class="d">FAnimTimer.OnTimer</div></div>
       <div class="arrow">→</div>
-      <div class="step"><div class="n">TICK</div><div class="t">Scene.Animate(t)</div><div class="d">Boids · movement · food</div></div>
+      <div class="step"><div class="n">TICK</div><div class="t">Scene.Animate(t)</div><div class="d">Boids · movement · food · health</div></div>
       <div class="arrow">→</div>
       <div class="step"><div class="n">GPU</div><div class="t">Viewport.Invalidate</div><div class="d">Request a repaint</div></div>
       <div class="arrow">↺</div>
@@ -680,7 +744,7 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
 <span class="kw">end</span>;</pre>
     <p class="note" style="margin-top:16px;">→ <code style="color:var(--amber)">Animate</code> derives <b>dt</b> from the clock and integrates the movement – time-correct, independent of the frame rate.</p>
   </div>
-  <div class="pageno">16</div>
+  <div class="pageno">17</div>
 </section>
 
 <!-- ============ SLIDE 17 — LESSONS LEARNED ============ -->
@@ -691,7 +755,7 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
       <div class="h-title">Lessons &amp; <span class="accent">best practices</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">16 · Lessons</div>
+    <div class="brand">17 · Lessons</div>
   </div>
   <div class="body">
     <div class="grid g2">
@@ -703,7 +767,7 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
       <div class="card"><h3><span class="ic">🧵</span>One timer, one dt</h3><p>Integrate based on time instead of per frame – same behavior at any frame rate.</p></div>
     </div>
   </div>
-  <div class="pageno">17</div>
+  <div class="pageno">18</div>
 </section>
 
 <!-- ============ SLIDE 18 — SUMMARY ============ -->
@@ -714,7 +778,7 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
       <div class="h-title">Key <span class="accent">takeaways</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">17 · Conclusion</div>
+    <div class="brand">18 · Conclusion</div>
   </div>
   <div class="body">
     <ul class="clean" style="font-size:20px; margin-top:4px;">
@@ -733,8 +797,50 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
     </div>
     <p class="note" style="margin-top:14px;">SketchQuarium · Delphi / FireMonkey · Gorilla3D — gorilla3d.de</p>
   </div>
-  <div class="pageno">18</div>
+  <div class="pageno">19</div>
 </section>
 
+<script>
+/* PDF export helper (open the file with "?pdf" before printing):
+   Chrome/Skia writes color emoji as Type3 fonts built from page-sized tiling
+   patterns + soft masks - this makes browser PDF viewers stutter heavily.
+   With ?pdf every emoji is replaced by a crisp bitmap of itself. */
+(function(){
+  if (!/[?&]pdf\b/.test(location.search)) return;
+  document.documentElement.classList.add('pdf');
+  var RX = /(\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic}️?)*)/u;
+  var SCALE = 4, cache = {};
+  function toImg(ch, cs){
+    var size = parseFloat(cs.fontSize), key = ch + '|' + size + '|' + cs.fontFamily;
+    var c = cache[key];
+    if (!c){
+      var cv = document.createElement('canvas'), ctx = cv.getContext('2d');
+      var font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + (size*SCALE) + 'px ' + cs.fontFamily;
+      ctx.font = font;
+      var m = ctx.measureText(ch);
+      var asc = m.fontBoundingBoxAscent, dsc = m.fontBoundingBoxDescent;
+      cv.width = Math.ceil(m.width); cv.height = Math.ceil(asc + dsc);
+      ctx.font = font; ctx.textBaseline = 'alphabetic';
+      ctx.fillText(ch, 0, asc);
+      c = cache[key] = {src: cv.toDataURL('image/png'), w: cv.width/SCALE, h: cv.height/SCALE, d: dsc/SCALE};
+    }
+    var img = document.createElement('img');
+    img.src = c.src; img.alt = ch;
+    img.style.cssText = 'width:'+c.w+'px;height:'+c.h+'px;vertical-align:'+(-c.d)+'px;display:inline;';
+    var ls = parseFloat(cs.letterSpacing); if (ls) img.style.marginRight = ls + 'px';
+    return img;
+  }
+  var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), nodes = [], n;
+  while ((n = walker.nextNode())) if (RX.test(n.nodeValue)) nodes.push(n);
+  nodes.forEach(function(t){
+    var cs = getComputedStyle(t.parentNode), frag = document.createDocumentFragment();
+    t.nodeValue.split(RX).forEach(function(part, i){
+      if (!part) return;
+      frag.appendChild(i % 2 ? toImg(part, cs) : document.createTextNode(part));
+    });
+    t.parentNode.replaceChild(frag, t);
+  });
+})();
+</script>
 </body>
 </html>
