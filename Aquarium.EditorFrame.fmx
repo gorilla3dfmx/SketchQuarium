@@ -2,246 +2,443 @@ object EditorFrame: TEditorFrame
   Size.Width = 1216.000000000000000000
   Size.Height = 720.000000000000000000
   Size.PlatformDefault = False
+  object Backdrop: TRectangle
+    Align = Contents
+    Fill.Kind = Gradient
+    Fill.Gradient.Points = <
+      item
+        Color = xF50A2A3D
+        Offset = 0.000000000000000000
+      end
+      item
+        Color = xF504141F
+        Offset = 1.000000000000000000
+      end>
+    Fill.Gradient.StartPosition.X = 0.250000000000000000
+    Fill.Gradient.StartPosition.Y = 0.000000000000000000
+    Fill.Gradient.StopPosition.X = 0.750000000000000000
+    Fill.Gradient.StopPosition.Y = 1.000000000000000000
+    HitTest = False
+    Size.Width = 1216.000000000000000000
+    Size.Height = 720.000000000000000000
+    Size.PlatformDefault = False
+    Stroke.Color = x2E78C8E6
+    XRadius = 12.000000000000000000
+    YRadius = 12.000000000000000000
+  end
   object HeaderLabel: TLabel
     Align = Top
-    StyledSettings = [Family, FontColor]
-    Margins.Left = 16.000000000000000000
-    Margins.Top = 12.000000000000000000
+    StyledSettings = [Family]
+    Margins.Left = 24.000000000000000000
+    Margins.Top = 16.000000000000000000
     Margins.Right = 16.000000000000000000
-    Margins.Bottom = 4.000000000000000000
-    Position.X = 16.000000000000000000
-    Position.Y = 12.000000000000000000
-    Size.Width = 1184.000000000000000000
-    Size.Height = 32.000000000000000000
+    Margins.Bottom = 6.000000000000000000
+    Position.X = 24.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 1176.000000000000000000
+    Size.Height = 42.000000000000000000
     Size.PlatformDefault = False
-    TextSettings.Font.Size = 20.000000000000000000
+    TextSettings.Font.Size = 24.000000000000000000
     TextSettings.Font.StyleExt = {00070000000000000004000000}
+    TextSettings.FontColor = xFFEAF4F8
+    TextSettings.VertAlign = Leading
     Text = 'Aquariumselement zeichnen'
     TabOrder = 0
+    object HeaderAccent: TRectangle
+      Fill.Color = xFF35D6C8
+      HitTest = False
+      Position.Y = 36.000000000000000000
+      Size.Width = 56.000000000000000000
+      Size.Height = 4.000000000000000000
+      Size.PlatformDefault = False
+      Stroke.Kind = None
+      XRadius = 2.000000000000000000
+      YRadius = 2.000000000000000000
+    end
   end
   object LeftPanel: TRectangle
     Align = Left
-    Fill.Color = x22FFFFFF
-    Padding.Left = 8.000000000000000000
-    Padding.Top = 8.000000000000000000
-    Padding.Right = 8.000000000000000000
-    Padding.Bottom = 8.000000000000000000
-    Margins.Left = 16.000000000000000000
+    Fill.Color = xE6061722
+    Padding.Left = 10.000000000000000000
+    Padding.Top = 10.000000000000000000
+    Padding.Right = 10.000000000000000000
+    Padding.Bottom = 10.000000000000000000
+    Margins.Left = 24.000000000000000000
     Margins.Top = 8.000000000000000000
     Margins.Right = 8.000000000000000000
-    Margins.Bottom = 16.000000000000000000
-    Position.X = 16.000000000000000000
-    Position.Y = 56.000000000000000000
+    Margins.Bottom = 24.000000000000000000
     Size.Width = 280.000000000000000000
-    Size.Height = 648.000000000000000000
+    Size.Height = 640.000000000000000000
     Size.PlatformDefault = False
-    Stroke.Color = x33555555
-    Stroke.Thickness = 8.000000000000000000
-    XRadius = 6.000000000000000000
-    YRadius = 6.000000000000000000
+    Stroke.Color = x2E78C8E6
+    XRadius = 16.000000000000000000
+    YRadius = 16.000000000000000000
     object LeftHeader: TLabel
       Align = Top
-      StyledSettings = [Family, FontColor]
+      StyledSettings = [Family]
       Margins.Left = 8.000000000000000000
-      Margins.Top = 8.000000000000000000
+      Margins.Top = 6.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 16.000000000000000000
-      Size.Width = 248.000000000000000000
-      Size.Height = 24.000000000000000000
+      Size.Width = 244.000000000000000000
+      Size.Height = 20.000000000000000000
       Size.PlatformDefault = False
-      TextSettings.Font.Size = 15.000000000000000000
+      TextSettings.Font.Size = 12.000000000000000000
       TextSettings.Font.StyleExt = {00070000000000000004000000}
-      Text = 'Gespeicherte Elemente'
+      TextSettings.FontColor = xFF35D6C8
+      Text = 'GESPEICHERTE ELEMENTE'
       TabOrder = 0
     end
-    object CloseBtn: TButton
+    object CloseBtn: TRectangle
       Align = Bottom
+      Cursor = crHandPoint
+      Fill.Color = x00000000
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Margins.Bottom = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 594.000000000000000000
-      Size.Width = 248.000000000000000000
+      Margins.Bottom = 6.000000000000000000
+      Size.Width = 244.000000000000000000
       Size.Height = 38.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 1
-      Text = 'Schlie'#223'en'
+      Stroke.Color = x5578C8E6
+      XRadius = 10.000000000000000000
+      YRadius = 10.000000000000000000
       OnClick = CloseEditorClick
+      object CloseBtnLbl: TLabel
+        Align = Client
+        StyledSettings = [Family]
+        Size.Width = 244.000000000000000000
+        Size.Height = 38.000000000000000000
+        Size.PlatformDefault = False
+        TextSettings.Font.Size = 14.000000000000000000
+        TextSettings.Font.StyleExt = {00070000000000000004000000}
+        TextSettings.FontColor = xFF9FC0CD
+        TextSettings.HorzAlign = Center
+        Text = 'Schlie'#223'en'
+      end
     end
-    object DeleteBtn: TButton
+    object DeleteBtn: TRectangle
       Align = Bottom
+      Cursor = crHandPoint
+      Fill.Color = x26FF7A59
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 548.000000000000000000
-      Size.Width = 248.000000000000000000
+      Size.Width = 244.000000000000000000
       Size.Height = 38.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 2
-      Text = 'L'#246'schen'
+      Stroke.Color = x66FF7A59
+      XRadius = 10.000000000000000000
+      YRadius = 10.000000000000000000
       OnClick = DeleteClick
+      object DeleteBtnLbl: TLabel
+        Align = Client
+        StyledSettings = [Family]
+        Size.Width = 244.000000000000000000
+        Size.Height = 38.000000000000000000
+        Size.PlatformDefault = False
+        TextSettings.Font.Size = 14.000000000000000000
+        TextSettings.Font.StyleExt = {00070000000000000004000000}
+        TextSettings.FontColor = xFFFFB4A2
+        TextSettings.HorzAlign = Center
+        Text = 'L'#246'schen'
+      end
     end
-    object UpdateBtn: TButton
+    object UpdateBtn: TRectangle
       Align = Bottom
+      Cursor = crHandPoint
+      Fill.Color = x2978A0C8
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 502.000000000000000000
-      Size.Width = 248.000000000000000000
+      Size.Width = 244.000000000000000000
       Size.Height = 38.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 3
-      Text = 'Mit Zeichnung aktualisieren'
+      Stroke.Color = x2E78C8E6
+      XRadius = 10.000000000000000000
+      YRadius = 10.000000000000000000
       OnClick = UpdateClick
+      object UpdateBtnLbl: TLabel
+        Align = Client
+        StyledSettings = [Family]
+        Size.Width = 244.000000000000000000
+        Size.Height = 38.000000000000000000
+        Size.PlatformDefault = False
+        TextSettings.Font.Size = 14.000000000000000000
+        TextSettings.Font.StyleExt = {00070000000000000004000000}
+        TextSettings.FontColor = xFFEAF4F8
+        TextSettings.HorzAlign = Center
+        Text = 'Mit Zeichnung aktualisieren'
+      end
     end
-    object EditBtn: TButton
+    object EditBtn: TRectangle
       Align = Bottom
+      Cursor = crHandPoint
+      Fill.Color = x2978A0C8
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 456.000000000000000000
-      Size.Width = 248.000000000000000000
+      Size.Width = 244.000000000000000000
       Size.Height = 38.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 4
-      Text = 'Zum Bearbeiten laden'
+      Stroke.Color = x2E78C8E6
+      XRadius = 10.000000000000000000
+      YRadius = 10.000000000000000000
       OnClick = EditClick
+      object EditBtnLbl: TLabel
+        Align = Client
+        StyledSettings = [Family]
+        Size.Width = 244.000000000000000000
+        Size.Height = 38.000000000000000000
+        Size.PlatformDefault = False
+        TextSettings.Font.Size = 14.000000000000000000
+        TextSettings.Font.StyleExt = {00070000000000000004000000}
+        TextSettings.FontColor = xFFEAF4F8
+        TextSettings.HorzAlign = Center
+        Text = 'Zum Bearbeiten laden'
+      end
     end
-    object PlaceBtn: TButton
+    object PlaceBtn: TRectangle
       Align = Bottom
+      Cursor = crHandPoint
+      Fill.Color = x2E35D6C8
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 410.000000000000000000
-      Size.Width = 248.000000000000000000
+      Size.Width = 244.000000000000000000
       Size.Height = 38.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 5
-      Text = 'In Aquarium platzieren'
+      Stroke.Color = x6635D6C8
+      XRadius = 10.000000000000000000
+      YRadius = 10.000000000000000000
       OnClick = PlaceClick
+      object PlaceBtnLbl: TLabel
+        Align = Client
+        StyledSettings = [Family]
+        Size.Width = 244.000000000000000000
+        Size.Height = 38.000000000000000000
+        Size.PlatformDefault = False
+        TextSettings.Font.Size = 14.000000000000000000
+        TextSettings.Font.StyleExt = {00070000000000000004000000}
+        TextSettings.FontColor = xFFEAF4F8
+        TextSettings.HorzAlign = Center
+        Text = 'In Aquarium platzieren'
+      end
     end
     object ElementsList: TListBox
       Align = Client
-      Margins.Left = 8.000000000000000000
-      Margins.Top = 4.000000000000000000
-      Margins.Right = 8.000000000000000000
-      Size.Width = 248.000000000000000000
-      Size.Height = 358.000000000000000000
+      Margins.Left = 4.000000000000000000
+      Margins.Top = 6.000000000000000000
+      Margins.Right = 4.000000000000000000
+      Margins.Bottom = 4.000000000000000000
+      Size.Width = 252.000000000000000000
+      Size.Height = 350.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 6
       DisableFocusEffect = True
-      ItemHeight = 56.000000000000000000
+      ItemHeight = 60.000000000000000000
       DefaultItemStyles.ItemStyle = ''
       DefaultItemStyles.GroupHeaderStyle = ''
       DefaultItemStyles.GroupFooterStyle = ''
-      Viewport.Width = 244.000000000000000000
-      Viewport.Height = 354.000000000000000000
+      Viewport.Width = 252.000000000000000000
+      Viewport.Height = 350.000000000000000000
     end
   end
   object RightPanel: TRectangle
     Align = Right
-    Fill.Color = x22FFFFFF
-    Padding.Left = 8.000000000000000000
-    Padding.Top = 8.000000000000000000
-    Padding.Right = 8.000000000000000000
-    Padding.Bottom = 8.000000000000000000
+    Fill.Color = xE6061722
+    Padding.Left = 10.000000000000000000
+    Padding.Top = 10.000000000000000000
+    Padding.Right = 10.000000000000000000
+    Padding.Bottom = 10.000000000000000000
     Margins.Left = 8.000000000000000000
     Margins.Top = 8.000000000000000000
-    Margins.Right = 16.000000000000000000
-    Margins.Bottom = 16.000000000000000000
-    Position.X = 940.000000000000000000
-    Position.Y = 56.000000000000000000
+    Margins.Right = 24.000000000000000000
+    Margins.Bottom = 24.000000000000000000
     Size.Width = 260.000000000000000000
-    Size.Height = 648.000000000000000000
+    Size.Height = 640.000000000000000000
     Size.PlatformDefault = False
-    Stroke.Color = x33555555
-    Stroke.Thickness = 8.000000000000000000
-    XRadius = 6.000000000000000000
-    YRadius = 6.000000000000000000
+    Stroke.Color = x2E78C8E6
+    XRadius = 16.000000000000000000
+    YRadius = 16.000000000000000000
     object ArtLabel: TLabel
       Align = Top
-      StyledSettings = [Family, FontColor]
+      StyledSettings = [Family]
       Margins.Left = 8.000000000000000000
-      Margins.Top = 8.000000000000000000
+      Margins.Top = 6.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 16.000000000000000000
-      Size.Width = 228.000000000000000000
-      Size.Height = 24.000000000000000000
+      Size.Width = 224.000000000000000000
+      Size.Height = 20.000000000000000000
       Size.PlatformDefault = False
-      TextSettings.Font.Size = 15.000000000000000000
+      TextSettings.Font.Size = 12.000000000000000000
       TextSettings.Font.StyleExt = {00070000000000000004000000}
-      Text = 'Art'
+      TextSettings.FontColor = xFF35D6C8
+      Text = 'ART'
       TabOrder = 0
     end
-    object KindCombo: TComboBox
+    object KindRow: TFlowLayout
       Align = Top
-      Items.Strings = (
-        'Fisch'
-        'Qualle'
-        'Pflanze'
-        'Koralle')
-      ItemIndex = 0
-      Margins.Left = 8.000000000000000000
-      Margins.Top = 4.000000000000000000
-      Margins.Right = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 44.000000000000000000
-      Size.Width = 228.000000000000000000
-      Size.Height = 34.000000000000000000
+      Margins.Left = 5.000000000000000000
+      Margins.Top = 2.000000000000000000
+      Margins.Right = 5.000000000000000000
+      Size.Width = 230.000000000000000000
+      Size.Height = 72.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 1
+      Justify = Left
+      JustifyLastLine = Left
+      FlowDirection = LeftToRight
+      object KindFish: TRectangle
+        Cursor = crHandPoint
+        Fill.Color = x2E35D6C8
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 109.000000000000000000
+        Size.Height = 30.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = xFF35D6C8
+        XRadius = 15.000000000000000000
+        YRadius = 15.000000000000000000
+        OnClick = KindChipClick
+        object KindFishLbl: TLabel
+          Align = Client
+          StyledSettings = [Family]
+          Size.Width = 109.000000000000000000
+          Size.Height = 30.000000000000000000
+          Size.PlatformDefault = False
+          TextSettings.Font.Size = 14.000000000000000000
+          TextSettings.Font.StyleExt = {00070000000000000004000000}
+          TextSettings.FontColor = xFFEAF4F8
+          TextSettings.HorzAlign = Center
+          Text = 'Fisch'
+        end
+      end
+      object KindJelly: TRectangle
+        Tag = 1
+        Cursor = crHandPoint
+        Fill.Color = x2978A0C8
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 109.000000000000000000
+        Size.Height = 30.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = x2E78C8E6
+        XRadius = 15.000000000000000000
+        YRadius = 15.000000000000000000
+        OnClick = KindChipClick
+        object KindJellyLbl: TLabel
+          Align = Client
+          StyledSettings = [Family]
+          Size.Width = 109.000000000000000000
+          Size.Height = 30.000000000000000000
+          Size.PlatformDefault = False
+          TextSettings.Font.Size = 14.000000000000000000
+          TextSettings.Font.StyleExt = {00070000000000000004000000}
+          TextSettings.FontColor = xFF9FC0CD
+          TextSettings.HorzAlign = Center
+          Text = 'Qualle'
+        end
+      end
+      object KindPlant: TRectangle
+        Tag = 2
+        Cursor = crHandPoint
+        Fill.Color = x2978A0C8
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 109.000000000000000000
+        Size.Height = 30.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = x2E78C8E6
+        XRadius = 15.000000000000000000
+        YRadius = 15.000000000000000000
+        OnClick = KindChipClick
+        object KindPlantLbl: TLabel
+          Align = Client
+          StyledSettings = [Family]
+          Size.Width = 109.000000000000000000
+          Size.Height = 30.000000000000000000
+          Size.PlatformDefault = False
+          TextSettings.Font.Size = 14.000000000000000000
+          TextSettings.Font.StyleExt = {00070000000000000004000000}
+          TextSettings.FontColor = xFF9FC0CD
+          TextSettings.HorzAlign = Center
+          Text = 'Pflanze'
+        end
+      end
+      object KindCoral: TRectangle
+        Tag = 3
+        Cursor = crHandPoint
+        Fill.Color = x2978A0C8
+        Margins.Left = 3.000000000000000000
+        Margins.Top = 3.000000000000000000
+        Margins.Right = 3.000000000000000000
+        Margins.Bottom = 3.000000000000000000
+        Size.Width = 109.000000000000000000
+        Size.Height = 30.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = x2E78C8E6
+        XRadius = 15.000000000000000000
+        YRadius = 15.000000000000000000
+        OnClick = KindChipClick
+        object KindCoralLbl: TLabel
+          Align = Client
+          StyledSettings = [Family]
+          Size.Width = 109.000000000000000000
+          Size.Height = 30.000000000000000000
+          Size.PlatformDefault = False
+          TextSettings.Font.Size = 14.000000000000000000
+          TextSettings.Font.StyleExt = {00070000000000000004000000}
+          TextSettings.FontColor = xFF9FC0CD
+          TextSettings.HorzAlign = Center
+          Text = 'Koralle'
+        end
+      end
     end
     object NameLabel: TLabel
       Align = Top
-      StyledSettings = [Family, FontColor]
+      StyledSettings = [Family]
       Margins.Left = 8.000000000000000000
-      Margins.Top = 8.000000000000000000
+      Margins.Top = 10.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 86.000000000000000000
-      Size.Width = 228.000000000000000000
-      Size.Height = 24.000000000000000000
+      Size.Width = 224.000000000000000000
+      Size.Height = 20.000000000000000000
       Size.PlatformDefault = False
-      TextSettings.Font.Size = 15.000000000000000000
+      TextSettings.Font.Size = 12.000000000000000000
       TextSettings.Font.StyleExt = {00070000000000000004000000}
-      Text = 'Name'
+      TextSettings.FontColor = xFF35D6C8
+      Text = 'NAME'
       TabOrder = 2
     end
     object NameEdit: TEdit
       Touch.InteractiveGestures = [LongTap, DoubleTap]
       Align = Top
       TabOrder = 3
-      Position.X = 16.000000000000000000
-      Position.Y = 114.000000000000000000
       Margins.Left = 8.000000000000000000
       Margins.Top = 4.000000000000000000
       Margins.Right = 8.000000000000000000
-      Size.Width = 228.000000000000000000
-      Size.Height = 34.000000000000000000
+      Size.Width = 224.000000000000000000
+      Size.Height = 36.000000000000000000
       Size.PlatformDefault = False
       TextPrompt = 'z.B. Nemo'
     end
     object ColorLabel: TLabel
       Align = Top
-      StyledSettings = [Family, FontColor]
+      StyledSettings = [Family]
       Margins.Left = 8.000000000000000000
-      Margins.Top = 8.000000000000000000
+      Margins.Top = 10.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 156.000000000000000000
-      Size.Width = 228.000000000000000000
-      Size.Height = 24.000000000000000000
+      Size.Width = 224.000000000000000000
+      Size.Height = 20.000000000000000000
       Size.PlatformDefault = False
-      TextSettings.Font.Size = 15.000000000000000000
+      TextSettings.Font.Size = 12.000000000000000000
       TextSettings.Font.StyleExt = {00070000000000000004000000}
-      Text = 'Farbe'
+      TextSettings.FontColor = xFF35D6C8
+      Text = 'FARBE'
       TabOrder = 4
     end
     object ColorRow: TFlowLayout
@@ -249,10 +446,8 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 4.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 184.000000000000000000
       Size.Width = 228.000000000000000000
-      Size.Height = 100.000000000000000000
+      Size.Height = 68.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 5
       Justify = Left
@@ -270,7 +465,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 26.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 4.000000000000000000
         YRadius = 4.000000000000000000
         OnClick = ColorSwatchClick
@@ -287,7 +482,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 26.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 4.000000000000000000
         YRadius = 4.000000000000000000
         OnClick = ColorSwatchClick
@@ -304,7 +499,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 26.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 4.000000000000000000
         YRadius = 4.000000000000000000
         OnClick = ColorSwatchClick
@@ -321,7 +516,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 26.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 4.000000000000000000
         YRadius = 4.000000000000000000
         OnClick = ColorSwatchClick
@@ -338,7 +533,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 26.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 4.000000000000000000
         YRadius = 4.000000000000000000
         OnClick = ColorSwatchClick
@@ -355,7 +550,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 26.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 4.000000000000000000
         YRadius = 4.000000000000000000
         OnClick = ColorSwatchClick
@@ -372,7 +567,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 26.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 4.000000000000000000
         YRadius = 4.000000000000000000
         OnClick = ColorSwatchClick
@@ -389,7 +584,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 26.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 4.000000000000000000
         YRadius = 4.000000000000000000
         OnClick = ColorSwatchClick
@@ -406,7 +601,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 26.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 4.000000000000000000
         YRadius = 4.000000000000000000
         OnClick = ColorSwatchClick
@@ -423,7 +618,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 26.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 4.000000000000000000
         YRadius = 4.000000000000000000
         OnClick = ColorSwatchClick
@@ -440,7 +635,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 26.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 4.000000000000000000
         YRadius = 4.000000000000000000
         OnClick = ColorSwatchClick
@@ -457,7 +652,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 26.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 4.000000000000000000
         YRadius = 4.000000000000000000
         OnClick = ColorSwatchClick
@@ -474,7 +669,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 26.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 4.000000000000000000
         YRadius = 4.000000000000000000
         OnClick = ColorSwatchClick
@@ -491,7 +686,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 26.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 4.000000000000000000
         YRadius = 4.000000000000000000
         OnClick = ColorSwatchClick
@@ -499,18 +694,17 @@ object EditorFrame: TEditorFrame
     end
     object BrushTypeLabel: TLabel
       Align = Top
-      StyledSettings = [Family, FontColor]
+      StyledSettings = [Family]
       Margins.Left = 8.000000000000000000
-      Margins.Top = 8.000000000000000000
+      Margins.Top = 10.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 292.000000000000000000
-      Size.Width = 228.000000000000000000
-      Size.Height = 24.000000000000000000
+      Size.Width = 224.000000000000000000
+      Size.Height = 20.000000000000000000
       Size.PlatformDefault = False
-      TextSettings.Font.Size = 15.000000000000000000
+      TextSettings.Font.Size = 12.000000000000000000
       TextSettings.Font.StyleExt = {00070000000000000004000000}
-      Text = 'Pinselart'
+      TextSettings.FontColor = xFF35D6C8
+      Text = 'PINSELART'
       TabOrder = 10
     end
     object BrushRow: TFlowLayout
@@ -518,8 +712,6 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 4.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 320.000000000000000000
       Size.Width = 228.000000000000000000
       Size.Height = 52.000000000000000000
       Size.PlatformDefault = False
@@ -529,7 +721,7 @@ object EditorFrame: TEditorFrame
       FlowDirection = LeftToRight
       object BrushRound: TRectangle
         Cursor = crHandPoint
-        Fill.Color = claWhite
+        Fill.Color = xFF0B2433
         Hint = 'Normal'
         Margins.Left = 3.000000000000000000
         Margins.Top = 3.000000000000000000
@@ -540,7 +732,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 44.000000000000000000
         Size.Height = 44.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 6.000000000000000000
         YRadius = 6.000000000000000000
         ParentShowHint = False
@@ -550,7 +742,7 @@ object EditorFrame: TEditorFrame
       object BrushSoft: TRectangle
         Tag = 1
         Cursor = crHandPoint
-        Fill.Color = claWhite
+        Fill.Color = xFF0B2433
         Hint = 'Sehr weich'
         Margins.Left = 3.000000000000000000
         Margins.Top = 3.000000000000000000
@@ -561,7 +753,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 44.000000000000000000
         Size.Height = 44.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 6.000000000000000000
         YRadius = 6.000000000000000000
         ParentShowHint = False
@@ -571,7 +763,7 @@ object EditorFrame: TEditorFrame
       object BrushExtraSoft: TRectangle
         Tag = 3
         Cursor = crHandPoint
-        Fill.Color = claWhite
+        Fill.Color = xFF0B2433
         Hint = 'Extra weich'
         Margins.Left = 3.000000000000000000
         Margins.Top = 3.000000000000000000
@@ -582,7 +774,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 44.000000000000000000
         Size.Height = 44.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 6.000000000000000000
         YRadius = 6.000000000000000000
         ParentShowHint = False
@@ -592,7 +784,7 @@ object EditorFrame: TEditorFrame
       object BrushElongated: TRectangle
         Tag = 2
         Cursor = crHandPoint
-        Fill.Color = claWhite
+        Fill.Color = xFF0B2433
         Hint = 'L'#228'nglich'
         Margins.Left = 3.000000000000000000
         Margins.Top = 3.000000000000000000
@@ -603,7 +795,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 44.000000000000000000
         Size.Height = 44.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 6.000000000000000000
         YRadius = 6.000000000000000000
         ParentShowHint = False
@@ -613,18 +805,17 @@ object EditorFrame: TEditorFrame
     end
     object BrushLabel: TLabel
       Align = Top
-      StyledSettings = [Family, FontColor]
+      StyledSettings = [Family]
       Margins.Left = 8.000000000000000000
-      Margins.Top = 8.000000000000000000
+      Margins.Top = 10.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 380.000000000000000000
-      Size.Width = 228.000000000000000000
-      Size.Height = 24.000000000000000000
+      Size.Width = 224.000000000000000000
+      Size.Height = 20.000000000000000000
       Size.PlatformDefault = False
-      TextSettings.Font.Size = 15.000000000000000000
+      TextSettings.Font.Size = 12.000000000000000000
       TextSettings.Font.StyleExt = {00070000000000000004000000}
-      Text = 'Pinselgr'#246#223'e'
+      TextSettings.FontColor = xFF35D6C8
+      Text = 'PINSELGR'#214#223'E'
       TabOrder = 6
     end
     object BrushSize: TTrackBar
@@ -636,56 +827,93 @@ object EditorFrame: TEditorFrame
       Margins.Left = 8.000000000000000000
       Margins.Top = 4.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 408.000000000000000000
-      Size.Width = 228.000000000000000000
-      Size.Height = 19.000000000000000000
+      Size.Width = 224.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 7
       Value = 14.000000000000000000
     end
-    object EraserBtn: TButton
+    object EraserBtn: TRectangle
       Align = Top
+      Cursor = crHandPoint
+      Fill.Color = x2978A0C8
       Margins.Left = 8.000000000000000000
-      Margins.Top = 8.000000000000000000
+      Margins.Top = 12.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 435.000000000000000000
-      Size.Width = 228.000000000000000000
-      Size.Height = 38.000000000000000000
+      Size.Width = 224.000000000000000000
+      Size.Height = 36.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 8
-      Text = 'Radierer'
+      Stroke.Color = x2E78C8E6
+      XRadius = 10.000000000000000000
+      YRadius = 10.000000000000000000
       OnClick = EraserClick
+      object EraserBtnLbl: TLabel
+        Align = Client
+        StyledSettings = [Family]
+        Size.Width = 224.000000000000000000
+        Size.Height = 36.000000000000000000
+        Size.PlatformDefault = False
+        TextSettings.Font.Size = 14.000000000000000000
+        TextSettings.Font.StyleExt = {00070000000000000004000000}
+        TextSettings.FontColor = xFFEAF4F8
+        TextSettings.HorzAlign = Center
+        Text = 'Radierer'
+      end
     end
-    object ClearBtn: TButton
+    object ClearBtn: TRectangle
       Align = Top
+      Cursor = crHandPoint
+      Fill.Color = x2978A0C8
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 481.000000000000000000
-      Size.Width = 228.000000000000000000
-      Size.Height = 38.000000000000000000
+      Size.Width = 224.000000000000000000
+      Size.Height = 36.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 9
-      Text = 'Leeren'
+      Stroke.Color = x2E78C8E6
+      XRadius = 10.000000000000000000
+      YRadius = 10.000000000000000000
       OnClick = ClearClick
+      object ClearBtnLbl: TLabel
+        Align = Client
+        StyledSettings = [Family]
+        Size.Width = 224.000000000000000000
+        Size.Height = 36.000000000000000000
+        Size.PlatformDefault = False
+        TextSettings.Font.Size = 14.000000000000000000
+        TextSettings.Font.StyleExt = {00070000000000000004000000}
+        TextSettings.FontColor = xFFEAF4F8
+        TextSettings.HorzAlign = Center
+        Text = 'Leeren'
+      end
     end
-    object AcceptBtn: TButton
+    object AcceptBtn: TRectangle
       Align = MostBottom
+      Cursor = crHandPoint
+      Fill.Color = xFF35D6C8
       Margins.Left = 8.000000000000000000
       Margins.Top = 8.000000000000000000
       Margins.Right = 8.000000000000000000
-      Margins.Bottom = 8.000000000000000000
-      Position.X = 16.000000000000000000
-      Position.Y = 594.000000000000000000
-      Size.Width = 228.000000000000000000
-      Size.Height = 38.000000000000000000
+      Margins.Bottom = 6.000000000000000000
+      Size.Width = 224.000000000000000000
+      Size.Height = 42.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 11
-      Text = #220'bernehmen && Speichern'
+      Stroke.Color = xFF35D6C8
+      XRadius = 10.000000000000000000
+      YRadius = 10.000000000000000000
       OnClick = AcceptClick
+      object AcceptBtnLbl: TLabel
+        Align = Client
+        StyledSettings = [Family]
+        Size.Width = 224.000000000000000000
+        Size.Height = 42.000000000000000000
+        Size.PlatformDefault = False
+        TextSettings.Font.Size = 14.000000000000000000
+        TextSettings.Font.StyleExt = {00070000000000000004000000}
+        TextSettings.FontColor = xFF04141F
+        TextSettings.HorzAlign = Center
+        Text = #220'bernehmen und speichern'
+      end
     end
   end
   object CenterPanel: TRectangle
@@ -694,21 +922,19 @@ object EditorFrame: TEditorFrame
     Margins.Left = 8.000000000000000000
     Margins.Top = 8.000000000000000000
     Margins.Right = 8.000000000000000000
-    Margins.Bottom = 16.000000000000000000
-    Size.Width = 612.000000000000000000
-    Size.Height = 648.000000000000000000
+    Margins.Bottom = 24.000000000000000000
+    Size.Width = 588.000000000000000000
+    Size.Height = 640.000000000000000000
     Size.PlatformDefault = False
     Stroke.Kind = None
     Stroke.Thickness = 0.000000000000000000
     object StencilBar: TFlowLayout
       Align = Top
       Margins.Left = 8.000000000000000000
-      Margins.Top = 4.000000000000000000
+      Margins.Top = 0.000000000000000000
       Margins.Right = 8.000000000000000000
-      Margins.Bottom = 4.000000000000000000
-      Position.X = 8.000000000000000000
-      Position.Y = 4.000000000000000000
-      Size.Width = 596.000000000000000000
+      Margins.Bottom = 6.000000000000000000
+      Size.Width = 572.000000000000000000
       Size.Height = 54.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 0
@@ -716,22 +942,22 @@ object EditorFrame: TEditorFrame
       JustifyLastLine = Left
       FlowDirection = LeftToRight
       object StencilLabel: TLabel
-        StyledSettings = [Family, FontColor]
+        Align = None
+        StyledSettings = [Family]
         Margins.Left = 4.000000000000000000
         Margins.Top = 4.000000000000000000
         Margins.Right = 6.000000000000000000
-        Position.X = 4.000000000000000000
-        Position.Y = 4.000000000000000000
-        Size.Width = 96.000000000000000000
+        Size.Width = 104.000000000000000000
         Size.Height = 44.000000000000000000
         Size.PlatformDefault = False
-        TextSettings.Font.Size = 15.000000000000000000
+        TextSettings.Font.Size = 12.000000000000000000
         TextSettings.Font.StyleExt = {00070000000000000004000000}
-        Text = 'Schablonen:'
+        TextSettings.FontColor = xFF35D6C8
+        Text = 'SCHABLONEN'
       end
       object StencilFish: TRectangle
         Cursor = crHandPoint
-        Fill.Color = claWhite
+        Fill.Color = xFF0B2433
         Hint = 'Fisch-Schablone'
         Margins.Left = 3.000000000000000000
         Margins.Top = 3.000000000000000000
@@ -742,7 +968,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 44.000000000000000000
         Size.Height = 44.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 6.000000000000000000
         YRadius = 6.000000000000000000
         ParentShowHint = False
@@ -752,7 +978,7 @@ object EditorFrame: TEditorFrame
       object StencilJelly: TRectangle
         Tag = 1
         Cursor = crHandPoint
-        Fill.Color = claWhite
+        Fill.Color = xFF0B2433
         Hint = 'Quallen-Schablone'
         Margins.Left = 3.000000000000000000
         Margins.Top = 3.000000000000000000
@@ -763,7 +989,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 44.000000000000000000
         Size.Height = 44.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 6.000000000000000000
         YRadius = 6.000000000000000000
         ParentShowHint = False
@@ -773,7 +999,7 @@ object EditorFrame: TEditorFrame
       object StencilPlant: TRectangle
         Tag = 2
         Cursor = crHandPoint
-        Fill.Color = claWhite
+        Fill.Color = xFF0B2433
         Hint = 'Pflanzen-Schablone'
         Margins.Left = 3.000000000000000000
         Margins.Top = 3.000000000000000000
@@ -784,7 +1010,7 @@ object EditorFrame: TEditorFrame
         Size.Width = 44.000000000000000000
         Size.Height = 44.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 6.000000000000000000
         YRadius = 6.000000000000000000
         ParentShowHint = False
@@ -794,7 +1020,7 @@ object EditorFrame: TEditorFrame
       object StencilCoral: TRectangle
         Tag = 3
         Cursor = crHandPoint
-        Fill.Color = claWhite
+        Fill.Color = xFF0B2433
         Hint = 'Korallen-Schablone'
         Margins.Left = 3.000000000000000000
         Margins.Top = 3.000000000000000000
@@ -805,36 +1031,50 @@ object EditorFrame: TEditorFrame
         Size.Width = 44.000000000000000000
         Size.Height = 44.000000000000000000
         Size.PlatformDefault = False
-        Stroke.Color = claGray
+        Stroke.Color = x5578C8E6
         XRadius = 6.000000000000000000
         YRadius = 6.000000000000000000
         ParentShowHint = False
         ShowHint = True
         OnClick = StencilSwatchClick
       end
-      object FreehandBtn: TButton
+      object FreehandBtn: TRectangle
+        Cursor = crHandPoint
+        Fill.Color = x2978A0C8
         Margins.Left = 12.000000000000000000
         Margins.Top = 6.000000000000000000
         Margins.Right = 3.000000000000000000
-        Position.X = 318.000000000000000000
-        Position.Y = 6.000000000000000000
         Size.Width = 104.000000000000000000
         Size.Height = 38.000000000000000000
         Size.PlatformDefault = False
-        Text = 'Freihand'
+        Stroke.Color = x2E78C8E6
+        XRadius = 10.000000000000000000
+        YRadius = 10.000000000000000000
         OnClick = FreehandClick
+        object FreehandBtnLbl: TLabel
+          Align = Client
+          StyledSettings = [Family]
+          Size.Width = 104.000000000000000000
+          Size.Height = 38.000000000000000000
+          Size.PlatformDefault = False
+          TextSettings.Font.Size = 14.000000000000000000
+          TextSettings.Font.StyleExt = {00070000000000000004000000}
+          TextSettings.FontColor = xFFEAF4F8
+          TextSettings.HorzAlign = Center
+          Text = 'Freihand'
+        end
       end
     end
     object CanvasBg: TRectangle
       Align = Center
-      Fill.Color = claWhite
+      Fill.Color = xFFF7FAFB
       Size.Width = 560.000000000000000000
       Size.Height = 560.000000000000000000
       Size.PlatformDefault = False
-      Stroke.Color = x66333333
-      Stroke.Thickness = 8.000000000000000000
-      XRadius = 6.000000000000000000
-      YRadius = 6.000000000000000000
+      Stroke.Color = x6635D6C8
+      Stroke.Thickness = 2.000000000000000000
+      XRadius = 14.000000000000000000
+      YRadius = 14.000000000000000000
       object CanvasImage: TImage
         MultiResBitmap = <
           item

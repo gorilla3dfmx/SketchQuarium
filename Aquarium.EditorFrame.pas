@@ -28,7 +28,7 @@ uses
   FMX.Types3D, FMX.Controls3D,
   Gorilla.Viewport, Gorilla.Mesh, Gorilla.Model, Gorilla.DefTypes, Gorilla.Control,
   Gorilla.Terrain, Gorilla.Utils.Inventory,
-  Aquarium.Elements, Aquarium.Placement;
+  Aquarium.Elements, Aquarium.Placement, Aquarium.Theme;
 
 type
   /// <summary>Eine aus einer SVG-Datei geladene Schablonen-Vorlage.</summary>
@@ -39,18 +39,33 @@ type
   end;
 
   TEditorFrame = class(TFrame)
+    Backdrop: TRectangle;
     HeaderLabel: TLabel;
+    HeaderAccent: TRectangle;
     LeftPanel: TRectangle;
     LeftHeader: TLabel;
-    PlaceBtn: TButton;
-    EditBtn: TButton;
-    UpdateBtn: TButton;
-    DeleteBtn: TButton;
-    CloseBtn: TButton;
+    CloseBtn: TRectangle;
+    CloseBtnLbl: TLabel;
+    DeleteBtn: TRectangle;
+    DeleteBtnLbl: TLabel;
+    UpdateBtn: TRectangle;
+    UpdateBtnLbl: TLabel;
+    EditBtn: TRectangle;
+    EditBtnLbl: TLabel;
+    PlaceBtn: TRectangle;
+    PlaceBtnLbl: TLabel;
     ElementsList: TListBox;
     RightPanel: TRectangle;
     ArtLabel: TLabel;
-    KindCombo: TComboBox;
+    KindRow: TFlowLayout;
+    KindFish: TRectangle;
+    KindFishLbl: TLabel;
+    KindJelly: TRectangle;
+    KindJellyLbl: TLabel;
+    KindPlant: TRectangle;
+    KindPlantLbl: TLabel;
+    KindCoral: TRectangle;
+    KindCoralLbl: TLabel;
     NameLabel: TLabel;
     NameEdit: TEdit;
     ColorLabel: TLabel;
@@ -77,9 +92,12 @@ type
     BrushElongated: TRectangle;
     BrushLabel: TLabel;
     BrushSize: TTrackBar;
-    EraserBtn: TButton;
-    ClearBtn: TButton;
-    AcceptBtn: TButton;
+    EraserBtn: TRectangle;
+    EraserBtnLbl: TLabel;
+    ClearBtn: TRectangle;
+    ClearBtnLbl: TLabel;
+    AcceptBtn: TRectangle;
+    AcceptBtnLbl: TLabel;
     CenterPanel: TRectangle;
     StencilBar: TFlowLayout;
     StencilLabel: TLabel;
@@ -87,7 +105,8 @@ type
     StencilJelly: TRectangle;
     StencilPlant: TRectangle;
     StencilCoral: TRectangle;
-    FreehandBtn: TButton;
+    FreehandBtn: TRectangle;
+    FreehandBtnLbl: TLabel;
     CanvasBg: TRectangle;
     CanvasImage: TImage;
 
@@ -106,6 +125,7 @@ type
     procedure EraserClick(Sender: TObject);
     procedure ClearClick(Sender: TObject);
     procedure AcceptClick(Sender: TObject);
+    procedure KindChipClick(Sender: TObject);
 
     // Bibliotheksaktionen
     procedure PlaceClick(Sender: TObject);
@@ -145,7 +165,7 @@ type
     FStencils        : TList<TStencilItem>;  // alle geladenen Vorlagen (nach Art)
     FStencilSwatches : TList<TRectangle>;    // dynamische Felder der aktuellen Art
     FSvgBrush        : TSkSvgBrush;          // Skia-Renderer fuer die SVGs
-    FUpdatingKind    : Boolean;          // unterdrueckt KindCombo.OnChange-Reentrancy
+    FKind            : TAquariumKind;    // gewaehlte Art (Chips im rechten Panel)
 
     // Zustand fuer den weichen Pinsel: ein Schnappschuss des Bildes zu
     // Strichbeginn plus ein Deckungspuffer. So laesst sich der Strich aus der
@@ -176,7 +196,10 @@ type
     procedure ActivateStencil(AIndex: Integer; ASwatch: TRectangle);
     procedure DeactivateStencil();
     procedure ApplyStencilClip(const A, B: TPointF);
-    procedure KindComboChange(Sender: TObject);
+    procedure SetKind(AKind: TAquariumKind; ARebuildStencils: Boolean);
+    procedure SetEraser(AActive: Boolean);
+    procedure ApplyTheme();
+    procedure ElementsListChange(Sender: TObject);
 
     function  ImageToBitmap(const APt: TPointF): TPointF;
     procedure StrokeTo(const APt: TPointF);
@@ -222,12 +245,18 @@ const
   CANVAS_PX = 600;   // Pixelaufloesung der Zeichenflaeche (quadratisch)
 
   // Rahmen der anklickbaren Felder (Farben + Pinsel)
-  SWATCH_STROKE_DEF = TAlphaColor($FF808080);   // Standardrahmen (grau)
-  SWATCH_STROKE_SEL = TAlphaColor($FF2196F3);   // Auswahlrahmen (kraeftiges Blau)
+  SWATCH_STROKE_DEF = AQ_LINE_HI;   // Standardrahmen (feine helle Kante)
+  SWATCH_STROKE_SEL = AQ_TEAL;      // Auswahlrahmen (Tuerkis)
   SWATCH_THICK_DEF  = 1.0;
   SWATCH_THICK_SEL  = 3.0;
 
-  PREVIEW_INK = TAlphaColor($FF20272E);          // Vorschaufarbe der Pinselstempel
+  SWATCH_FILL = AQ_FIELD;           // Hintergrund der Pinsel-/Schablonenfelder
+  PREVIEW_INK = AQ_INK;             // Vorschaufarbe der Pinselstempel (hell auf dunkel)
+
+  // Listeneintraege: dezente Karte, gewaehlt mit tuerkiser Kante
+  ITEM_FILL       = TAlphaColor($0BFFFFFF);
+  ITEM_FILL_SEL   = AQ_BTN_TEAL;
+  ITEM_STROKE_SEL = AQ_TEAL;
 
   // Weicher Pinsel: etwas groesser als die eingestellte Groesse und mit einem
   // voll deckenden Kern, damit die Mitte fuelliger wirkt.
@@ -276,6 +305,7 @@ begin
   FBrushType    := 0;
   FEraser       := False;
 
+  ApplyTheme();
   ClearCanvas();
   RefreshElementsList();
 
@@ -322,10 +352,26 @@ begin
   StencilCoral.Parent := nil;
 
   // SVG-Vorlagen laden und die Leiste fuer die aktuell gewaehlte Art aufbauen.
-  // Ein Wechsel der Art (KindCombo) baut die Leiste neu auf.
+  // Ein Wechsel der Art (Chips) baut die Leiste neu auf.
   LoadStencils();
-  KindCombo.OnChange := KindComboChange;
-  RebuildStencilBar(TAquariumKind(Max(0, KindCombo.ItemIndex)));
+  SetKind(akFish, False);
+  RebuildStencilBar(FKind);
+end;
+
+// Ergaenzt das zur Entwurfszeit gesetzte dunkle Aussehen um das, was sich im
+// Designer nicht einstellen laesst (Hover-Effekte, Standard-Controls).
+procedure TEditorFrame.ApplyTheme();
+var LBtn : TRectangle;
+begin
+  for LBtn in [PlaceBtn, EditBtn, UpdateBtn, DeleteBtn, CloseBtn,
+               EraserBtn, ClearBtn, AcceptBtn, FreehandBtn,
+               KindFish, KindJelly, KindPlant, KindCoral] do
+    TAquaTheme.AttachHover(LBtn);
+
+  TAquaTheme.SkinEdit(NameEdit);
+  TAquaTheme.SkinTrackBar(BrushSize);
+  TAquaTheme.SkinListBox(ElementsList);
+  ElementsList.OnChange := ElementsListChange;
 end;
 
 destructor TEditorFrame.Destroy();
@@ -356,6 +402,7 @@ var
   i     : Integer;
   LTpl  : TGorillaInventoryItemTemplate;
   LItem : TListBoxItem;
+  LCard : TRectangle;
   LBg   : TRectangle;
   LImg  : TImage;
   LLbl  : TLabel;
@@ -370,18 +417,29 @@ begin
 
       LItem := TListBoxItem.Create(ElementsList);
       LItem.Parent := ElementsList;
-      LItem.Height := 56;
+      LItem.Height := 60;
       LItem.Text := '';   // eigene Inhalte statt Standardtext
+
+      // Karte als Eintragshintergrund (Auswahl -> ElementsListChange)
+      LCard := TRectangle.Create(LItem);
+      LCard.Parent := LItem;
+      LCard.Align := TAlignLayout.Contents;
+      LCard.Margins.Rect := RectF(2, 2, 2, 2);
+      LCard.Fill.Color := ITEM_FILL;
+      LCard.Stroke.Color := AQ_LINE;
+      LCard.XRadius := 10; LCard.YRadius := 10;
+      LCard.HitTest := False;
+      LItem.TagObject := LCard;
 
       // heller Hintergrund, damit transparente Zeichnungen sichtbar sind
       LBg := TRectangle.Create(LItem);
       LBg.Parent := LItem;
       LBg.Align := TAlignLayout.Left;
-      LBg.Width := 52;
-      LBg.Margins.Rect := RectF(2, 2, 6, 2);
-      LBg.Fill.Color := TAlphaColorRec.White;
-      LBg.Stroke.Color := $33555555;
-      LBg.XRadius := 3; LBg.YRadius := 3;
+      LBg.Width := 48;
+      LBg.Margins.Rect := RectF(8, 6, 8, 6);
+      LBg.Fill.Color := $FFF7FAFB;
+      LBg.Stroke.Kind := TBrushKind.None;
+      LBg.XRadius := 8; LBg.YRadius := 8;
       LBg.HitTest := False;
 
       LImg := TImage.Create(LItem);
@@ -399,13 +457,41 @@ begin
       LLbl.Align := TAlignLayout.Client;
       LLbl.Margins.Rect := RectF(4, 0, 4, 0);
       LLbl.HitTest := False;
-      LLbl.StyledSettings := LLbl.StyledSettings - [TStyledSetting.Size];
+      LLbl.StyledSettings := LLbl.StyledSettings
+        - [TStyledSetting.Size, TStyledSetting.FontColor];
       LLbl.TextSettings.Font.Size := 14;
+      LLbl.TextSettings.FontColor := AQ_INK;
       LLbl.Text := AQUARIUM_KIND_NAMES[AquariumTemplateKind(LTpl)] + ': ' +
                    AquariumTemplateName(LTpl);
     end;
   finally
     ElementsList.EndUpdate();
+  end;
+  ElementsListChange(ElementsList);
+end;
+
+// Hebt den gewaehlten Listeneintrag hervor (die Bitmap-Markierung des
+// Windows-Stils ist im dunklen Theme ausgeblendet).
+procedure TEditorFrame.ElementsListChange(Sender: TObject);
+var
+  i     : Integer;
+  LCard : TRectangle;
+begin
+  for i := 0 to ElementsList.Count - 1 do
+  begin
+    if not (ElementsList.ListItems[i].TagObject is TRectangle) then
+      Continue;
+    LCard := TRectangle(ElementsList.ListItems[i].TagObject);
+    if i = ElementsList.ItemIndex then
+    begin
+      LCard.Fill.Color := ITEM_FILL_SEL;
+      LCard.Stroke.Color := ITEM_STROKE_SEL;
+    end
+    else
+    begin
+      LCard.Fill.Color := ITEM_FILL;
+      LCard.Stroke.Color := AQ_LINE;
+    end;
   end;
 end;
 
@@ -642,7 +728,7 @@ begin
     LSw.Width := 44;
     LSw.Height := 44;
     LSw.Margins.Rect := RectF(3, 3, 3, 3);
-    LSw.Fill.Color := TAlphaColorRec.White;
+    LSw.Fill.Color := SWATCH_FILL;
     LSw.Stroke.Color := SWATCH_STROKE_DEF;
     LSw.Stroke.Thickness := SWATCH_THICK_DEF;
     LSw.XRadius := 6;
@@ -757,24 +843,46 @@ begin
   end;
 
   // Art synchronisieren - ohne die Leiste neu aufzubauen (gleiche Art).
-  FUpdatingKind := True;
-  try
-    KindCombo.ItemIndex := Ord(FStencils[AIndex].Kind);
-  finally
-    FUpdatingKind := False;
-  end;
+  SetKind(FStencils[AIndex].Kind, False);
 
-  FEraser := False;
-  EraserBtn.Text := 'Radierer';
+  SetEraser(False);
 end;
 
-// Wechsel der Art: aktive Schablone loesen und die Leiste neu aufbauen.
-procedure TEditorFrame.KindComboChange(Sender: TObject);
+// Setzt die gewaehlte Art und markiert den passenden Chip. Bei einem echten
+// Wechsel (und ARebuildStencils) wird die aktive Schablone geloest und die
+// Schablonenleiste fuer die neue Art aufgebaut.
+procedure TEditorFrame.SetKind(AKind: TAquariumKind; ARebuildStencils: Boolean);
+var
+  LChanged : Boolean;
+  LChip    : TRectangle;
 begin
-  if FUpdatingKind then
-    Exit;
-  DeactivateStencil();
-  RebuildStencilBar(TAquariumKind(Max(0, KindCombo.ItemIndex)));
+  LChanged := (AKind <> FKind);
+  FKind := AKind;
+
+  for LChip in [KindFish, KindJelly, KindPlant, KindCoral] do
+    TAquaTheme.SetChip(LChip, LChip.Tag = Ord(AKind));
+
+  if ARebuildStencils and LChanged then
+  begin
+    DeactivateStencil();
+    RebuildStencilBar(FKind);
+  end;
+end;
+
+// Klick auf einen Art-Chip (Tag = Ord(TAquariumKind)).
+procedure TEditorFrame.KindChipClick(Sender: TObject);
+begin
+  SetKind(TAquariumKind((Sender as TRectangle).Tag), True);
+end;
+
+procedure TEditorFrame.SetEraser(AActive: Boolean);
+begin
+  FEraser := AActive;
+  TAquaTheme.SetToggle(EraserBtn, AActive, AQ_BTN_AMBER, AQ_AMBER);
+  if AActive then
+    EraserBtnLbl.Text := 'Radierer (aktiv)'
+  else
+    EraserBtnLbl.Text := 'Radierer';
 end;
 
 procedure TEditorFrame.DeactivateStencil();
@@ -1187,15 +1295,13 @@ end;
 procedure TEditorFrame.ColorSwatchClick(Sender: TObject);
 begin
   SelectColorSwatch(Sender as TRectangle);
-  FEraser := False;
-  EraserBtn.Text := 'Radierer';
+  SetEraser(False);
 end;
 
 procedure TEditorFrame.BrushSwatchClick(Sender: TObject);
 begin
   SelectBrushSwatch(Sender as TRectangle);
-  FEraser := False;
-  EraserBtn.Text := 'Radierer';
+  SetEraser(False);
 end;
 
 procedure TEditorFrame.StencilSwatchClick(Sender: TObject);
@@ -1212,11 +1318,7 @@ end;
 
 procedure TEditorFrame.EraserClick(Sender: TObject);
 begin
-  FEraser := not FEraser;
-  if FEraser then
-    EraserBtn.Text := 'Radierer (aktiv)'
-  else
-    EraserBtn.Text := 'Radierer';
+  SetEraser(not FEraser);
 end;
 
 procedure TEditorFrame.ClearClick(Sender: TObject);
@@ -1227,17 +1329,12 @@ end;
 procedure TEditorFrame.AcceptClick(Sender: TObject);
 var LKind : TAquariumKind;
 begin
-  if KindCombo.ItemIndex < 0 then
-  begin
-    ShowMessage('Bitte zuerst eine Art waehlen.');
-    Exit;
-  end;
-
-  LKind := TAquariumKind(KindCombo.ItemIndex);
+  LKind := FKind;
   FLibrary.AddDrawing(LKind, NameEdit.Text, CanvasImage.Bitmap);
 
   RefreshElementsList();
   ElementsList.ItemIndex := ElementsList.Count - 1;
+  ElementsListChange(ElementsList);
 
   // Fuer die naechste Zeichnung aufraeumen
   ClearCanvas();
@@ -1285,7 +1382,7 @@ begin
   // Gewaehlte Vorlage in den Editor laden
   DeactivateStencil();   // geladene Zeichnung frei bearbeitbar machen
   LTpl := FLibrary.GetTemplate(ElementsList.ItemIndex);
-  KindCombo.ItemIndex := Ord(AquariumTemplateKind(LTpl));
+  SetKind(AquariumTemplateKind(LTpl), True);
   NameEdit.Text := AquariumTemplateName(LTpl);
   if (CanvasImage.Bitmap.Width <> CANVAS_PX) then
     CanvasImage.Bitmap.SetSize(CANVAS_PX, CANVAS_PX);
@@ -1309,14 +1406,12 @@ begin
   end;
 
   LTpl := FLibrary.GetTemplate(LIdx);
-  if KindCombo.ItemIndex < 0 then
-    LKind := AquariumTemplateKind(LTpl)
-  else
-    LKind := TAquariumKind(KindCombo.ItemIndex);
+  LKind := FKind;
 
   FLibrary.UpdateDrawing(LTpl, LKind, NameEdit.Text, CanvasImage.Bitmap);
   RefreshElementsList();
   ElementsList.ItemIndex := LIdx;
+  ElementsListChange(ElementsList);
 end;
 
 procedure TEditorFrame.DeleteClick(Sender: TObject);

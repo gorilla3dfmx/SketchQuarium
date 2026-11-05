@@ -308,6 +308,7 @@
             <Form>Form1</Form>
         </DCCReference>
         <DCCReference Include="Aquarium.Elements.pas"/>
+        <DCCReference Include="Aquarium.Theme.pas"/>
         <DCCReference Include="Aquarium.EditorFrame.pas">
             <Form>EditorFrame</Form>
             <DesignClass>TFrame</DesignClass>
