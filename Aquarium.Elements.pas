@@ -838,12 +838,8 @@ begin
   // Element nicht aus dem Stand "anschwimmen" muss.
   if FKind in [akFish, akJellyfish] then
   begin
-    // Fische/Quallen frei im Z verteilen - so liegt nicht alles auf einer Ebene.
-    if Assigned(FModel) then
-    begin
-      FModel.Position.Z := TANK_MIN_Z + Random * (TANK_MAX_Z - TANK_MIN_Z);
-      FBasePos := FModel.Position.Point;
-    end;
+    // Position bleibt exakt am Klickpunkt (Z = 0). Die Verteilung in die
+    // Tiefe ergibt sich danach durch das Schwimmen (FWanderDir hat Z-Anteil).
     FWanderDir := RandomUnit3D();
     if FKind = akFish then
       FVelocity := FWanderDir * (FMaxSpeed * 0.5)

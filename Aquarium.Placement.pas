@@ -350,7 +350,9 @@ begin
     if RayPlaneHit(LOrigin, LDir, 2, 0.0, Result) then
     begin
       Result.X := Max(-9.0, Min(9.0, Result.X));
-      Result.Y := Max( 3.0, Min(7.0, Result.Y));
+      // Obergrenze = TANK_MAX_Y (Aquarium.Elements), sonst springt das
+      // Element beim Loslassen durch den Tank-Clamp in ApplyMotion.
+      Result.Y := Max( 3.0, Min(6.3, Result.Y));
       Result.Z := 0;
     end
     else
@@ -389,6 +391,8 @@ end;
 
 procedure TAquariumPlacement.ViewportMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+var
+  LPos : TPoint3D;
 begin
   if not Assigned(FPreview) then
     Exit;
@@ -396,9 +400,13 @@ begin
   case Button of
     TMouseButton.mbLeft:
       begin
+        // Zielpunkt nur einmal berechnen (Raycast) - gilt fuer das platzierte
+        // Element und die neue Vorschau (gleiche Vorlage, gleiche Groesse).
+        LPos := MouseToTankPoint(PointF(X, Y));
+
         // Vorschau an aktueller Stelle "festsetzen" (taut auf -> beginnt zu
         // schwimmen/schwingen) und sofort eine neue Vorschau erzeugen.
-        FPreview.SetBasePosition(MouseToTankPoint(PointF(X, Y)));
+        FPreview.SetBasePosition(LPos);
         FPreview.Frozen := False;
 
         FPreview := FScene.Spawn(FPlacingTemplate);
@@ -406,7 +414,7 @@ begin
         begin
           FPreview.Frozen := True;
           FPreview.SetSizeScale(FPlaceScale);   // gewaehlte Groesse beibehalten
-          FPreview.SetBasePosition(MouseToTankPoint(PointF(X, Y)));
+          FPreview.SetBasePosition(LPos);
         end
         else
           Stop();
