@@ -126832,7 +126832,7 @@ object Form1: TForm1
     Top = 16
   end
   object GorillaRenderPassUnderwater1: TGorillaRenderPassUnderwater
-    Enabled = False
+    Enabled = True
     Id = 'GorillaRenderPassUnderwater1'
     _Type = Post
     Method = RectToFBO
@@ -126990,7 +126990,7 @@ object Form1: TForm1
             AssetClassName = 'TGorillaSkillsAsset'
           end>
         Filename = 
-          'E:\delphi\projects\wax\lib\gorilla\github\SketchQuarium\package.' +
+          'C:\delphi\projects\wax\lib\gorilla\github\SketchQuarium\package.' +
           'zip'
       end>
     Left = 144
