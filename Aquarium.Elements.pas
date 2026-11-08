@@ -122,6 +122,7 @@ type
   TSpawnedElement = class
   private
     FModel     : TGorillaModel;
+    FDef       : TModelDef;     // geteiltes ModelDef, aus dem FModel gebaut wurde (gehoert der Szene)
     FKind      : TAquariumKind;
     FCollectable : TGorillaInventoryCollectable; // Inventar-Instanz dieser Vorlage
     FSpeciesId : String;        // Identitaet fuer Schwarmbildung (gleiche Zeichnung)
@@ -221,7 +222,14 @@ type
   private
     FViewport  : TGorillaViewport;
     FOwner     : TComponent;
+    // ModelDef-Cache: ein Def je Vorlage (Template-Id), geteilt von allen
+    // Instanzen dieser Vorlage. Die Models sind NICHT Eigentuemer
+    // (IsDefOwner = False) - die Szene gibt die Defs selbst frei.
     FModelDefs : TDictionary<String, TModelDef>;
+    // Aus dem Cache genommene Defs (Vorlage geaendert/geloescht), die noch von
+    // platzierten Instanzen benutzt werden. Freigabe, sobald die letzte
+    // Instanz entfernt wird (bzw. spaetestens im Destruktor).
+    FRetiredDefs : TList<TModelDef>;
     FItems     : TObjectList<TSpawnedElement>;
     FPhysicsSystem : TGorillaPhysicsSystem;
     FFood      : TObjectList<TFoodPellet>;
@@ -232,11 +240,11 @@ type
     FOnSpawnedFoodPellet : TOnSpawnedFoodPelletEvent;
 
     /// <summary>
-    ///  Baut ein frisches ModelDef (Quad-Mesh, texturiertes Material und
-    ///  Eigen-Animation). Die gezeichnete Textur wird direkt ins Material-Def
-    ///  gelegt; das Materialisieren erzeugt daraus automatisch die MaterialSource.
-    ///  Das Eigentum am Def geht an das TGorillaModel ueber (gibt es selbst frei)
-    ///  -> daher pro Spawn neu.
+    ///  Liefert das ModelDef einer Vorlage (Quad-Mesh, texturiertes Material und
+    ///  Eigen-Animation) aus dem Cache oder baut es neu. Die gezeichnete Textur
+    ///  wird direkt ins Material-Def gelegt; das Materialisieren erzeugt daraus
+    ///  automatisch die MaterialSource. Das Def gehoert der Szene (FModelDefs)
+    ///  und wird von allen Instanzen der Vorlage geteilt.
     /// </summary>
     function BuildModelDef(const AName: String; AKind: TAquariumKind;
       ABitmap: TBitmap): TModelDef;
@@ -254,6 +262,11 @@ type
     /// </summary>
     function SpawnFromCollectable(
       ACollectable: TGorillaInventoryCollectable): TSpawnedElement;
+
+    /// <summary>True, wenn noch eine platzierte Instanz ADef benutzt.</summary>
+    function  IsDefInUse(ADef: TModelDef): Boolean;
+    /// <summary>Gibt ein ausgemustertes Def frei, sobald es niemand mehr nutzt.</summary>
+    procedure ReleaseRetiredDef(ADef: TModelDef);
 
     /// <summary>Stellt das gemeinsame Futter-Material her (einmalig).</summary>
     procedure EnsureFoodMaterial();
@@ -304,6 +317,14 @@ type
 
     /// <summary>Entfernt alle platzierten Elemente (samt ihrer Collectables).</summary>
     procedure ClearScene();
+
+    /// <summary>
+    ///  Verwirft das gecachte ModelDef einer Vorlage (nach Aktualisieren oder
+    ///  Loeschen der Zeichnung). Neue Instanzen bauen danach ein frisches Def
+    ///  mit der aktuellen Textur; das alte wird freigegeben, sobald keine
+    ///  platzierte Instanz es mehr benutzt.
+    /// </summary>
+    procedure InvalidateModelDef(const ATemplateId: String);
 
     /// <summary>
     ///  Schreibt Position und Groesse jeder platzierten Instanz in die Parameter
@@ -1029,6 +1050,7 @@ begin
   FPhysicsSystem := APhysics;
   FOwner    := AOwner;
   FModelDefs := TDictionary<String, TModelDef>.Create();
+  FRetiredDefs := TList<TModelDef>.Create();
   FItems    := TObjectList<TSpawnedElement>.Create(True);
   FFood     := TObjectList<TFoodPellet>.Create(True);
   FLastTime := -1;
@@ -1036,11 +1058,10 @@ begin
 end;
 
 destructor TAquariumScene.Destroy();
-var i : Integer;
+var
+  i    : Integer;
+  LDef : TModelDef;
 begin
-  // Die ModelDefs gehoeren nach dem Materialisieren den jeweiligen Models und
-  // werden von diesen freigegeben - hier nichts zu tun.
-
   // Futterkugeln zuerst aus der Szene loesen (Models gehoeren dem Owner).
   for i := 0 to FFood.Count - 1 do
     if Assigned(FFood[i].FModel) then
@@ -1051,8 +1072,27 @@ begin
     end;
   FFood.Free();
 
+  // Platzierte Models freigeben, BEVOR ihre (geteilten) Defs freigegeben
+  // werden. Die Models gehoeren zwar FOwner, wuerden von diesem aber erst
+  // nach der Szene zerstoert - ein Model darf sein Def nicht ueberleben.
+  // Collectables werden hier bewusst NICHT abgeworfen (Inventar unveraendert).
+  for i := 0 to FItems.Count - 1 do
+    if Assigned(FItems[i].FModel) then
+    begin
+      FItems[i].FModel.Parent := nil;
+      FItems[i].FModel.Free();
+      FItems[i].FModel := nil;
+    end;
   FItems.Free();
+
+  // Die Models sind keine Def-Eigentuemer (IsDefOwner = False) -> die Szene
+  // gibt alle gecachten und ausgemusterten Defs selbst frei.
+  for LDef in FModelDefs.Values do
+    LDef.Free();
   FModelDefs.Free();
+  for LDef in FRetiredDefs do
+    LDef.Free();
+  FRetiredDefs.Free();
   // FFoodMat gehoert FOwner und wird von diesem freigegeben.
 
   inherited;
@@ -1236,6 +1276,7 @@ begin
 
   LSpawn := TSpawnedElement.Create();
   LSpawn.FModel     := LModel;
+  LSpawn.FDef       := LDef;
   LSpawn.FKind      := LKind;
   LSpawn.FSpeciesId := ATemplate.Id;    // Schwarm bilden nur Fische gleicher Vorlage
   LSpawn.FBaseW     := AQUARIUM_BASE_W[LKind];
@@ -1245,9 +1286,8 @@ begin
   LSpawn.FMaxSpeed  := FISH_MAX_SPEED * (0.8 + Random * 0.4);
   LSpawn.ApplyScale();
 
-  // Eigen-Animation starten. Wichtig: Das treibende Skeleton muss auf Loop
-  // gesetzt werden - sonst laeuft die Animation nur einmal ueber ihre Dauer
-  // und bleibt dann stehen (der Interpolator-Loop allein genuegt nicht).
+  // Eigen-Animation starten ('self' = ruhiges Wabbeln). Der Loop kommt aus
+  // dem Interpolator-Def (LInter.Loop := True in BuildModelDef).
   if Assigned(LModel.AnimationManager)
   and (LModel.AnimationManager.Animations.Count > 0) then
   begin
@@ -1350,6 +1390,7 @@ begin
 end;
 
 procedure TAquariumScene.Remove(ASpawn: TSpawnedElement);
+var LDef : TModelDef;
 begin
   if not Assigned(ASpawn) then
     Exit;
@@ -1362,8 +1403,8 @@ begin
   end;
 
   // Das Model wird vom Formular (FOwner) verwaltet; explizites Freigeben
-  // entfernt es aus der Szene und gibt sein ModelDef (inkl. Material/Textur)
-  // mit frei.
+  // entfernt es aus der Szene. Sein ModelDef bleibt erhalten - es ist
+  // geteilt und gehoert der Szene (IsDefOwner = False).
   if Assigned(ASpawn.FModel) then
   begin
     ASpawn.FModel.Parent := nil;
@@ -1371,7 +1412,43 @@ begin
     ASpawn.FModel := nil;
   end;
 
+  LDef := ASpawn.FDef;
   FItems.Remove(ASpawn);   // OwnsObjects -> gibt nur das Wrapper-Objekt frei
+
+  // War das die letzte Instanz einer geaenderten/geloeschten Vorlage?
+  ReleaseRetiredDef(LDef);
+end;
+
+function TAquariumScene.IsDefInUse(ADef: TModelDef): Boolean;
+var i : Integer;
+begin
+  for i := 0 to FItems.Count - 1 do
+    if FItems[i].FDef = ADef then
+      Exit(True);
+  Result := False;
+end;
+
+procedure TAquariumScene.ReleaseRetiredDef(ADef: TModelDef);
+begin
+  if not Assigned(ADef) or not FRetiredDefs.Contains(ADef) then
+    Exit;   // nicht ausgemustert (noch im Cache) -> bleibt erhalten
+  if IsDefInUse(ADef) then
+    Exit;
+  FRetiredDefs.Remove(ADef);
+  ADef.Free();
+end;
+
+procedure TAquariumScene.InvalidateModelDef(const ATemplateId: String);
+var LDef : TModelDef;
+begin
+  if not FModelDefs.TryGetValue(ATemplateId, LDef) then
+    Exit;
+  FModelDefs.Remove(ATemplateId);
+
+  if IsDefInUse(LDef) then
+    FRetiredDefs.Add(LDef)     // Freigabe mit der letzten Instanz (Remove)
+  else
+    LDef.Free();
 end;
 
 procedure TAquariumScene.ClearScene();
