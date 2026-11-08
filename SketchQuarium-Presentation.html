@@ -271,7 +271,7 @@
   <div class="body">
     <div class="stack" style="margin-top:6px;">
       <div class="layer L1"><div class="lt">🪟 FMX form</div><div class="ld"><b>Unit1</b> — holds the 3D scene and the 2D toolbar and wires all parts together. The “glue” of the application.</div></div>
-      <div class="layer L2"><div class="lt">🧠 Application logic</div><div class="ld"><b>Aquarium.* units</b> — elements &amp; scene, drawing editor, placement mode, inventory catalog. The hand-written part.</div></div>
+      <div class="layer L2"><div class="lt">🧠 Application logic</div><div class="ld"><b>Aquarium.* units</b> — elements &amp; scene, drawing editor, placement mode, inventory catalog, editor theme. The hand-written part.</div></div>
       <div class="layer L3"><div class="lt">🦍 Gorilla3D engine</div><div class="ld">Viewport, models, materials, render passes, physics, particles, audio, inventory framework — as components &amp; classes.</div></div>
       <div class="layer L4"><div class="lt">⚙️ FireMonkey / RTL</div><div class="ld">Platform foundation: windows, 2D graphics (TBitmap/Skia), timers, file system, math (vectors).</div></div>
     </div>
@@ -333,7 +333,7 @@
       <div class="h-title">Clicking the <span class="accent">stage together</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">05 · Scene</div>
+    <div class="brand">04 · Scene</div>
   </div>
   <div class="body">
     <p class="lead" style="margin-bottom:20px;">The entire base tank is created in the form designer – every entry here is a component from the <b style="color:#eaf4f8">.fmx</b>.</p>
@@ -361,7 +361,7 @@
       <div class="h-title">Effects &amp; passes – <span class="accent">water becomes real</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">06 · Effects</div>
+    <div class="brand">05 · Effects</div>
   </div>
   <div class="body">
     <p class="lead" style="margin-bottom:20px;">The most impressive part is pure composition: you drop render passes and behavior components next to each other and link them via properties.</p>
@@ -372,8 +372,8 @@
       <div class="card"><h3><span class="ic">🌫️</span>Underwater</h3><p><code style="color:var(--amber)">RenderPassUnderwater</code> – depth haze.</p></div>
       <div class="card"><h3><span class="ic">✨</span>Caustics</h3><p><code style="color:var(--amber)">MaterialCausticsBehaviour</code> – dancing light on the floor.</p></div>
       <div class="card"><h3><span class="ic">🫧</span>ParticleEmitter</h3><p><code style="color:var(--amber)">BubbleEmitter</code> – rising air bubbles.</p></div>
-      <div class="card"><h3><span class="ic">🧲</span>PhysicsSystem</h3><p><code style="color:var(--amber)">TGorillaPhysicsSystem</code> (Jolt) – collision.</p></div>
-      <div class="card"><h3><span class="ic">🔊</span>Audio</h3><p><code style="color:var(--amber)">FMODAudioManager</code> + <code style="color:var(--amber)">AudioPlaylist</code> – music &amp; effects.</p></div>
+      <div class="card"><h3><span class="ic">🧲</span>PhysicsSystem</h3><p><code style="color:var(--amber)">TGorillaPhysicsSystem</code> – collision, with Jolt or the embedded Q3.</p></div>
+      <div class="card"><h3><span class="ic">🔊</span>Audio</h3><p><code style="color:var(--amber)">FMODAudioManager</code> (or OpenAL) + <code style="color:var(--amber)">AudioPlaylist</code> – music &amp; effects.</p></div>
     </div>
     <div class="callout" style="margin-top:22px;">
       <b>Key message:</b> This entire look – refracted, reflective water with caustics, bubbles and
@@ -383,11 +383,41 @@
   <div class="pageno">07</div>
 </section>
 
-<!-- ============ SLIDE 8 — DESIGN-TIME: 2D UI ============ -->
+<!-- ============ SLIDE 8 — SWAPPABLE BACKENDS ============ -->
 <section class="slide">
   <div class="head">
     <div>
-      <div class="kicker">Design time · Part 3 &nbsp;<span class="tag design" style="vertical-align:middle">no code</span></div>
+      <div class="kicker">Design time · Part 3 &nbsp;<span class="tag design" style="vertical-align:middle">almost no code</span></div>
+      <div class="h-title">Swappable <span class="accent">backends</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">06 · Backends</div>
+  </div>
+  <div class="body">
+    <p class="lead" style="margin-bottom:18px;">Graphics, physics and audio are exchangeable layers underneath the same components – the scene itself stays unchanged.</p>
+    <div class="grid g3" style="margin-bottom:18px;">
+      <div class="card"><h3><span class="ic">🖥️</span>OpenGL or Vulkan</h3><p>Chosen once in the <b>.dpr</b> via <code style="color:var(--amber)">Gorilla.Context.Backend</code>, before <code style="color:var(--amber)">Application.Initialize</code>. SketchQuarium runs on <b>both</b>; on Win64 &amp; Linux64 it uses <b>Vulkan</b> (needs <code style="color:var(--amber)">shaderc_shared.dll</code>).</p></div>
+      <div class="card"><h3><span class="ic">🧲</span>Jolt or Q3 physics</h3><p><code style="color:var(--amber)">PhysicsSystem.Driver</code> = <code style="color:var(--amber)">JOLTPhysics</code> (native Jolt, <code style="color:var(--amber)">Jolt64.dll</code>) or <code style="color:var(--amber)">Q3Physics</code> (the embedded engine, no extra DLL). The colliders stay the same – it is <b>one property</b> in the Object Inspector.</p></div>
+      <div class="card"><h3><span class="ic">🔊</span>FMOD or OpenAL audio</h3><p><code style="color:var(--amber)">TGorillaFMODAudioManager</code> (<code style="color:var(--amber)">fmodL64.dll</code>) or <code style="color:var(--amber)">TGorillaOpenALManager</code> – both descend from <code style="color:var(--amber)">TGorillaAudioManager</code>. SketchQuarium uses FMOD with an <b>Effects</b> channel group.</p></div>
+    </div>
+    <div class="two" style="grid-template-columns:1.15fr 1fr; gap:24px; flex:0 0 auto;">
+      <pre style="font-size:13.5px;"><span class="cm">// SketchQuarium.dpr — before Application.Initialize</span>
+TGorillaSystem.<span class="fn">ForceToUseNVIDIAorAMDGPU</span>();  <span class="cm">// dedicated GPU</span>
+<span class="kw">{$IF Defined(MSWINDOWS) AND Defined(CPUX64)}</span>
+GorillaGraphicsBackend := <span class="ty">TGorillaGraphicsBackend</span>.gbVulkan;
+<span class="kw">{$ENDIF}</span>
+<span class="cm">// gbDefault / gbOpenGL = OpenGL (platform default)</span></pre>
+      <div class="callout" style="align-self:start;"><b>macOS ARM &amp; Metal:</b> Gorilla3D supports Metal in principle. SketchQuarium itself has <b>not been tested</b> on macOS ARM yet – so no promise from my side, but nothing in the app is Windows-specific by design.</div>
+    </div>
+  </div>
+  <div class="pageno">08</div>
+</section>
+
+<!-- ============ SLIDE 9 — DESIGN-TIME: 2D UI ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Design time · Part 4 &nbsp;<span class="tag design" style="vertical-align:middle">no code</span></div>
       <div class="h-title">The 2D <span class="accent">user interface</span></div>
       <div class="accentbar"></div>
     </div>
@@ -421,12 +451,12 @@
         </div>
       </div>
     </div>
-    <p class="note" style="margin-top:14px;">→ The <i>look</i> of the buttons is clicked together; their <code style="color:var(--amber)">OnClick</code> <i>reaction</i> is code (next chapters).</p>
+    <p class="note" style="margin-top:14px;">→ The <i>look</i> of the buttons is clicked together; their <code style="color:var(--amber)">OnClick</code> <i>reaction</i> is code. The dark “deep sea” editor design lives in the .fmx – <code style="color:var(--amber)">Aquarium.Theme</code> only adds what the designer can't click.</p>
   </div>
-  <div class="pageno">08</div>
+  <div class="pageno">09</div>
 </section>
 
-<!-- ============ SLIDE 9 — TRANSITION TO CODE ============ -->
+<!-- ============ SLIDE 10 — TRANSITION TO CODE ============ -->
 <section class="slide">
   <div class="head">
     <div>
@@ -448,10 +478,10 @@
       From here on we leave the Object Inspector and look into the <b>.pas</b> units – from the unit structure all the way down to mesh, animation and schooling logic.
     </div>
   </div>
-  <div class="pageno">09</div>
+  <div class="pageno">10</div>
 </section>
 
-<!-- ============ SLIDE 10 — CODE ARCHITECTURE / UNITS ============ -->
+<!-- ============ SLIDE 11 — CODE ARCHITECTURE / UNITS ============ -->
 <section class="slide">
   <div class="head">
     <div>
@@ -462,7 +492,7 @@
     <div class="brand">09 · Units</div>
   </div>
   <div class="body">
-    <table class="table">
+    <table class="table" style="font-size:15px;">
       <thead><tr><th style="width:230px;">Unit</th><th>Responsibility</th></tr></thead>
       <tbody>
         <tr><td><b>Unit1</b><br><code>.pas / .fmx</code></td><td>Main form. Creates &amp; wires all parts, owns the <b>animation timer</b>, handles the button clicks and the feeding mode.</td></tr>
@@ -470,22 +500,72 @@
         <tr><td><b>Aquarium.EditorFrame</b></td><td>The drawing editor as a frame: canvas, SVG stencils, color/brush selection, saving the template.</td></tr>
         <tr><td><b>Aquarium.Placement</b></td><td>The placement mode: preview follows the mouse, raycast onto support surfaces, click places, mouse wheel scales.</td></tr>
         <tr><td><b>Aquarium.InventoryUI</b></td><td>The template catalog: renders all drawings as tiles (extension of the Gorilla inventory frame).</td></tr>
+        <tr><td><b>Aquarium.Theme</b></td><td>The editor's dark <b>“deep sea” design</b>: colour constants matching these slides, hover/press effects for the TRectangle buttons, toggle &amp; chip states – and re-skinning of <code>TEdit</code>, <code>TTrackBar</code>, <code>TListBox</code> (style bitmaps replaced by simple shapes in <code>OnPainting</code>).</td></tr>
       </tbody>
     </table>
-    <p class="note" style="margin-top:18px;">→ Clear separation: <b>What</b> (Elements) · <b>Draw</b> (Editor) · <b>Place</b> (Placement) · <b>Select</b> (InventoryUI) · <b>Wire up</b> (Unit1).</p>
+    <p class="note" style="margin-top:18px;">→ Clear separation: <b>What</b> (Elements) · <b>Draw</b> (Editor) · <b>Place</b> (Placement) · <b>Select</b> (InventoryUI) · <b>Style</b> (Theme) · <b>Wire up</b> (Unit1).</p>
   </div>
-  <div class="pageno">10</div>
+  <div class="pageno">11</div>
 </section>
 
-<!-- ============ SLIDE 11 — DETAIL: DRAWING TO MESH ============ -->
+<!-- ============ SLIDE 12 — DETAIL: PAINTING INSIDE THE SHAPE ============ -->
 <section class="slide">
   <div class="head">
     <div>
       <div class="kicker">Detail 1 &nbsp;<span class="tag code" style="vertical-align:middle">programmed</span></div>
+      <div class="h-title">Painting <span class="accent">inside the shape</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">10 · Editor</div>
+  </div>
+  <div class="body">
+    <p class="lead" style="margin-bottom:14px;"><b style="color:#eaf4f8">“How do I colour inside the fish?”</b> Pick a shape, paint freely – the stencil keeps every stroke inside.</p>
+    <div class="flow" style="margin-bottom:18px;">
+      <div class="step"><div class="n">SVG</div><div class="t">SVG stencil</div><div class="d">assets/shapes/&lt;kind&gt;/*.svg – loaded at start, filtered by kind</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">SKIA</div><div class="t">Mask</div><div class="d">rendered white at 600×600 px; alpha → coverage 0..1 per pixel</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">GUIDE</div><div class="t">Contour</div><div class="d">edge pixels of the mask, a TImage on top – never saved</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">STROKE</div><div class="t">Brush + clip</div><div class="d">paint into the bitmap, then cap alpha to the mask</div></div>
+    </div>
+    <div class="two" style="grid-template-columns:1fr 1.05fr; gap:28px;">
+      <div>
+        <div class="colhead">Four brushes, one bitmap</div>
+        <ul class="clean">
+          <li><b>Round</b> – <code style="color:var(--amber)">Canvas.DrawLine</code> with round caps and joins</li>
+          <li><b>Soft / extra soft</b> – smoothstep edge per pixel; a snapshot of the stroke start + a max-coverage buffer → no colour build-up where a stroke crosses itself</li>
+          <li><b>Elongated</b> – rotated ellipse stamps (45° nib) → calligraphic strokes</li>
+          <li><b>Eraser</b> – pixels back to transparent · <b>Freehand</b> = no stencil at all</li>
+        </ul>
+      </div>
+      <div>
+        <pre style="font-size:13.5px;"><span class="cm">// ApplyStencilClip — per pixel in the stroke's box</span>
+m  := FStencilMask[yy * W + xx];      <span class="cm">// 0 outside .. 1 inside</span>
+<span class="kw">if</span> m &gt;= <span class="nu">0.999</span> <span class="kw">then</span> Continue;          <span class="cm">// fully inside: untouched</span>
+px := TAlphaColorRec(LData.<span class="fn">GetPixel</span>(xx, yy));
+ma := <span class="fn">Round</span>(m * <span class="nu">255</span>);
+<span class="kw">if</span> px.A &gt; ma <span class="kw">then</span>                    <span class="cm">// cap, never add → min()</span>
+<span class="kw">begin</span>
+  px.A := ma;
+  LData.<span class="fn">SetPixel</span>(xx, yy, px.Color);
+<span class="kw">end</span>;</pre>
+      </div>
+    </div>
+    <p class="note" style="margin-top:4px;">→ The finished 600×600 bitmap keeps its <b>alpha channel</b>: that transparency becomes the creature's silhouette in 3D (alpha cutout, Detail 3).</p>
+  </div>
+  <div class="pageno">12</div>
+</section>
+
+<!-- ============ SLIDE 13 — DETAIL: DRAWING TO MESH ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Detail 2 &nbsp;<span class="tag code" style="vertical-align:middle">programmed</span></div>
       <div class="h-title">From stroke to <span class="accent">mesh</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">10 · Pipeline</div>
+    <div class="brand">11 · Pipeline</div>
   </div>
   <div class="body">
     <div class="flow" style="margin-bottom:22px;">
@@ -508,18 +588,18 @@ LData.VertexBuffer.Length := (N+<span class="nu">1</span>)*(N+<span class="nu">1
 <span class="kw">end</span>;
 LMesh.<span class="fn">ApplyFromMeshData</span>(LData);</pre>
   </div>
-  <div class="pageno">11</div>
+  <div class="pageno">13</div>
 </section>
 
-<!-- ============ SLIDE 12 — DETAIL: SPRITE MATERIAL ============ -->
+<!-- ============ SLIDE 14 — DETAIL: SPRITE MATERIAL ============ -->
 <section class="slide">
   <div class="head">
     <div>
-      <div class="kicker">Detail 2 &nbsp;<span class="tag code" style="vertical-align:middle">programmed</span></div>
+      <div class="kicker">Detail 3 &nbsp;<span class="tag code" style="vertical-align:middle">programmed</span></div>
       <div class="h-title">The <span class="accent">sprite material</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">11 · Material</div>
+    <div class="brand">12 · Material</div>
   </div>
   <div class="body">
     <div class="two">
@@ -555,18 +635,18 @@ LMesh.<span class="fn">SetMaterialReference</span>(LMat);</pre>
       </div>
     </div>
   </div>
-  <div class="pageno">12</div>
+  <div class="pageno">14</div>
 </section>
 
-<!-- ============ SLIDE 13 — DETAIL: TWO ANIMATION LAYERS ============ -->
+<!-- ============ SLIDE 15 — DETAIL: TWO ANIMATION LAYERS ============ -->
 <section class="slide">
   <div class="head">
     <div>
-      <div class="kicker">Detail 3 &nbsp;<span class="tag code" style="vertical-align:middle">programmed</span></div>
+      <div class="kicker">Detail 4 &nbsp;<span class="tag code" style="vertical-align:middle">programmed</span></div>
       <div class="h-title">Animation on <span class="accent">two levels</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">12 · Animation</div>
+    <div class="brand">13 · Animation</div>
   </div>
   <div class="body">
     <div class="two">
@@ -589,24 +669,71 @@ LMesh.<span class="fn">SetMaterialReference</span>(LMat);</pre>
           <li>Foundation for schooling &amp; food hunting</li>
         </ul>
         <div class="callout" style="margin-top:14px;">
-          <b>Lesson:</b> Don't forget the driving <code style="color:var(--amber)">Skeleton.Loop := True</code> – otherwise the wobble loop runs only <i>once</i>.
+          <b>Lesson:</b> The loop is part of the definition (<code style="color:var(--amber)">LInter.Loop := True</code>); switching loops at runtime is one call: <code style="color:var(--amber)">PlayAnimation('fast')</code>.
         </div>
       </div>
     </div>
     <p class="note" style="margin-top:6px;">→ Separating <b>shape deformation</b> from <b>locomotion</b> keeps the logic clean and flexible.</p>
   </div>
-  <div class="pageno">13</div>
+  <div class="pageno">15</div>
 </section>
 
-<!-- ============ SLIDE 14 — DETAIL: BOIDS ============ -->
+<!-- ============ SLIDE 16 — DETAIL: THE WOBBLE FORMULA ============ -->
 <section class="slide">
   <div class="head">
     <div>
-      <div class="kicker">Detail 4 &nbsp;<span class="tag code" style="vertical-align:middle">programmed</span></div>
+      <div class="kicker">Detail 5 &nbsp;<span class="tag code" style="vertical-align:middle">programmed</span></div>
+      <div class="h-title">The fish wobble, <span class="accent">computed</span></div>
+      <div class="accentbar"></div>
+    </div>
+    <div class="brand">14 · Wobble</div>
+  </div>
+  <div class="body">
+    <div class="two" style="grid-template-columns:1fr 1.08fr; gap:28px; flex:0 0 auto;">
+      <div>
+        <div class="colhead" style="color:var(--teal); text-transform:none; letter-spacing:0;">DeformedVertex(u, v, θ)</div>
+        <ul class="clean">
+          <li style="font-size:16px; margin-bottom:9px;">Input: a grid point <b>(u, v)</b> in −0.5..0.5 and the loop angle <b>θ</b> in 0..2π</li>
+          <li style="font-size:16px; margin-bottom:9px;"><b>Tail weight</b> w = 0.5 − u → 1 at the tail fin, 0 at the head</li>
+          <li style="font-size:16px; margin-bottom:9px;"><b>Travelling wave</b> sin(6u − speed·θ), amplitude × w<sup>tailPow</sup></li>
+          <li style="font-size:16px; margin-bottom:9px;">Displacement: <b>Z</b> = 0.5·wave (fin beat) + <b>Y</b> = 0.05·wave (visible from the front)</li>
+          <li style="font-size:16px; margin-bottom:9px;"><b>speed is an integer</b> → the wave at θ = 2π equals θ = 0: a seamless loop</li>
+          <li style="font-size:16px; margin-bottom:9px;">Jellyfish: pulsing bell + trailing hem · plants &amp; corals: sway with a fixed root (w², w³)</li>
+        </ul>
+      </div>
+      <div>
+        <pre style="font-size:13px; margin-bottom:14px;"><span class="cm">// Aquarium.Elements — AddWobble bakes 25 keyframes</span>
+<span class="kw">for</span> k := <span class="nu">0</span> <span class="kw">to</span> ANIM_KEYS <span class="kw">do</span>                  <span class="cm">// ANIM_KEYS = 24</span>
+<span class="kw">begin</span>
+  theta := <span class="nu">2</span> * PI * (k / ANIM_KEYS);
+  <span class="cm">// … for all 25 × 25 grid points:</span>
+  verts[i] := <span class="fn">DeformedVertex</span>(AKind, u, v, theta,
+                AAmp, ASpeed, ATailPow, ARamp);
+  LInter.<span class="fn">AddKey</span>(k / ANIM_KEYS, verts, Linear); <span class="cm">// TMeshInterpolatorDef</span>
+<span class="kw">end</span>;</pre>
+        <table class="table" style="font-size:14.5px;">
+          <thead><tr><th style="padding:0 10px 8px;">Loop</th><th style="padding:0 10px 8px;">Duration</th><th style="padding:0 10px 8px;">Amp</th><th style="padding:0 10px 8px;">Speed</th><th style="padding:0 10px 8px;">Tail</th><th style="padding:0 10px 8px;">Ramp</th></tr></thead>
+          <tbody>
+<tr><td style="padding:8px 10px;"><b>self</b></td><td style="padding:8px 10px;">1.6 s</td><td style="padding:8px 10px;">1.0</td><td style="padding:8px 10px;">1</td><td style="padding:8px 10px;">2.0</td><td style="padding:8px 10px;">0</td></tr>
+<tr><td style="padding:8px 10px;"><b>fast</b></td><td style="padding:8px 10px;">0.85 s</td><td style="padding:8px 10px;">1.4</td><td style="padding:8px 10px;">2</td><td style="padding:8px 10px;">2.5</td><td style="padding:8px 10px;">0.6</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="note" style="margin-top:18px;">→ <code style="color:var(--amber)">FastSwim := True</code> calls <code style="color:var(--amber)">AnimationManager.PlayAnimation('fast')</code> – a hunting fish beats its tail faster. <b>Ramp</b> lets the beat build up within the loop and fall back to 1 at the loop point. Baked <b>once per template</b>, shared by every instance.</p>
+  </div>
+  <div class="pageno">16</div>
+</section>
+
+<!-- ============ SLIDE 17 — DETAIL: BOIDS ============ -->
+<section class="slide">
+  <div class="head">
+    <div>
+      <div class="kicker">Detail 6 &nbsp;<span class="tag code" style="vertical-align:middle">programmed</span></div>
       <div class="h-title">Life in the scene: <span class="accent">schools &amp; food</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">13 · Behavior</div>
+    <div class="brand">15 · Behavior</div>
   </div>
   <div class="body">
     <p class="lead" style="margin-bottom:18px;"><code style="color:var(--amber)">TAquariumScene.SteerFish</code> contains a classic <b style="color:#eaf4f8">boids</b> model – three simple rules produce believable schooling behavior.</p>
@@ -620,18 +747,18 @@ LMesh.<span class="fn">SetMaterialReference</span>(LMat);</pre>
       <div class="card"><h3><span class="ic">🪼</span>Jellyfish &amp; boundaries</h3><p><code style="color:var(--amber)">SteerJelly</code>: gentle 3D wandering + vertical bobbing. Everyone stays within the <b>tank boundaries</b> (bounce).</p></div>
     </div>
   </div>
-  <div class="pageno">14</div>
+  <div class="pageno">17</div>
 </section>
 
-<!-- ============ SLIDE 15 — DETAIL: HUNGER, HEALTH & DEATH ============ -->
+<!-- ============ SLIDE 18 — DETAIL: HUNGER, HEALTH & DEATH ============ -->
 <section class="slide">
   <div class="head">
     <div>
-      <div class="kicker">Detail 5 &nbsp;<span class="tag code" style="vertical-align:middle">programmed</span></div>
+      <div class="kicker">Detail 7 &nbsp;<span class="tag code" style="vertical-align:middle">programmed</span></div>
       <div class="h-title">Hunger, health &amp; <span class="accent">death</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">14 · Health</div>
+    <div class="brand">16 · Health</div>
   </div>
   <div class="body">
     <div class="flow" style="margin-bottom:20px;">
@@ -670,18 +797,18 @@ LMesh.<span class="fn">SetMaterialReference</span>(LMat);</pre>
       </div>
     </div>
   </div>
-  <div class="pageno">15</div>
+  <div class="pageno">18</div>
 </section>
 
-<!-- ============ SLIDE 15 — DETAIL: INVENTORY & PERSISTENCE ============ -->
+<!-- ============ SLIDE 19 — DETAIL: INVENTORY & PERSISTENCE ============ -->
 <section class="slide">
   <div class="head">
     <div>
-      <div class="kicker">Detail 6 &nbsp;<span class="tag code" style="vertical-align:middle">programmed</span></div>
+      <div class="kicker">Detail 8 &nbsp;<span class="tag code" style="vertical-align:middle">programmed</span></div>
       <div class="h-title">Inventory &amp; <span class="accent">persistence</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">15 · Data</div>
+    <div class="brand">17 · Data</div>
   </div>
   <div class="body">
     <div class="two">
@@ -712,10 +839,10 @@ FScene.<span class="fn">ClearScene</span>();
 FLibrary.<span class="fn">LoadSetupFromFile</span>(LDlg.FileName);
 FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
   </div>
-  <div class="pageno">16</div>
+  <div class="pageno">19</div>
 </section>
 
-<!-- ============ SLIDE 16 — THE LOOP ============ -->
+<!-- ============ SLIDE 20 — THE LOOP ============ -->
 <section class="slide">
   <div class="head">
     <div>
@@ -723,16 +850,16 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
       <div class="h-title">The <span class="accent">animation loop</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">16 · Loop</div>
+    <div class="brand">18 · Loop</div>
   </div>
   <div class="body">
-    <p class="lead" style="margin-bottom:20px;">A <b style="color:#eaf4f8">TTimer</b> (~60&nbsp;fps) is the clock that keeps the whole scene alive.</p>
+    <p class="lead" style="margin-bottom:20px;">A <b style="color:#eaf4f8">TTimer</b> (~60&nbsp;fps) drives the behaviour – the viewport renders on its own at a <b style="color:#eaf4f8">fixed frame rate</b>.</p>
     <div class="flow" style="margin-bottom:24px;">
       <div class="step"><div class="n">~16 ms</div><div class="t">⏱️ TTimer</div><div class="d">FAnimTimer.OnTimer</div></div>
       <div class="arrow">→</div>
       <div class="step"><div class="n">TICK</div><div class="t">Scene.Animate(t)</div><div class="d">Boids · movement · food · health</div></div>
       <div class="arrow">→</div>
-      <div class="step"><div class="n">GPU</div><div class="t">Viewport.Invalidate</div><div class="d">Request a repaint</div></div>
+      <div class="step"><div class="n">60 FPS</div><div class="t">Fixed frame rate</div><div class="d">UseFixedFrameRate = True – the viewport repaints itself</div></div>
       <div class="arrow">↺</div>
       <div class="step"><div class="n">RENDER</div><div class="t">Gorilla3D</div><div class="d">Wobbling, water, passes</div></div>
     </div>
@@ -740,14 +867,17 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
 <span class="kw">procedure</span> <span class="ty">TForm1</span>.<span class="fn">AnimTimerTick</span>(Sender: <span class="ty">TObject</span>);
 <span class="kw">begin</span>
   FScene.<span class="fn">Animate</span>(FClock.Elapsed.TotalSeconds);  <span class="cm">// behavior per frame</span>
-  GorillaViewport1.<span class="fn">Invalidate</span>();                 <span class="cm">// request a frame</span>
+
+  <span class="cm">// Viewport invalidation is only needed if UseFixedFrameRate</span>
+  <span class="cm">// rendering is deactivated.</span>
+<span class="cm">//GorillaViewport1.Invalidate();</span>
 <span class="kw">end</span>;</pre>
-    <p class="note" style="margin-top:16px;">→ <code style="color:var(--amber)">Animate</code> derives <b>dt</b> from the clock and integrates the movement – time-correct, independent of the frame rate.</p>
+    <p class="note" style="margin-top:16px;">→ <code style="color:var(--amber)">GorillaViewport1</code>: <code style="color:var(--amber)">UseFixedFrameRate = True</code>, <code style="color:var(--amber)">FixedFrameRate = 60</code> (set in the .fmx). Only without a fixed frame rate do you call <code style="color:var(--amber)">Invalidate</code> yourself. <code style="color:var(--amber)">Animate</code> derives <b>dt</b> from the clock – time-correct, independent of the frame rate.</p>
   </div>
-  <div class="pageno">17</div>
+  <div class="pageno">20</div>
 </section>
 
-<!-- ============ SLIDE 17 — LESSONS LEARNED ============ -->
+<!-- ============ SLIDE 21 — LESSONS LEARNED ============ -->
 <section class="slide">
   <div class="head">
     <div>
@@ -755,22 +885,22 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
       <div class="h-title">Lessons &amp; <span class="accent">best practices</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">17 · Lessons</div>
+    <div class="brand">19 · Lessons</div>
   </div>
   <div class="body">
     <div class="grid g2">
       <div class="card"><h3><span class="ic">🧩</span>Design time first</h3><p>Compose as much as possible from components. Write code only for the dynamic parts – that saves an enormous amount of effort.</p></div>
-      <div class="card"><h3><span class="ic">🔑</span>Understand def ownership</h3><p>The model <b>owns</b> its <code style="color:var(--amber)">TModelDef</code> and frees it. Don't share/cache it &amp; free it yourself → otherwise access violation.</p></div>
+      <div class="card"><h3><span class="ic">🔑</span>Understand def ownership</h3><p>By default a model <b>owns</b> its <code style="color:var(--amber)">TModelDef</code> and frees it. SketchQuarium shares one cached def per template → <code style="color:var(--amber)">IsDefOwner := False</code>, and the <b>scene</b> frees the defs – once no fish uses them any more.</p></div>
       <div class="card"><h3><span class="ic">💡</span>UseLighting trap</h3><p>Gorilla forces lighting internally – for the sprite look, disable lighting <b>after</b> materializing.</p></div>
-      <div class="card"><h3><span class="ic">🔁</span>Skeleton.Loop</h3><p><code style="color:var(--amber)">Current.Start</code> alone doesn't loop – the driving skeleton needs <code style="color:var(--amber)">Loop := True</code>.</p></div>
+      <div class="card"><h3><span class="ic">🔁</span>Seamless loops</h3><p>Every time term must be a <b>whole multiple</b> of θ – then the last baked keyframe equals the first and the loop never jumps.</p></div>
       <div class="card"><h3><span class="ic">🧭</span>Separate responsibilities</h3><p>Drawing, placement, scene and catalog each in their own units – Unit1 stays lean “glue”.</p></div>
       <div class="card"><h3><span class="ic">🧵</span>One timer, one dt</h3><p>Integrate based on time instead of per frame – same behavior at any frame rate.</p></div>
     </div>
   </div>
-  <div class="pageno">18</div>
+  <div class="pageno">21</div>
 </section>
 
-<!-- ============ SLIDE 18 — SUMMARY ============ -->
+<!-- ============ SLIDE 22 — SUMMARY ============ -->
 <section class="slide">
   <div class="head">
     <div>
@@ -778,15 +908,16 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
       <div class="h-title">Key <span class="accent">takeaways</span></div>
       <div class="accentbar"></div>
     </div>
-    <div class="brand">18 · Conclusion</div>
+    <div class="brand">20 · Conclusion</div>
   </div>
   <div class="body">
-    <ul class="clean" style="font-size:20px; margin-top:4px;">
+    <ul class="clean" style="font-size:19px; margin-top:0;">
       <li><b>Delphi + Gorilla3D</b> combines visual composition with full code control – ideal for ambitious 3D apps.</li>
       <li>The <b>static stage</b> (water, caustics, physics, bubbles, sound) is created almost entirely <b style="color:var(--teal)">at design time without code</b>.</li>
       <li>The <b>creative, dynamic core</b> – drawing → mesh → animation → schooling → persistence – is <b style="color:var(--coral)">cleanly encapsulated code</b>.</li>
       <li>The <b>CustomMesh/ModelDef approach</b> is the key to turning user content into real 3D objects at runtime.</li>
       <li>Two separate animation levels + a time-based loop make the world <b>alive and controllable</b>.</li>
+      <li><b>Swappable backends</b>: OpenGL or Vulkan, Jolt or Q3, FMOD or OpenAL – one line in the .dpr or one property.</li>
     </ul>
     <div class="split-legend" style="margin-top:34px;">
       <span><span class="dot d"></span> Design time — composed</span>
@@ -797,7 +928,7 @@ FScene.<span class="fn">RestoreFromInventory</span>(FLibrary.Inventory);</pre>
     </div>
     <p class="note" style="margin-top:14px;">SketchQuarium · Delphi / FireMonkey · Gorilla3D — gorilla3d.de</p>
   </div>
-  <div class="pageno">19</div>
+  <div class="pageno">22</div>
 </section>
 
 <script>
