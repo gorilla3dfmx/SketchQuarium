@@ -1409,6 +1409,9 @@ begin
   LKind := FKind;
 
   FLibrary.UpdateDrawing(LTpl, LKind, NameEdit.Text, CanvasImage.Bitmap);
+  // Gecachtes ModelDef verwerfen: neue Instanzen bekommen die neue Textur,
+  // das alte Def wird mit der letzten platzierten Instanz freigegeben.
+  FScene.InvalidateModelDef(LTpl.Id);
   RefreshElementsList();
   ElementsList.ItemIndex := LIdx;
   ElementsListChange(ElementsList);
@@ -1424,6 +1427,9 @@ begin
     Exit;
   end;
 
+  // Gecachtes ModelDef der Vorlage verwerfen (vor dem Loeschen, solange die
+  // Id noch greifbar ist); freigegeben wird es, sobald keine Instanz es nutzt.
+  FScene.InvalidateModelDef(FLibrary.GetTemplate(LIdx).Id);
   FLibrary.DeleteDrawing(FLibrary.GetTemplate(LIdx));
   RefreshElementsList();
 end;

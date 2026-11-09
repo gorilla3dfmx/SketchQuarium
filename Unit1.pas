@@ -110,6 +110,8 @@ implementation
 {$R *.fmx}
 
 uses
+  Gorilla.GLB.Loader,
+  Gorilla.USD.Loader,
   Gorilla.Context.ShadowSettings;
 
 procedure TForm1.FormCreate(Sender: TObject);
@@ -298,7 +300,9 @@ end;
 procedure TForm1.AnimTimerTick(Sender: TObject);
 begin
   FScene.Animate(FClock.Elapsed.TotalSeconds);
-  GorillaViewport1.Invalidate();
+
+  // NOTICE: Viewport invalidation is only needed if UseFixedFrameRate rendering is deactivated.
+//  GorillaViewport1.Invalidate();
 end;
 
 procedure TForm1.DrawButtonClick(Sender: TObject);
