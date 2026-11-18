@@ -5,11 +5,10 @@
         <FrameworkType>FMX</FrameworkType>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Release</Config>
-        <Platform Condition="'$(Platform)'==''">Win64</Platform>
+        <Platform Condition="'$(Platform)'==''">Linux64</Platform>
         <TargetedPlatforms>693395</TargetedPlatforms>
         <AppType>Application</AppType>
         <MainSource>SketchQuarium.dpr</MainSource>
-        <ProjectName Condition="'$(ProjectName)'==''">SketchQuarium</ProjectName>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
         <Base>true</Base>
@@ -703,6 +702,18 @@
                 <DeployFile LocalName="assets\textures\bubble.png" Configuration="Release" Class="File">
                     <Platform Name="Linux64">
                         <RemoteName>bubble.png</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="package.zip" Configuration="Debug" Class="File">
+                    <Platform Name="Linux64">
+                        <RemoteName>package.zip</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="package.zip" Configuration="Release" Class="File">
+                    <Platform Name="Linux64">
+                        <RemoteName>package.zip</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

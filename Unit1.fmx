@@ -52,7 +52,7 @@ object Form1: TForm1
     SSAO_Enabled = False
     SSAO_Radius = 1.000000000000000000
     SSAO_Bias = 0.500000000000000000
-    DiagnosticsActive = True
+    DiagnosticsActive = False
     RendererOutputLayer = OutputAll
     Color = claAzure
     Size.Width = 1280.000000000000000000
@@ -10030,14 +10030,17 @@ object Form1: TForm1
     end
     object Octopus: TGorillaModel
       QualifiedName = 'USDModel1'
-      Position.Y = 6.500000000000000000
+      Position.X = -10.000000000000000000
+      Position.Y = 6.750000000000000000
+      Position.Z = 10.000000000000000000
       Scale.X = 0.019999999552965160
       Scale.Y = 0.019999999552965160
       Scale.Z = 0.019999999552965160
       RotationAngle.X = -90.000000000000000000
-      Width = 0.024846317246556280
+      RotationAngle.Z = -45.000000000000000000
+      Width = 0.022661209106445310
       Height = 0.018386840820312500
-      Depth = 0.007201210130006075
+      Depth = 0.022661209106445310
       Opaque = True
       FrustumCullingCheck = True
       ShowNormals = False
@@ -10048,7 +10051,9 @@ object Form1: TForm1
       AssetsManager = GorillaAssetsManager1
       PackageName = 'package.zip'
       Source = 'Octopus.usdz'
-      Quanternion = '(0.70710676908493,0,0,-0.70710676908493)'
+      Quanternion = 
+        '(-0.653281390666962,-0.270598024129868,-0.2705979347229,0.653281' +
+        '450271606)'
     end
     object GorillaHemisphere1: TGorillaHemisphere
       HitTest = False
@@ -125775,11 +125780,11 @@ object Form1: TForm1
       Height = 500.000000000000000000
       Depth = 500.000000000000000000
       Opaque = True
-      Driver = JOLTPhysics
+      Driver = Q3Physics
       Active = False
       Async = True
       RenderColliders = False
-      Accuracy = 1
+      Accuracy = 10
       Colliders = <
         item
           DisplayName = 'RightWallCollider'
@@ -126989,9 +126994,7 @@ object Form1: TForm1
             DisplayName = 'SKILLS'
             AssetClassName = 'TGorillaSkillsAsset'
           end>
-        Filename = 
-          'C:\delphi\projects\wax\lib\gorilla\github\SketchQuarium\package.' +
-          'zip'
+        Filename = 'package.zip'
       end>
     Left = 144
     Top = 80

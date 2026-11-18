@@ -124,7 +124,7 @@ begin
 
   Rock.IsStatic := true;
 
-  Octopus.Visible := false;
+  //Octopus.Visible := false;
   Octopus.SetHitTestValue(false);
   Octopus.AnimationManager.Current.Start;
 
