@@ -180,7 +180,7 @@
   <div class="big">Sketch<span class="a">Quarium</span></div>
   <div class="sub">A hand-drawn, living 3D aquarium – built with
     <b style="color:#eaf4f8">Delphi&nbsp;/&nbsp;FireMonkey</b> and the
-    <b style="color:#eaf4f8">Gorilla3D</b> engine.</div>
+    <b style="color:#eaf4f8">Gorilla3D</b> framework.</div>
   <div class="meta">
     <span class="chip">Seminar talk</span>
     <span>From the big picture down to the details — design time &amp; code</span>
@@ -210,7 +210,7 @@
       <div class="founder">
         <span class="ic">🦍</span>
         <div><div class="t">Founder &amp; developer at Gorilla Software</div>
-          <div class="d">Gorilla3D – the 3D engine for Delphi / FireMonkey</div></div>
+          <div class="d">Gorilla3D – the 3D framework for Delphi / FireMonkey</div></div>
       </div>
     </div>
     <div class="porthole">
@@ -275,7 +275,7 @@
     <div class="stack" style="margin-top:6px;">
       <div class="layer L1"><div class="lt">🪟 FMX form</div><div class="ld"><b>Unit1</b> — holds the 3D scene and the 2D toolbar and wires all parts together. The “glue” of the application.</div></div>
       <div class="layer L2"><div class="lt">🧠 Application logic</div><div class="ld"><b>Aquarium.* units</b> — elements &amp; scene, drawing editor, placement mode, inventory catalog, editor theme. The hand-written part.</div></div>
-      <div class="layer L3"><div class="lt">🦍 Gorilla3D engine</div><div class="ld">Viewport, models, materials, render passes, physics, particles, audio, inventory framework — as components &amp; classes.</div></div>
+      <div class="layer L3"><div class="lt">🦍 Gorilla3D framework</div><div class="ld">Viewport, models, materials, render passes, physics, particles, audio, inventory framework — as components &amp; classes.</div></div>
       <div class="layer L4"><div class="lt">⚙️ FireMonkey / RTL</div><div class="ld">Platform foundation: windows, 2D graphics (TBitmap/Skia), timers, file system, math (vectors).</div></div>
     </div>
     <div class="callout" style="margin-top:26px;">
@@ -660,7 +660,7 @@ LMesh.<span class="fn">SetMaterialReference</span>(LMat);</pre>
           <li>Keyframes are <b>precomputed</b> over one loop period (<code style="color:var(--amber)">DeformedVertex</code>)</li>
           <li>Fish: traveling wave with an emphasized <b>tail fin</b></li>
           <li>Two loops: <b>self</b> (calm) &amp; <b>fast</b> (hunting)</li>
-          <li>The <b>engine</b> plays them back – close to the GPU</li>
+          <li>The <b>framework</b> plays them back – close to the GPU</li>
         </ul>
       </div>
       <div>
