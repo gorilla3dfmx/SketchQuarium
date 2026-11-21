@@ -98,6 +98,10 @@ type
 
     /// <summary>Vorlagen-Auswahl aus dem Inventar-Katalog -> Platzierungsmodus.</summary>
     procedure CatalogPick(Sender: TObject; ATemplate: TGorillaInventoryItemTemplate);
+
+    /// <summary>Audio-Pfade aus dem Formular (".\assets\music\x.mp3")
+    /// plattformunabhaengig aufloesen (Linux: '/' + flaches Deployment).</summary>
+    procedure ResolveAudioPaths();
   public
     { Public-Deklarationen }
   end;
@@ -114,8 +118,53 @@ uses
   Gorilla.USD.Loader,
   Gorilla.Context.ShadowSettings;
 
+/// Sucht eine im Formular hinterlegte Asset-Datei. Die Pfade sind im
+/// Windows-Stil relativ angegeben (".\assets\music\x.mp3"). Unter Linux ist
+/// '\' ein gueltiges Dateinamenzeichen und der Deploy legt die Dateien flach
+/// neben das Binary. Reihenfolge: wie angegeben (normalisiert, relativ zum
+/// Arbeitsverzeichnis), relativ zum Programmordner, nur Dateiname im
+/// Programmordner. Nichts gefunden -> Originalwert unveraendert zurueck.
+function ResolveAssetPath(const APath: String): String;
+var
+  LRel, LAppDir, LCand : String;
+begin
+  Result := APath;
+  if APath = '' then
+    Exit;
+
+  LRel := StringReplace(APath, '\', PathDelim, [rfReplaceAll]);
+  LRel := StringReplace(LRel, '/', PathDelim, [rfReplaceAll]);
+  if LRel.StartsWith('.' + PathDelim) then
+    LRel := LRel.Substring(2);
+
+  LAppDir := IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)));
+
+  for LCand in [LRel, LAppDir + LRel, LAppDir + ExtractFileName(LRel)] do
+    if FileExists(LCand) then
+      Exit(LCand);
+end;
+
+procedure TForm1.ResolveAudioPaths();
+var
+  i : Integer;
+  LSnd : TGorillaFMODSoundItem;
+begin
+  for i := 0 to GorillaAudioPlaylist1.Items.Count - 1 do
+    GorillaAudioPlaylist1.Items[i].FilePath :=
+      ResolveAssetPath(GorillaAudioPlaylist1.Items[i].FilePath);
+
+  // FMOD oeffnet Datei-Sounds erst beim ersten PlaySound() -> hier rechtzeitig
+  for i := 0 to GorillaFMODAudioManager1.Sounds.Count - 1 do
+  begin
+    LSnd := GorillaFMODAudioManager1.Sounds.Items[i] as TGorillaFMODSoundItem;
+    LSnd.FileName := ResolveAssetPath(LSnd.FileName);
+  end;
+end;
+
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+  ResolveAudioPaths();
+
   Self.ClientWidth := 1920;
   Self.ClientHeight := 1080;
 

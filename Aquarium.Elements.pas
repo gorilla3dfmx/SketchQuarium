@@ -545,6 +545,33 @@ end;
 
 { TAquariumLibrary }
 
+/// Basisverzeichnis fuer Benutzerdaten. Unter Linux (insb. WSL ohne
+/// xdg-user-dirs) liefert System.IOUtils.TPath.GetDocumentsPath einen Leerstring -> der Pfad
+/// waere relativ zum Arbeitsverzeichnis, in dem die gleichnamige Programmdatei
+/// "SketchQuarium" liegt (mkdir -> EEXIST "File exists"). Daher Fallback auf
+/// das Home-Verzeichnis bzw. das Temp-Verzeichnis; Ergebnis immer absolut.
+function AquariumDataRoot(): String;
+begin
+  Result := '';
+  try
+    Result := System.IOUtils.TPath.GetDocumentsPath;
+  except
+    Result := '';
+  end;
+
+  if (Result = '') or not System.IOUtils.TPath.IsPathRooted(Result) then
+  begin
+    try
+      Result := System.IOUtils.TPath.GetHomePath;
+    except
+      Result := '';
+    end;
+  end;
+
+  if (Result = '') or not System.IOUtils.TPath.IsPathRooted(Result) then
+    Result := System.IOUtils.TPath.GetTempPath;
+end;
+
 constructor TAquariumLibrary.Create();
 begin
   inherited Create();
@@ -552,7 +579,7 @@ begin
   FInventory := TGorillaInventory.Create(nil);
 
   FElementsDir := TPath.Combine(
-    TPath.Combine(TPath.GetDocumentsPath, 'SketchQuarium'), 'inventory');
+    TPath.Combine(AquariumDataRoot(), 'SketchQuarium'), 'inventory');
   FFilePath := TPath.Combine(FElementsDir, 'inventory.xml');
 
   EnsureDirectories();
