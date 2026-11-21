@@ -1,0 +1,556 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Import Condition="Exists('$(BDS)\bin\CodeGear.Deployment.targets')" Project="$(BDS)\bin\CodeGear.Deployment.targets"/>
+    <ProjectExtensions>
+        <ProjectFileVersion>12</ProjectFileVersion>
+    </ProjectExtensions>
+    <PropertyGroup>
+        <DeviceId Condition="'$(Platform)'=='Android'"/>
+        <DeviceId Condition="'$(Platform)'=='Android64'"/>
+        <DeviceId Condition="'$(Platform)'=='iOSDevice64'"/>
+        <DeviceId Condition="'$(Platform)'=='iOSSimARM64'"/>
+    </PropertyGroup>
+    <ItemGroup Condition="'$(Platform)'=='WinARM64EC'"/>
+    <ItemGroup Condition="'$(Platform)'=='OSX64'"/>
+    <ItemGroup Condition="'$(Platform)'=='Win32'">
+        <DeployFile Include="Win32\Debug\SketchQuarium.exe" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>SketchQuarium.exe</RemoteName>
+            <DeployClass>ProjectOutput</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+            <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="$(SKIADIR)\Binary\Shared\Win32\sk4d.dll" Condition="'$(Config)'=='Debug' And '$(SKIADIR)'!=''">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>sk4d.dll</RemoteName>
+            <DeployClass>Skia</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+            <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="$(SKIADIR)\Binary\Shared\Win32\sk4d.dll" Condition="'$(Config)'=='Release' And '$(SKIADIR)'!=''">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>sk4d.dll</RemoteName>
+            <DeployClass>Skia</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+            <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="$(BDS)\bin\sk4d.dll" Condition="'$(Config)'=='Debug' And '$(SKIADIR)'==''">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>sk4d.dll</RemoteName>
+            <DeployClass>Skia</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+            <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="$(BDS)\bin\sk4d.dll" Condition="'$(Config)'=='Release' And '$(SKIADIR)'==''">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>sk4d.dll</RemoteName>
+            <DeployClass>Skia</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+            <Required>True</Required>
+        </DeployFile>
+    </ItemGroup>
+    <ItemGroup Condition="'$(Platform)'=='Android64'"/>
+    <ItemGroup Condition="'$(Platform)'=='Android'"/>
+    <ItemGroup Condition="'$(Platform)'=='Win64'">
+        <DeployFile Include="$(SKIADIR)\Binary\Shared\Win64\sk4d.dll" Condition="'$(Config)'=='Debug' And '$(SKIADIR)'!=''">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>sk4d.dll</RemoteName>
+            <DeployClass>Skia</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+            <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="$(SKIADIR)\Binary\Shared\Win64\sk4d.dll" Condition="'$(Config)'=='Release' And '$(SKIADIR)'!=''">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>sk4d.dll</RemoteName>
+            <DeployClass>Skia</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+            <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="$(BDS)\bin64\sk4d.dll" Condition="'$(Config)'=='Debug' And '$(SKIADIR)'==''">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>sk4d.dll</RemoteName>
+            <DeployClass>Skia</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+            <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="$(BDS)\bin64\sk4d.dll" Condition="'$(Config)'=='Release' And '$(SKIADIR)'==''">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>sk4d.dll</RemoteName>
+            <DeployClass>Skia</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+            <Required>True</Required>
+        </DeployFile>
+    </ItemGroup>
+    <ItemGroup Condition="'$(Platform)'=='OSXARM64'">
+        <DeployFile Include="$(BDS)\bin\delphi_PROJECTICNS.icns" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium.app\Contents\Resources\</RemoteDir>
+            <RemoteName>SketchQuarium.icns</RemoteName>
+            <DeployClass>ProjectOSXResource</DeployClass>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="..\..\source\packages\lib\fmod\macos\libfmodstudioL.dylib" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium.app\Contents\Resources\StartUp\</RemoteDir>
+            <RemoteName>libfmodstudioL.dylib</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="..\..\source\packages\lib\fmod\macos\libfmodstudioL.dylib" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium.app\Contents\Resources\StartUp\</RemoteDir>
+            <RemoteName>libfmodstudioL.dylib</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="OSXARM64\Release\SketchQuarium.entitlements" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium.app\..\</RemoteDir>
+            <RemoteName>SketchQuarium.entitlements</RemoteName>
+            <DeployClass>ProjectOSXEntitlements</DeployClass>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="..\..\source\packages\lib\fmod\macos\libfmodstudio.dylib" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium.app\Contents\Resources\StartUp\</RemoteDir>
+            <RemoteName>libfmodstudio.dylib</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="..\..\source\packages\lib\fmod\macos\libfmodstudio.dylib" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium.app\Contents\Resources\StartUp\</RemoteDir>
+            <RemoteName>libfmodstudio.dylib</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="OSXARM64\Release\SketchQuarium" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium.app\Contents\MacOS\</RemoteDir>
+            <RemoteName>SketchQuarium</RemoteName>
+            <DeployClass>ProjectOutput</DeployClass>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+            <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="OSXARM64\Release\SketchQuarium.info.plist" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium.app\Contents\</RemoteDir>
+            <RemoteName>Info.plist</RemoteName>
+            <DeployClass>ProjectOSXInfoPList</DeployClass>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+    </ItemGroup>
+    <ItemGroup Condition="'$(Platform)'=='iOSDevice64'"/>
+    <ItemGroup Condition="'$(Platform)'=='iOSSimARM64'"/>
+    <ItemGroup Condition="'$(Platform)'=='Win64x'"/>
+    <ItemGroup Condition="'$(Platform)'=='Linux64'">
+        <DeployFile Include="assets\music\magiksolo-aquarium-fish-132518.mp3" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>magiksolo-aquarium-fish-132518.mp3</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\music\magiksolo-aquarium-fish-132518.mp3" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>magiksolo-aquarium-fish-132518.mp3</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="$(SKIADIR)\Binary\Shared\Linux64\libsk4d.so" Condition="'$(Config)'=='Debug' And '$(SKIADIR)'!=''">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>libsk4d.so</RemoteName>
+            <DeployClass>Skia</DeployClass>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+            <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="$(SKIADIR)\Binary\Shared\Linux64\libsk4d.so" Condition="'$(Config)'=='Release' And '$(SKIADIR)'!=''">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>libsk4d.so</RemoteName>
+            <DeployClass>Skia</DeployClass>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+            <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="package.zip" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>package.zip</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="package.zip" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>package.zip</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="..\..\source\packages\lib\fmod\linux\x86_64\libfmod.so.10.8" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>libfmod.so.10.8</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="..\..\source\packages\lib\fmod\linux\x86_64\libfmod.so.10.8" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>libfmod.so.10.8</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="$(BDS)\binlinux64\libsk4d.so" Condition="'$(Config)'=='Debug' And '$(SKIADIR)'==''">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>libsk4d.so</RemoteName>
+            <DeployClass>Skia</DeployClass>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+            <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="$(BDS)\binlinux64\libsk4d.so" Condition="'$(Config)'=='Release' And '$(SKIADIR)'==''">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>libsk4d.so</RemoteName>
+            <DeployClass>Skia</DeployClass>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+            <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="..\..\source\packages\lib\fmod\linux\x86_64\libfmodL.so.10.8" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>libfmodL.so.10.8</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="..\..\source\packages\lib\fmod\linux\x86_64\libfmodL.so.10.8" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>libfmodL.so.10.8</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="Linux64\Debug\SketchQuarium" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>SketchQuarium</RemoteName>
+            <DeployClass>ProjectOutput</DeployClass>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+            <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="assets\music\geoffharvey-dolphin-world-370309.mp3" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>geoffharvey-dolphin-world-370309.mp3</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\music\geoffharvey-dolphin-world-370309.mp3" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>geoffharvey-dolphin-world-370309.mp3</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\models\RockStack1-lq.glb" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>RockStack1-lq.glb</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\models\RockStack1-lq.glb" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>RockStack1-lq.glb</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\music\welc0mei0-231104-electronica-ambient-idm-water-176106.mp3" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>welc0mei0-231104-electronica-ambient-idm-water-176106.mp3</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\music\welc0mei0-231104-electronica-ambient-idm-water-176106.mp3" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>welc0mei0-231104-electronica-ambient-idm-water-176106.mp3</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\textures\bubble.png" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>bubble.png</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\music\u_xjrmmgxfru-hit-plant-01-266293.mp3" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>u_xjrmmgxfru-hit-plant-01-266293.mp3</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="..\..\source\packages\lib\fmod\linux\x86_64\libfmodL.so.10" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>libfmodL.so.10</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="..\..\source\packages\lib\fmod\linux\x86_64\libfmodL.so.10" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>libfmodL.so.10</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\music\u_xjrmmgxfru-hit-plant-01-266293.mp3" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>u_xjrmmgxfru-hit-plant-01-266293.mp3</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="..\..\source\packages\lib\fmod\linux\x86_64\libfmod.so.10" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>libfmod.so.10</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="..\..\source\packages\lib\fmod\linux\x86_64\libfmod.so.10" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>libfmod.so.10</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="..\..\source\packages\lib\fmod\linux\x86_64\libfmodL.so" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>libfmodL.so</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="..\..\source\packages\lib\fmod\linux\x86_64\libfmodL.so" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>libfmodL.so</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="Linux64\Release\SketchQuarium" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>SketchQuarium</RemoteName>
+            <DeployClass>ProjectOutput</DeployClass>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+            <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="assets\music\freesound_community-water-splash-46402.mp3" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>freesound_community-water-splash-46402.mp3</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\music\freesound_community-water-splash-46402.mp3" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>freesound_community-water-splash-46402.mp3</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\textures\bubble.png" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>bubble.png</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\models\Octopus.usdz" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>Octopus.usdz</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\models\Octopus.usdz" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>Octopus.usdz</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\music\freesound_community-water-drip-45622.mp3" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>freesound_community-water-drip-45622.mp3</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\music\freesound_community-water-drip-45622.mp3" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>freesound_community-water-drip-45622.mp3</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="..\..\source\packages\lib\fmod\linux\x86_64\libfmod.so" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>libfmod.so</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="..\..\source\packages\lib\fmod\linux\x86_64\libfmod.so" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>libfmod.so</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\models\RockStack1-hq.glb" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>RockStack1-hq.glb</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="assets\models\RockStack1-hq.glb" Condition="'$(Config)'=='Release'">
+            <RemoteDir>SketchQuarium\</RemoteDir>
+            <RemoteName>RockStack1-hq.glb</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+    </ItemGroup>
+</Project>
