@@ -660,6 +660,11 @@ begin
   for i := 0 to FInventory.ItemTemplates.Count - 1 do
   begin
     LTpl := FInventory.ItemTemplates.Items[i] as TGorillaInventoryItemTemplate;
+    // Aeltere Inventare/Setups enthalten noch das Inventory-Default-Limit
+    // max-quantity="10" je Vorlage. Ab der 11. Instanz liefert Build() dann
+    // nil -> das Element waere sichtbar, aber ohne Collectable und wuerde
+    // nicht gespeichert. Daher beim Laden immer auf unbegrenzt setzen.
+    LTpl.MaxQuantity := 0;
     LRel := VisualFileOf(LTpl);
     if LRel = '' then
       Continue;
@@ -765,6 +770,7 @@ begin
   Result := FInventory.AddItemTemplate(LId);
   Result.Group    := GroupForKind(AKind);
   Result.IsPooled := False;   // jede Platzierung wird eine eigene Instanz
+  Result.MaxQuantity := 0;    // unbegrenzt viele Instanzen (Default waere 10)
   Result.Enabled  := True;
   Result.Name.AddOrSetValue(FInventory.GetCurrentLanguageName(), LName);
 
